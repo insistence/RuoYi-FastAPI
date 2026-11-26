@@ -4,8 +4,8 @@ from typing import Annotated, Any, Literal
 import typer
 
 from cli.context import AllowProdOption, DryRunOption, EnvOption, OutputOption, YesOption
+from cli.groups.plugin.options import PluginPlanOperation
 
-PluginBatchOperation = Literal['install', 'enable', 'upgrade']
 PluginMigrationStatus = Literal['running', 'success', 'failed', 'unknown']
 
 
@@ -19,7 +19,7 @@ def register_lifecycle_commands(app: typer.Typer, get_controller: Callable[[], A
 
     @app.command('batch', help='按拓扑顺序批量执行插件操作')
     def batch_command(
-        operation: Annotated[PluginBatchOperation, typer.Argument(help='批量操作类型：install、enable 或 upgrade')],
+        operation: Annotated[PluginPlanOperation, typer.Argument(help='批量操作类型：install、enable 或 upgrade')],
         plugin_ids: Annotated[list[str] | None, typer.Argument(help='插件ID列表，不传则执行全部插件')] = None,
         env: EnvOption = 'dev',
         output: OutputOption = 'text',

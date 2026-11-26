@@ -1,0 +1,15 @@
+[environment]
+python-platform = "all"
+python-version = "3.11"
+
+[rules]
+blanket-ignore-comment = "error"
+disjoint-cast = "error"
+mismatched-enum-name = "error"
+mismatched-namedtuple-name = "error"
+mismatched-sentinel-name = "error"
+unsound-return = "error"
+unsound-yield = "error"
+
+[terminal]
+error-on-warning = true

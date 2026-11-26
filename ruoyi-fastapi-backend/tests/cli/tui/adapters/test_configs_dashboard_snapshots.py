@@ -9,7 +9,7 @@ from pytest import MonkeyPatch
 async def test_collect_dashboard_snapshot_adds_risk_heat_panel(
     monkeypatch: MonkeyPatch,
     health_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """仪表盘快照包含风险热度面板。"""
 
@@ -133,7 +133,7 @@ async def test_collect_dashboard_snapshot_adds_risk_heat_panel(
 async def test_dashboard_adapter_collect_snapshot_exposes_metrics(
     monkeypatch: MonkeyPatch,
     health_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """仪表盘适配器快照提供指标。"""
 
@@ -182,7 +182,7 @@ async def test_dashboard_adapter_collect_snapshot_exposes_metrics(
 async def test_collect_dashboard_snapshot_uses_focus_hints_for_healthy_business_entry(
     monkeypatch: MonkeyPatch,
     health_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """业务入口健康时仪表盘提供焦点提示。"""
 
@@ -242,7 +242,7 @@ async def test_collect_dashboard_snapshot_uses_focus_hints_for_healthy_business_
 async def test_collect_configs_page_snapshot_surfaces_failure_message(
     monkeypatch: MonkeyPatch,
     configs_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """配置快照显示失败原因。"""
 
@@ -280,7 +280,7 @@ async def test_collect_configs_page_snapshot_surfaces_failure_message(
 async def test_configs_browser_adapter_collect_snapshot_exposes_search_context(
     monkeypatch: MonkeyPatch,
     configs_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """配置浏览器快照提供搜索上下文。"""
 
@@ -342,7 +342,7 @@ async def test_configs_browser_adapter_collect_snapshot_exposes_search_context(
 async def test_collect_configs_page_snapshot_builds_browser_records(
     monkeypatch: MonkeyPatch,
     configs_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """配置快照生成可浏览的记录。"""
     calls: list[tuple[str, ...]] = []
@@ -445,7 +445,7 @@ async def test_collect_configs_page_snapshot_builds_browser_records(
 async def test_collect_configs_page_snapshot_sorts_and_filters_risky_records(
     monkeypatch: MonkeyPatch,
     configs_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """配置快照对风险记录排序并过滤。"""
 
@@ -536,7 +536,7 @@ async def test_collect_configs_page_snapshot_sorts_and_filters_risky_records(
 async def test_collect_configs_page_snapshot_applies_query_filter(
     monkeypatch: MonkeyPatch,
     configs_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """配置快照按查询条件过滤。"""
 

@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from uuid import uuid4
 
-from babel.messages.catalog import Catalog
+from babel.messages.catalog import Catalog, TranslationError
 from babel.messages.mofile import write_mo
 from babel.messages.pofile import PoFileError, read_po
 
@@ -16,7 +16,7 @@ from plugins.core.discovery.scanner import PluginScanner
 from plugins.core.environment import PLUGIN_RUNTIME_ENVIRONMENT
 
 SOURCE_PLUGINS = Path(PLUGIN_RUNTIME_ENVIRONMENT.get_backend_plugins_dir()).resolve()
-CoreModuleKeys = dict[str, set[tuple[str | None, str | tuple[str, str]]]]
+CoreModuleKeys = dict[str, set[tuple[str | None, str | tuple[str, ...]]]]
 
 
 def _read_catalog(path: Path, code: str) -> Catalog:
@@ -38,7 +38,7 @@ def _read_catalog(path: Path, code: str) -> Catalog:
         if message.id:
             values = message.string if isinstance(message.string, (list, tuple)) else (message.string,)
             if message.fuzzy or not all(values):
-                failures.append((message, ['Unreviewed or empty translation']))
+                failures.append((message, [TranslationError('Unreviewed or empty translation')]))
     if failures:
         raise ValueError(f'{path}: {failures}')
     return catalog
@@ -70,7 +70,7 @@ def _read_core_modules(spec: CatalogSpec, code: str) -> tuple[Catalog, CoreModul
         for message in catalog:
             if not message.id:
                 continue
-            keys.add((message.context, message.id))
+            keys.add((message.context, message.id if isinstance(message.id, str) else tuple(message.id)))
             if merged is not None:
                 if merged.get(message.id, message.context) is not None:
                     raise ValueError(f'{path}: duplicate core msgid {message.id!r} (context {message.context!r})')

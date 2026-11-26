@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import CursorResult, select, update
 
 from i18n.message import I18nMessage
 from plugins.core.deployment.service import PluginDeploymentService
@@ -85,7 +85,7 @@ class PluginArtifactEnablementService(PluginDeploymentService):
                     .values(generation=generation, update_by=actor)
                     .execution_options(synchronize_session=False)
                 )
-                if changed.rowcount != 1:
+                if not isinstance(changed, CursorResult) or changed.rowcount != 1:
                     raise PluginReleaseConflictError('发布状态已变化，启停操作未执行')
                 result = await PluginService.update_plugin_enabled_services(db, plugin_id, enabled, discovered)
                 if not result.is_success:

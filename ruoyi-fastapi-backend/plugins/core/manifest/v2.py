@@ -1,5 +1,5 @@
 import re
-from typing import Literal
+from typing import Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -37,7 +37,7 @@ def validate_relative_resource(value: str) -> str:
 class NativeManifest(BaseModel):
     """已经离线安装到插件目录的原生发行包声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     distribution: str = Field(
         pattern=r'^[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?$', description='已安装的原生发行包名称'
@@ -50,13 +50,13 @@ class NativeManifest(BaseModel):
 class AsgiManifest(BaseModel):
     """子应用挂载与生命周期声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     mount_path: str | None = Field(default=None, alias='mountPath', description='ASGI 子应用的挂载路径')
     lifespan: Literal['managed', 'none'] = Field(default='managed', description='子应用生命周期管理方式')
 
 
-class PluginJobManifestV2(PluginJobManifest):
+class PluginJobManifestV2(PluginJobManifest[Literal['default']]):
     """在宿主事件循环中分发，禁止把原生对象发送至进程池。"""
 
     executor: Literal['default'] = Field(default='default', description='调度任务使用的执行器')
@@ -70,14 +70,14 @@ class PluginJobManifestV2(PluginJobManifest):
     )
 
 
-class BackendManifestV2(BackendManifest):
+class BackendManifestV2(BackendManifest[PluginJobManifestV2]):
     """交付运行时和 Web 接入方式彼此独立。"""
 
     runtime: Literal['python', 'native'] = Field(default='python', description='插件后端运行时类型')
     integration: Literal['router', 'asgi'] = Field(default='router', description='插件接入宿主的方式')
     entrypoint: str = Field(description='创建插件后端的入口函数路径')
     routers: RouterManifest = Field(
-        default_factory=lambda: RouterManifest(autoScan=False), description='插件的路由注册配置'
+        default_factory=lambda: RouterManifest(auto_scan=False), description='插件的路由注册配置'
     )
     native: NativeManifest | None = Field(default=None, description='原生后端的发行包配置')
     asgi: AsgiManifest | None = Field(default=None, description='ASGI 子应用配置')
@@ -130,16 +130,14 @@ class BackendManifestV2(BackendManifest):
         return self
 
 
-class FrontendDeliveryManifestV2(FrontendDeliveryManifest):
+class FrontendDeliveryManifestV2(FrontendDeliveryManifest[Literal['none', 'source', 'bundle']]):
     """独立构建产物不参与宿主前端构建。"""
-
-    type: Literal['none', 'source', 'bundle'] = Field(default='none', description='前端交付类型')
 
 
 class FrontendBundleManifest(BaseModel):
     """插件内的静态构建资源。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     directory: str = Field(default='web/dist', description='前端资源包目录')
     entry: str = Field(default='index.html', description='前端资源包的入口文件')
@@ -162,7 +160,7 @@ class FrontendBundleManifest(BaseModel):
         return value
 
 
-class FrontendManifestV2(FrontendManifest):
+class FrontendManifestV2(FrontendManifest[FrontendDeliveryManifestV2]):
     """兼容源码页面并增加构建产物声明。"""
 
     delivery: FrontendDeliveryManifestV2 = Field(
@@ -191,7 +189,7 @@ class CompatibilityManifestV2(CompatibilityManifest):
         return value
 
 
-class PluginManifestV2(PluginManifest):
+class PluginManifestV2(PluginManifest[Literal[2], BackendManifestV2, FrontendManifestV2, CompatibilityManifestV2]):
     """继承通用权限、菜单、配置及依赖规则，替换交付相关约束。"""
 
     manifest_version: Literal[2] = Field(default=2, alias='manifestVersion', description='插件清单格式版本')
@@ -260,3 +258,7 @@ class PluginManifestV2(PluginManifest):
         expected_prefix = f'{self.backend.module}.'
         if any(not job.callable.startswith(expected_prefix) for job in self.backend.jobs):
             raise ValueError(f'插件任务 callable 必须使用 {expected_prefix} 前缀')
+
+
+VersionedPluginManifest: TypeAlias = PluginManifest | PluginManifestV2
+VersionedPluginJobManifest: TypeAlias = PluginJobManifest | PluginJobManifestV2

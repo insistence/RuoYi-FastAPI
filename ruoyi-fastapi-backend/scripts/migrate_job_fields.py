@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy import JSON, MetaData, Table, bindparam, func, inspect, select, text, update
 from sqlalchemy.engine import Connection
+from sqlalchemy.engine.interfaces import ReflectedColumn
 
 from config.database import create_sync_db_engine
 from module_admin.entity.do.job_runtime_do import SysJobExecution, SysJobSync
@@ -176,7 +177,7 @@ def convert_configuration(row: dict[str, Any], *, snapshot: bool = False) -> dic
     return values
 
 
-def table_columns(connection: Connection, name: str) -> dict[str, dict]:
+def table_columns(connection: Connection, name: str) -> dict[str, ReflectedColumn]:
     """
     读取当前表结构，支持DDL部分完成后的再次运行。
 
@@ -336,8 +337,8 @@ def apply_migration(connection: Connection, plan: dict[str, Any]) -> dict[str, A
     mysql = connection.dialect.name == 'mysql'
     if connection.dialect.name not in {'mysql', 'postgresql'}:
         raise ValueError('字段迁移仅支持MySQL和PostgreSQL')
-    SysJobSync.__table__.create(connection, checkfirst=True)
-    SysJobExecution.__table__.create(connection, checkfirst=True)
+    SysJobSync.get_table().create(connection, checkfirst=True)
+    SysJobExecution.get_table().create(connection, checkfirst=True)
     for table in ('sys_job', 'sys_job_log'):
         for name in ('job_args', 'job_kwargs'):
             archive_column(connection, table, name)
@@ -392,9 +393,11 @@ def finalize_schema(connection: Connection) -> None:
     if primary['constrained_columns'] != ['job_id']:
         if mysql:
             connection.exec_driver_sql('ALTER TABLE sys_job DROP PRIMARY KEY, ADD PRIMARY KEY (job_id)')
-        else:
+        elif primary['name'] is not None:
             name = connection.dialect.identifier_preparer.quote(primary['name'])
             connection.exec_driver_sql(f'ALTER TABLE sys_job DROP CONSTRAINT {name}, ADD PRIMARY KEY (job_id)')
+        else:
+            connection.exec_driver_sql('ALTER TABLE sys_job ADD PRIMARY KEY (job_id)')
     types = {
         'job_name': 'VARCHAR(64)',
         'job_group': 'VARCHAR(64)',

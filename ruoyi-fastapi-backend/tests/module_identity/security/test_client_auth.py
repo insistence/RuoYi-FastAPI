@@ -139,7 +139,7 @@ def test_client_pkce_grant_and_uri_policy() -> None:
         'backchannel_logout_uris': ['https://client.example/backchannel'],
         'cors_origins': ['https://client.example:8443'],
     }
-    assert ClientCreateModel(**valid).cors_origins == ['https://client.example:8443']
+    assert ClientCreateModel.model_validate(valid).cors_origins == ['https://client.example:8443']
     for field in ('redirect_uris', 'post_logout_redirect_uris', 'backchannel_logout_uris', 'cors_origins'):
         with pytest.raises(ValueError):
-            ClientCreateModel(**{**valid, field: ['https://user:password@client.example/callback']})
+            ClientCreateModel.model_validate({**valid, field: ['https://user:password@client.example/callback']})

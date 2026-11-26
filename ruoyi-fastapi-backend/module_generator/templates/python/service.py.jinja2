@@ -1,4 +1,3 @@
-{% set pkField = pkColumn.python_field %}
 {% set pk_field = pkColumn.python_field | camel_to_snake %}
 {% set pkParentheseIndex = pkColumn.column_comment.find("（") %}
 {% set pk_field_comment = pkColumn.column_comment[:pkParentheseIndex] if pkParentheseIndex != -1 else pkColumn.column_comment %}
@@ -59,7 +58,7 @@ class {{ BusinessName }}Service:
         :return: 校验结果
         """
         {{ pk_field }} = -1 if page_object.{{ pk_field }} is None else page_object.{{ pk_field }}
-        {{ businessName }} = await {{ BusinessName }}Dao.get_{{ businessName }}_detail_by_info(query_db, {{ BusinessName }}Model({{ column.python_field }}=page_object.{{ column.python_field | camel_to_snake }}))
+        {{ businessName }} = await {{ BusinessName }}Dao.get_{{ businessName }}_detail_by_info(query_db, {{ BusinessName }}Model({{ column.python_field | camel_to_snake }}=page_object.{{ column.python_field | camel_to_snake }}))
         if {{ businessName }} and {{ businessName }}.{{ pk_field }} != {{ pk_field }}:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
@@ -172,7 +171,7 @@ class {{ BusinessName }}Service:
                     for sub_table in {{ businessName }}.{{ subclassName }}_list:
                         await {{ BusinessName }}Dao.delete_{{ subTable.business_name }}_dao(query_db, sub_table)
                     {% endif %}
-                    await {{ BusinessName }}Dao.delete_{{ businessName }}_dao(query_db, {{ BusinessName }}Model({{ pkField }}={{ pk_field }}))
+                    await {{ BusinessName }}Dao.delete_{{ businessName }}_dao(query_db, {{ BusinessName }}Model({{ pk_field }}={{ pk_field }}))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:

@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import delete, desc, select
+from sqlalchemy import delete, desc, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
@@ -32,13 +32,13 @@ class JobLogDao:
         query = (
             select(SysJobLog)
             .where(
-                SysJobLog.job_id == query_object.job_id if query_object.job_id is not None else True,
-                SysJobLog.execution_id == query_object.execution_id if query_object.execution_id else True,
-                SysJobLog.job_name.like(f'%{query_object.job_name}%') if query_object.job_name else True,
-                SysJobLog.job_group == query_object.job_group if query_object.job_group else True,
-                SysJobLog.status == query_object.status if query_object.status else True,
-                SysJobLog.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysJobLog.create_time < time_range[1] if time_range and time_range[1] is not None else True,
+                SysJobLog.job_id == query_object.job_id if query_object.job_id is not None else true(),
+                SysJobLog.execution_id == query_object.execution_id if query_object.execution_id else true(),
+                SysJobLog.job_name.like(f'%{query_object.job_name}%') if query_object.job_name else true(),
+                SysJobLog.job_group == query_object.job_group if query_object.job_group else true(),
+                SysJobLog.status == query_object.status if query_object.status else true(),
+                SysJobLog.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysJobLog.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
             )
             .order_by(desc(SysJobLog.create_time))
         )

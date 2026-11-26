@@ -60,7 +60,7 @@ async def user_query_env() -> AsyncIterator[SimpleNamespace]:
     sessions = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
     async with engine.begin() as connection:
         await connection.run_sync(
-            lambda conn: Base.metadata.create_all(conn, tables=[model.__table__ for model in tables])
+            lambda conn: Base.metadata.create_all(conn, tables=[model.get_table() for model in tables])
         )
     async with sessions.begin() as db:
         db.add_all(

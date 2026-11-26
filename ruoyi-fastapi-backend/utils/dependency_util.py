@@ -18,8 +18,8 @@ class DependencyUtil:
         """
         scope = getattr(request, 'scope', {})
         # 使用路由匹配的ASGI路径，避免URL解析截断或丢弃路径字符。
-        path = scope.get('path')
-        if path is None:
+        path: object = scope.get('path')
+        if not isinstance(path, str):
             path = request.url.path
         root_path = (scope.get('root_path') or '').rstrip('/')
         if not root_path and scope.get('route') is None:

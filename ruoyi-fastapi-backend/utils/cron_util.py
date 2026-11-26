@@ -1,6 +1,6 @@
 import re
 from calendar import monthrange
-from datetime import UTC, datetime
+from datetime import UTC, datetime, tzinfo
 
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.cron.expressions import AllExpression
@@ -116,7 +116,7 @@ class MyCronTrigger(CronTrigger):
         :return: 下一次执行时刻，无未来结果时返回None
         """
         candidate = super().get_next_fire_time(previous_fire_time, now)
-        while candidate is not None:
+        while isinstance(candidate, datetime):
             normalized = candidate.astimezone(UTC).astimezone(self.timezone)
             if candidate.isoformat() == normalized.isoformat() and candidate.fold == 0:
                 return candidate
@@ -124,12 +124,12 @@ class MyCronTrigger(CronTrigger):
         return None
 
     @classmethod
-    def from_crontab(cls, expr: str, timezone: str) -> 'MyCronTrigger':
+    def from_crontab(cls, expr: str, timezone: str | tzinfo | None = None) -> 'MyCronTrigger':
         """
         根据Quartz表达式和任务时区创建触发器。
 
         :param expr: 包含6或7个字段的Quartz表达式
-        :param timezone: 任务IANA时区名称
+        :param timezone: 任务时区对象或 IANA 时区名称，省略时沿用调度器默认时区
         :return: 配置完成的Cron触发器
         :raises ValueError: 字段数不为六或七，或按周指定日期时日字段未使用问号或星号
         """
@@ -168,7 +168,7 @@ class MyCronTrigger(CronTrigger):
             month=month,
             day_of_week=day_of_week,
             year=year,
-            timezone=TimezoneUtil.get_timezone(timezone),
+            timezone=TimezoneUtil.get_timezone(timezone) if isinstance(timezone, str) else timezone,
         )
 
     @classmethod
@@ -335,7 +335,7 @@ class CronUtil:
         校验年值是否正确。
 
         :param year: 年值
-        :param timezone: 任务IANA时区名称，用于确定当前业务年份
+        :param timezone: 任务时区对象或 IANA 时区名称，省略时沿用调度器默认时区，用于确定当前业务年份
         :return: 校验结果
         """
         current_year = TimezoneUtil.to_business_time(TimezoneUtil.utc_now(), timezone).year
@@ -360,7 +360,7 @@ class CronUtil:
         校验Cron表达式是否正确。
 
         :param cron_expression: Cron表达式
-        :param timezone: 任务IANA时区名称
+        :param timezone: 任务时区对象或 IANA 时区名称，省略时沿用调度器默认时区
         :return: 校验结果
         """
         try:

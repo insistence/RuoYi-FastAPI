@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Sequence
 from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any
@@ -39,7 +40,7 @@ def database_error(code: int | str, *, attribute: str = 'sqlstate', invalidated:
 def inject_finish_failures(
     runtime: Runtime,
     monkeypatch: pytest.MonkeyPatch,
-    failures: list[DBAPIError | None],
+    failures: Sequence[DBAPIError | None],
     stage: str,
 ) -> tuple[list[Session], list[str], list[float]]:
     """
@@ -136,10 +137,11 @@ async def claimed_execution(runtime: Runtime) -> tuple[str, str, dict[str, Any]]
     job = await runtime.save()
     execution_id = uuid4().hex
     start = TimezoneUtil.utc_now()
+    assert job.job_id is not None
     claim = await asyncio.to_thread(
         JobExecutionStore.claim, execution_id, job.job_id, job.model_dump(mode='json', by_alias=True), start
     )
-    assert claim.accepted
+    assert claim.accepted and claim.token is not None
     return (
         execution_id,
         claim.token,
@@ -173,6 +175,7 @@ async def test_finish_retries_rolled_back_transaction_in_a_new_session(
     assert delays == [0.05]
     with Session(runtime.engine) as db:
         saved = db.get(SysJobExecution, execution_id)
+        assert saved is not None
         assert saved.status == ('failed' if failed else 'success')
         assert saved.owner_token == token
         assert saved.message == result['message']
@@ -231,7 +234,8 @@ async def test_finish_retry_keeps_owner_guard_and_does_not_overwrite_completed_r
     await asyncio.to_thread(JobExecutionStore.finish, execution_id, 'wrong-owner', **result)
     assert (await runtime.execution(execution_id))['status'] == 'running'
     await asyncio.to_thread(JobExecutionStore.finish, execution_id, token, **result)
-    await asyncio.to_thread(JobExecutionStore.finish, execution_id, token, **{**result, 'failed': True})
+    result['failed'] = True
+    await asyncio.to_thread(JobExecutionStore.finish, execution_id, token, **result)
     assert (await runtime.execution(execution_id))['status'] == 'success'
 
 

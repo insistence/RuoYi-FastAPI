@@ -78,7 +78,7 @@ async def test_endpoint_exposes_typed_body_multi_value_query_and_host_trace(tmp_
         'query': {'tag': ['alpha', 'beta'], 'empty': ['']},
         'body': {'name': 'report', 'count': 3},
     }
-    assert callback.await_args.args[0].request_id == 'host-request-123'
+    assert callback.await_args_list[-1].args[0].request_id == 'host-request-123'
     assert 'secret-token' not in response.text
     assert 'private-cookie' not in response.text
 
@@ -166,7 +166,7 @@ async def test_permission_check_precedes_reading_body_and_legacy_adapter_leaves_
             receive,
         )
     )
-    assert callback.await_args.args[0].request.body is None
+    assert callback.await_args_list[-1].args[0].request.body is None
     receive.assert_not_called()
 
 
@@ -177,7 +177,7 @@ async def test_payload_copy_does_not_mutate_callback_request(tmp_path: Path) -> 
     app = endpoint_app(tmp_path, callback, json_body=True)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
         await client.post('/reports/7', json={'nested': [1, 2]})
-    context = callback.await_args.args[0]
+    context = callback.await_args_list[-1].args[0]
     payload = context.request.to_payload()
     payload['body']['nested'].append(3)
     assert context.request.body == {'nested': [1, 2]}

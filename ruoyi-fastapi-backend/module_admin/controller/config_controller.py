@@ -127,7 +127,7 @@ async def delete_system_config(
     config_ids: Annotated[str, Path(description='需要删除的参数主键')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_config = DeleteConfigModel(configIds=config_ids)
+    delete_config = DeleteConfigModel(config_ids=config_ids)
     delete_config_result = await ConfigService.delete_config_services(request, query_db, delete_config)
     logger.info(delete_config_result.message)
 

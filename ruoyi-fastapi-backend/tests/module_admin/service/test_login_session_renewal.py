@@ -1,8 +1,9 @@
 import asyncio
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from dataclasses import dataclass
+from unittest.mock import AsyncMock, Mock, NonCallableMagicMock
 
 import pytest
+from fastapi import Request
 from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from common.context import RequestContext
@@ -10,6 +11,7 @@ from config.env import AppConfig, JwtConfig
 from exceptions.exception import AuthException
 from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
 from module_admin.service.login_service import _SESSION_LOGOUT_SCRIPT, _SESSION_RENEW_SCRIPT, LoginService
+from tests.module_admin.service.helpers import make_query_db, make_redis_request
 from utils.jwt_util import JwtUtil
 from utils.time_util import TimezoneUtil
 
@@ -106,32 +108,53 @@ class SessionRedis:
         return 1
 
 
+@dataclass
+class SessionCase:
+    """
+    登录会话续期测试所需的请求、凭据和替身。
+
+    :ivar redis: 可控制时间的会话缓存
+    :ivar db: 异步数据库会话替身
+    :ivar request: 携带会话缓存的请求
+    :ivar token: 当前用户的访问令牌
+    :ivar user: 令牌对应的用户
+    :ivar get_user: 查询当前用户的异步替身
+    """
+
+    redis: SessionRedis
+    db: NonCallableMagicMock
+    request: Request
+    token: str
+    user: CurrentUserModel
+    get_user: AsyncMock
+
+
 @pytest.fixture
-def session_case(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
+def session_case(monkeypatch: pytest.MonkeyPatch) -> SessionCase:
     """
     组合会话续期所需的请求、缓存和用户。
 
     :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
-    :return: ``SimpleNamespace`` 实例
+    :return: ``SessionCase`` 实例
     """
     redis = SessionRedis()
-    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis)))
+    request = make_redis_request(redis)
     token = JwtUtil.encode(
         {'user_id': '7', 'session_id': 'session-a', 'exp': int(TimezoneUtil.utc_now().timestamp()) + 3600}
     )
     user = CurrentUserModel(
-        permissions=['demo:read'], roles=['reader'], user=UserInfoModel(userId=7, userName='tester')
+        permissions=['demo:read'], roles=['reader'], user=UserInfoModel(user_id=7, user_name='tester')
     )
     get_user = AsyncMock(return_value=user)
     monkeypatch.setattr(LoginService, '_get_current_user_from_db', get_user)
     RequestContext.clear_all()
-    return SimpleNamespace(redis=redis, request=request, token=token, user=user, get_user=get_user)
+    return SessionCase(redis=redis, db=make_query_db(), request=request, token=token, user=user, get_user=get_user)
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('same_time_login', [True, False])
 async def test_valid_session_renews_only_its_expiration(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
     """有效会话仅更新自身的有效期。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
@@ -139,7 +162,7 @@ async def test_valid_session_renews_only_its_expiration(
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
     session_case.redis.now = 5
 
-    result = await LoginService.get_current_user(session_case.request, f'Bearer {session_case.token}', object())
+    result = await LoginService.get_current_user(session_case.request, f'Bearer {session_case.token}', session_case.db)
 
     assert result is session_case.user
     assert await session_case.redis.get(key) == session_case.token
@@ -154,7 +177,7 @@ async def test_valid_session_renews_only_its_expiration(
 @pytest.mark.parametrize('change', ['logout', 'new_login', 'expired'])
 @pytest.mark.parametrize('for_plugin', [True, False])
 async def test_concurrent_session_change_cannot_be_overwritten_or_restored(
-    session_case: SimpleNamespace,
+    session_case: SessionCase,
     monkeypatch: pytest.MonkeyPatch,
     same_time_login: bool,
     change: str,
@@ -181,7 +204,7 @@ async def test_concurrent_session_change_cannot_be_overwritten_or_restored(
     set_user = Mock()
     monkeypatch.setattr(RequestContext, 'set_current_user', set_user)
     resolve_user = LoginService.get_current_user_for_plugin_session if for_plugin else LoginService.get_current_user
-    pending = asyncio.create_task(resolve_user(session_case.request, session_case.token, object()))
+    pending = asyncio.create_task(resolve_user(session_case.request, session_case.token, session_case.db))
     await loaded.wait()
     if change == 'logout':
         token_id = 'session-a' if same_time_login else '7'
@@ -208,7 +231,7 @@ async def test_concurrent_session_change_cannot_be_overwritten_or_restored(
 
 @pytest.mark.asyncio
 async def test_expired_session_does_not_load_user_or_renew(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """会话过期后不加载用户也不续期。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
@@ -217,7 +240,7 @@ async def test_expired_session_does_not_load_user_or_renew(
     session_case.redis.now = _SESSION_TTL + 1
 
     with pytest.raises(AuthException) as exc_info:
-        await LoginService.get_current_user(session_case.request, session_case.token, object())
+        await LoginService.get_current_user(session_case.request, session_case.token, session_case.db)
     assert exc_info.value.message == '用户token已失效，请重新登录'
 
     session_case.get_user.assert_not_awaited()
@@ -226,7 +249,7 @@ async def test_expired_session_does_not_load_user_or_renew(
 
 @pytest.mark.asyncio
 async def test_renewal_failure_does_not_authenticate_request(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """续期失败时拒绝认证请求。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
@@ -237,7 +260,7 @@ async def test_renewal_failure_does_not_authenticate_request(
     monkeypatch.setattr(RequestContext, 'set_current_user', set_user)
 
     with pytest.raises(RedisTimeoutError):
-        await LoginService.get_current_user(session_case.request, session_case.token, object())
+        await LoginService.get_current_user(session_case.request, session_case.token, session_case.db)
 
     set_user.assert_not_called()
     assert session_case.redis.deadlines[key] == _SESSION_TTL
@@ -246,7 +269,7 @@ async def test_renewal_failure_does_not_authenticate_request(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('same_time_login', [True, False])
 async def test_committed_renewal_timeout_does_not_authenticate_request(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
     """已提交的续期超时后拒绝认证请求。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
@@ -274,7 +297,7 @@ async def test_committed_renewal_timeout_does_not_authenticate_request(
     monkeypatch.setattr(RequestContext, 'set_current_user', set_user)
 
     with pytest.raises(RedisTimeoutError):
-        await LoginService.get_current_user(session_case.request, session_case.token, object())
+        await LoginService.get_current_user(session_case.request, session_case.token, session_case.db)
 
     set_user.assert_not_called()
     assert session_case.redis.renew_calls == [(key, session_case.token, JwtConfig.jwt_redis_expire_minutes * 60)]
@@ -285,7 +308,7 @@ async def test_committed_renewal_timeout_does_not_authenticate_request(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('same_time_login', [True, False])
 async def test_cancelled_committed_renewal_does_not_authenticate_request(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
     """取消已提交的续期后拒绝认证请求。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
@@ -314,7 +337,9 @@ async def test_cancelled_committed_renewal_does_not_authenticate_request(
     monkeypatch.setattr(session_case.redis, 'eval', renew_then_wait)
     set_user = Mock()
     monkeypatch.setattr(RequestContext, 'set_current_user', set_user)
-    pending = asyncio.create_task(LoginService.get_current_user(session_case.request, session_case.token, object()))
+    pending = asyncio.create_task(
+        LoginService.get_current_user(session_case.request, session_case.token, session_case.db)
+    )
     await renewed.wait()
     pending.cancel()
     with pytest.raises(asyncio.CancelledError):
@@ -328,7 +353,7 @@ async def test_cancelled_committed_renewal_does_not_authenticate_request(
 
 @pytest.mark.asyncio
 async def test_concurrent_requests_can_renew_the_same_session(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """并发请求可续期同一会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
@@ -337,7 +362,10 @@ async def test_concurrent_requests_can_renew_the_same_session(
     requests = 5
 
     results = await asyncio.gather(
-        *(LoginService.get_current_user(session_case.request, session_case.token, object()) for _ in range(requests))
+        *(
+            LoginService.get_current_user(session_case.request, session_case.token, session_case.db)
+            for _ in range(requests)
+        )
     )
 
     assert len(results) == requests
@@ -347,7 +375,7 @@ async def test_concurrent_requests_can_renew_the_same_session(
 
 @pytest.mark.asyncio
 async def test_cancelled_request_does_not_renew_session(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """取消请求时不续期会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
@@ -367,7 +395,9 @@ async def test_cancelled_request_does_not_renew_session(
         return session_case.user
 
     monkeypatch.setattr(LoginService, '_get_current_user_from_db', load_user)
-    pending = asyncio.create_task(LoginService.get_current_user(session_case.request, session_case.token, object()))
+    pending = asyncio.create_task(
+        LoginService.get_current_user(session_case.request, session_case.token, session_case.db)
+    )
     await loaded.wait()
     pending.cancel()
     with pytest.raises(asyncio.CancelledError):
@@ -381,14 +411,16 @@ async def test_cancelled_request_does_not_renew_session(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('same_time_login', [True, False])
 async def test_plugin_validation_never_renews_main_session(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
     """插件校验不续期主会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     key = 'access_token:session-a' if same_time_login else 'access_token:7'
     await session_case.redis.set(key, session_case.token, ex=_SESSION_TTL)
 
-    result = await LoginService.get_current_user_for_plugin_session(session_case.request, session_case.token, object())
+    result = await LoginService.get_current_user_for_plugin_session(
+        session_case.request, session_case.token, session_case.db
+    )
 
     assert result is session_case.user
     assert session_case.redis.renew_calls == []
@@ -399,7 +431,7 @@ async def test_plugin_validation_never_renews_main_session(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('same_time_login', [True, False])
 async def test_plugin_final_session_check_failure_does_not_authenticate(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
     """插件最终会话校验失败时拒绝认证。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
@@ -428,7 +460,9 @@ async def test_plugin_final_session_check_failure_does_not_authenticate(
     monkeypatch.setattr(RequestContext, 'set_current_user', set_user)
 
     with pytest.raises(RedisTimeoutError):
-        await LoginService.get_current_user_for_plugin_session(session_case.request, session_case.token, object())
+        await LoginService.get_current_user_for_plugin_session(
+            session_case.request, session_case.token, session_case.db
+        )
 
     assert session_reads == _PLUGIN_SESSION_READS
     session_case.get_user.assert_awaited_once()
@@ -441,7 +475,7 @@ async def test_plugin_final_session_check_failure_does_not_authenticate(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('same_time_login', [True, False])
 async def test_cancelled_plugin_final_session_check_does_not_authenticate(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
     """取消插件最终会话校验时拒绝认证。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
@@ -470,7 +504,7 @@ async def test_cancelled_plugin_final_session_check_does_not_authenticate(
     set_user = Mock()
     monkeypatch.setattr(RequestContext, 'set_current_user', set_user)
     pending = asyncio.create_task(
-        LoginService.get_current_user_for_plugin_session(session_case.request, session_case.token, object())
+        LoginService.get_current_user_for_plugin_session(session_case.request, session_case.token, session_case.db)
     )
     await checking.wait()
     pending.cancel()
@@ -488,7 +522,7 @@ async def test_cancelled_plugin_final_session_check_does_not_authenticate(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('same_time_login', [True, False])
 async def test_logout_is_idempotent_and_only_removes_its_session(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
     """重复注销只移除本次会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
@@ -520,7 +554,7 @@ async def test_logout_is_idempotent_and_only_removes_its_session(
 @pytest.mark.parametrize('same_time_login', [True, False])
 @pytest.mark.parametrize('state', ['missing', 'expired', 'replaced'])
 async def test_logout_of_stale_token_keeps_current_session(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool, state: str
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch, same_time_login: bool, state: str
 ) -> None:
     """旧令牌注销时保留当前会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
@@ -547,7 +581,7 @@ async def test_logout_of_stale_token_keeps_current_session(
 @pytest.mark.parametrize('same_time_login', [True, False])
 @pytest.mark.parametrize('login_before_logout', [True, False])
 async def test_concurrent_new_login_survives_old_token_logout(
-    session_case: SimpleNamespace,
+    session_case: SessionCase,
     monkeypatch: pytest.MonkeyPatch,
     same_time_login: bool,
     login_before_logout: bool,
@@ -574,7 +608,10 @@ async def test_concurrent_new_login_survives_old_token_logout(
         result = None if login_before_logout else await original_eval(script, count, cache_key, token)
         entered.set()
         await resume.wait()
-        return await original_eval(script, count, cache_key, token) if login_before_logout else result
+        if login_before_logout:
+            return await original_eval(script, count, cache_key, token)
+        assert isinstance(result, int)
+        return result
 
     monkeypatch.setattr(session_case.redis, 'eval', delayed_logout)
     pending = asyncio.create_task(LoginService.logout_services(session_case.request, token_id, session_case.token))
@@ -595,7 +632,7 @@ async def test_concurrent_new_login_survives_old_token_logout(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('same_time_login', [True, False])
 async def test_logout_after_committed_renewal_does_not_restore_session(
-    session_case: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
+    session_case: SessionCase, monkeypatch: pytest.MonkeyPatch, same_time_login: bool
 ) -> None:
     """续期提交后注销不会恢复会话。"""
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
@@ -623,7 +660,9 @@ async def test_logout_after_committed_renewal_does_not_restore_session(
         return result
 
     monkeypatch.setattr(session_case.redis, 'eval', delayed_renewal)
-    pending = asyncio.create_task(LoginService.get_current_user(session_case.request, session_case.token, object()))
+    pending = asyncio.create_task(
+        LoginService.get_current_user(session_case.request, session_case.token, session_case.db)
+    )
     await renewed.wait()
     assert await LoginService.logout_services(session_case.request, token_id, session_case.token) is True
     resume.set()
@@ -633,7 +672,7 @@ async def test_logout_after_committed_renewal_does_not_restore_session(
     assert await session_case.redis.get(key) is None
     assert key not in session_case.redis.deadlines
     with pytest.raises(AuthException):
-        await LoginService.get_current_user(session_case.request, session_case.token, object())
+        await LoginService.get_current_user(session_case.request, session_case.token, session_case.db)
     assert len(session_case.redis.renew_calls) == 1
 
 
@@ -642,7 +681,7 @@ async def test_logout_after_committed_renewal_does_not_restore_session(
 @pytest.mark.parametrize('committed', [True, False])
 @pytest.mark.parametrize('failure', ['timeout', 'cancelled'])
 async def test_failed_logout_and_retry_cannot_delete_new_login(
-    session_case: SimpleNamespace,
+    session_case: SessionCase,
     monkeypatch: pytest.MonkeyPatch,
     same_time_login: bool,
     committed: bool,

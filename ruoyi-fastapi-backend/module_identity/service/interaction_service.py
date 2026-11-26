@@ -5,7 +5,7 @@ import secrets
 from collections.abc import Awaitable, Callable, Collection, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 from redis.asyncio import Redis
@@ -20,6 +20,7 @@ from module_admin.service.captcha_service import CaptchaService
 from module_admin.service.user_service import UserService
 from module_identity.dao.identity_user_dao import IdentityUserDao
 from module_identity.dao.oauth_client_dao import OAuthClientDao
+from module_identity.entity.types import InteractionAction, InteractionRecord
 from module_identity.entity.vo.interaction_vo import (
     CaptchaResponseModel,
     ChangePasswordModel,
@@ -234,7 +235,7 @@ return 1
         return cls._page_projection(record, ttl, client, scopes)
 
     @classmethod
-    async def get_record(cls, redis: Redis, interaction_id: str) -> dict[str, Any]:
+    async def get_record(cls, redis: Redis, interaction_id: str) -> InteractionRecord:
         """
         获取仅供后端状态处理使用的完整 Interaction 记录。
 
@@ -336,7 +337,7 @@ return 1
         return hmac.compare_digest(actual, stored)
 
     @classmethod
-    async def _get_record(cls, redis: Redis, interaction_id: str) -> dict[str, Any]:
+    async def _get_record(cls, redis: Redis, interaction_id: str) -> InteractionRecord:
         """
         读取并校验后端完整记录。
 
@@ -369,7 +370,7 @@ return 1
             cls._validate_record(record)
         except ValueError as exc:
             raise OidcInteractionException(message='认证交互状态无效', error='server_error', status_code=500) from exc
-        return record
+        return cast('InteractionRecord', record)
 
     @classmethod
     def _validate_record(cls, record: Mapping[str, Any]) -> None:
@@ -720,7 +721,7 @@ class InteractionFlowService:
             )
 
     @staticmethod
-    async def csrf_record(redis: Redis, interaction_id: str, csrf_token: str | None) -> dict[str, Any]:
+    async def csrf_record(redis: Redis, interaction_id: str, csrf_token: str | None) -> InteractionRecord:
         """
         校验 CSRF 并返回交互记录。
 
@@ -738,7 +739,7 @@ class InteractionFlowService:
         return record
 
     @staticmethod
-    def require_status(record: dict[str, Any], expected: str) -> None:
+    def require_status(record: InteractionRecord, expected: str) -> None:
         """
         校验业务前置条件。
 
@@ -821,7 +822,7 @@ class InteractionFlowService:
         return marker if reserved else None
 
     @staticmethod
-    def interaction_result(interaction_id: str, next_action: str) -> InteractionResultModel:
+    def interaction_result(interaction_id: str, next_action: InteractionAction) -> InteractionResultModel:
         """
         构建交互结果响应。
 
@@ -1061,6 +1062,7 @@ class InteractionLoginService:
             user is None
             or user.status != '0'
             or user.del_flag != '0'
+            or user.password is None
             or not PwdUtil.verify_password(body.old_password, user.password)
             or not hmac.compare_digest(str(record.get('credentialProofHash') or ''), proof)
         ):

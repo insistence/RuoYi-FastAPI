@@ -1,77 +1,18 @@
-from collections.abc import Mapping
-from typing import Protocol, TypeAlias
+from collections.abc import Iterable, Mapping
+from typing import TypeAlias
 
 from pydantic import Field
 
 from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.purge import PluginPurgePlan
-from plugins.core.types import JSONObject
+from plugins.core.runtime.health import PluginHealthResult
 from plugins.core.validation.plugin_deps import PluginBatchOperation
 from utils.log_util import logger
 
 from . import PluginPayloadBuilder
 from .base import PluginPayloadModel
-from .catalog import PluginMenuDiagnosticPlanPayload
-from .plan import ActionPayload, VersionStatePayload
-
-
-class SupportsOk(Protocol):
-    """
-    支持 ok 属性的检查结果协议。
-
-    :ivar ok: 操作或检查是否成功
-    """
-
-    ok: bool
-
-
-class PluginRuntimePrecheckProtocol(Protocol):
-    """
-    runtime payload 所需的预检上下文协议。
-
-    :ivar ok: 操作或检查是否成功
-    :ivar dependency_result: 依赖检查结果
-    :ivar manifest_result: manifest 非阻断检查结果
-    :ivar plugin_dependency_result: 插件间依赖检查结果
-    :ivar structure_result: 插件结构检查结果
-    :ivar menu_conflict_result: 菜单冲突检查结果
-    :ivar operation_payload: 描述当前操作的结构化数据
-    :ivar check_payload: 插件检查负载
-    """
-
-    ok: bool
-    dependency_result: SupportsOk
-    manifest_result: SupportsOk
-    plugin_dependency_result: SupportsOk
-    structure_result: SupportsOk
-    menu_conflict_result: SupportsOk
-    operation_payload: Mapping[str, object]
-    check_payload: Mapping[str, object]
-
-
-class PluginHealthResultProtocol(Protocol):
-    """
-    runtime 健康检查结果协议。
-
-    :ivar plugin_id: 插件清单中的唯一标识
-    :ivar ok: 操作或检查是否成功
-    :ivar status: 操作或记录所处的状态
-    :ivar message: 与当前结果一起返回的说明
-    :ivar checker: 用于取得或验证健康状态的检查器
-    :ivar duration_ms: 健康检查实际耗用的毫秒数
-    :ivar details: 用于诊断健康状态的详情
-    :ivar error: 异常对象
-    """
-
-    plugin_id: str
-    ok: bool
-    status: str
-    message: str
-    checker: str | None
-    duration_ms: float
-    details: JSONObject
-    error: str | None
+from .validation import PluginRuntimePrecheckProtocol
 
 
 class PluginRuntimeDiagnosePayload(PluginPayloadModel):
@@ -267,14 +208,15 @@ class PluginRuntimePayloadBuilder:
         :return: 运行时异常负载
         """
         logger.exception(f'{message}：{error}')
-        return PluginRuntimeExceptionPayload(
+        fields = dict(
             ok=False,
             message=message,
             error=str(error),
             plugin_id=plugin_id,
             failed_step=failed_step,
             **(extra_payload or {}),
-        ).to_payload(exclude_none=True)
+        )
+        return PluginRuntimeExceptionPayload.model_validate(fields).to_payload(exclude_none=True)
 
     @staticmethod
     def build_invalid_operation_payload(
@@ -300,7 +242,7 @@ class PluginRuntimePayloadBuilder:
 
     @staticmethod
     def build_health_response_payload(
-        plugin_id: str, health_result: PluginHealthResultProtocol
+        plugin_id: str, health_result: PluginHealthResult
     ) -> PluginRuntimeHealthResponsePayloadDict:
         """
         构建插件健康检查响应负载。
@@ -356,7 +298,7 @@ class PluginRuntimePayloadBuilder:
         ).to_payload()
 
     @staticmethod
-    def build_empty_menu_plan() -> PluginMenuDiagnosticPlanPayload:
+    def build_empty_menu_plan() -> dict[str, object]:
         """
         构建空插件菜单诊断计划。
 
@@ -370,7 +312,7 @@ class PluginRuntimePayloadBuilder:
         *,
         info_payload: Mapping[str, object],
         check_payload: Mapping[str, object],
-        menu_plan: PluginMenuDiagnosticPlanPayload,
+        menu_plan: Mapping[str, object],
         config_payload: Mapping[str, object],
         audit_payload: Mapping[str, object],
     ) -> PluginRuntimeDiagnosePayloadDict:
@@ -405,8 +347,8 @@ class PluginRuntimePayloadBuilder:
         operation: PluginBatchOperation,
         *,
         precheck: PluginRuntimePrecheckProtocol,
-        version_state: VersionStatePayload,
-        actions: list[ActionPayload],
+        version_state: dict[str, object],
+        actions: list[dict[str, object]],
         database_error: str | None,
         purge_plan: PluginPurgePlan | None = None,
         purge_plan_error: str | None = None,
@@ -423,11 +365,15 @@ class PluginRuntimePayloadBuilder:
         :param purge_plan: 插件物理清理计划
         :param purge_plan_error: 插件物理清理计划构建错误
         :return: 插件操作预检负载
+        :raises TypeError: 清理计划出错时已有的警告不可迭代
         """
         check_payload = dict(precheck.check_payload)
         if purge_plan_error:
+            warnings = check_payload.get('warnings', [])
+            if not isinstance(warnings, Iterable):
+                raise TypeError('插件预检警告必须是可迭代对象')
             check_payload['warnings'] = [
-                *[str(warning) for warning in check_payload.get('warnings', [])],
+                *[str(warning) for warning in warnings],
                 f'插件物理清理计划构建失败：{purge_plan_error}',
             ]
         payload: PluginRuntimePrecheckPayloadDict = {
@@ -454,7 +400,7 @@ class PluginRuntimePayloadBuilder:
         return result
 
     @staticmethod
-    def build_health_payload(health_result: PluginHealthResultProtocol) -> PluginRuntimeHealthPayloadDict:
+    def build_health_payload(health_result: PluginHealthResult) -> PluginRuntimeHealthPayloadDict:
         """
         构建插件健康检查负载。
 
@@ -493,7 +439,7 @@ class PluginRuntimePayloadBuilder:
         operation: PluginBatchOperation,
         discovered_plugin: DiscoveredPlugin,
         precheck: PluginRuntimePrecheckProtocol,
-    ) -> list[ActionPayload]:
+    ) -> list[dict[str, object]]:
         """
         构建插件操作预检动作清单。
 
@@ -528,8 +474,8 @@ class PluginRuntimePayloadBuilder:
     @staticmethod
     def build_upgrade_pre_execution_blocker(
         plugin_id: str,
-        version_state: VersionStatePayload,
-        actions: list[ActionPayload],
+        version_state: dict[str, object],
+        actions: list[dict[str, object]],
         precheck: PluginRuntimePrecheckProtocol,
     ) -> PluginRuntimeUpgradeBlockerPayloadDict | None:
         """
@@ -567,8 +513,8 @@ class PluginRuntimePayloadBuilder:
         *,
         plugin_id: str,
         message: str,
-        version_state: VersionStatePayload,
-        actions: list[ActionPayload],
+        version_state: dict[str, object],
+        actions: list[dict[str, object]],
         precheck: PluginRuntimePrecheckProtocol,
     ) -> PluginRuntimeUpgradeBlockerPayloadDict:
         """

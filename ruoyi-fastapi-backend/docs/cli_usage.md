@@ -543,10 +543,32 @@ ruoyi dev test tests --output=json
 
 说明：
 
-- `dev lint` 依次运行 Ruff 格式化、静态检查和项目文档规范检查。CLI 和 CI 共用 `scripts/check_docstrings.py` 校验 reST 文档、模型字段和 HTTP 路由说明。在后端目录执行 `python scripts/check_docstrings.py .` 可单独运行这项检查。
+- `dev lint` 依次运行 Ruff 格式化、Ruff 静态检查、项目文档规范检查和 ty 类型检查。在后端目录执行 `python scripts/check_docstrings.py .` 可单独校验 reST 文档、模型字段和 HTTP 路由说明。
 - `--check-only` 会改成只检查，不写回
 - `--fix` 会执行 `ruff check --fix`
 - `dev test` 通过当前环境的 `python -m pytest` 执行测试
+
+#### Python 类型检查
+
+在后端目录运行以下命令。后端（含插件和单元测试）、浏览器测试和 CI 脚本各自使用独立的 Python 导入根目录。ty 从当前解释器环境解析依赖，默认按项目支持的最低版本 Python 3.11 检查各平台的条件分支。在 VS Code 打开整个仓库时也使用同一版本。CI 在 Python 3.11 至 3.15 的各个环境中通过 `--python-version` 指定对应的目标版本。
+
+```bash
+# 检查后端、插件及其测试
+python scripts/check_types.py .
+# 检查三个工程
+python scripts/check_types.py ..
+# 只检查插件目录
+python scripts/check_types.py plugins
+```
+
+复现整仓检查时，在同一虚拟环境中安装两种数据库驱动、测试工具和 AI 插件依赖。
+
+```bash
+python -m pip install -r requirements.txt -r requirements-pg.txt -r requirements-test.txt -r ../ruoyi-fastapi-test/requirements.txt -r ../.github/requirements.txt
+python ../.github/scripts/install_ai_test_dependencies.py
+```
+
+三个工程均直接检查全部类型诊断。任一受支持的 Python 版本报告错误或警告时，CI 类型检查失败。
 
 #### Python 文档字符串
 

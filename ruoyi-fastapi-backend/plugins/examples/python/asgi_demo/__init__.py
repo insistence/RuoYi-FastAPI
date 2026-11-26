@@ -15,7 +15,7 @@ class EchoBody(BaseModel):
 
 
 async def echo(context: PluginRequestContext) -> dict[str, Any]:
-    return {**context.request.to_payload(), 'requestId': context.request_id}
+    return {**context.http_request.to_payload(), 'requestId': context.request_id}
 
 
 def create_plugin(host: PluginHostContext) -> PluginDefinition:

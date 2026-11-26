@@ -9,7 +9,7 @@ from pytest import MonkeyPatch
 async def test_collect_app_page_snapshot_builds_env_config_and_route_sections(
     monkeypatch: MonkeyPatch,
     app_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """应用快照包含环境、配置和路由分区。"""
 
@@ -181,7 +181,7 @@ async def test_collect_app_page_snapshot_builds_env_config_and_route_sections(
 async def test_collect_app_page_snapshot_applies_query_filter(
     monkeypatch: MonkeyPatch,
     app_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """应用快照按查询条件过滤。"""
 
@@ -250,7 +250,7 @@ async def test_collect_app_page_snapshot_applies_query_filter(
 async def test_collect_ops_page_snapshot_builds_health_dependency_and_server_sections(
     monkeypatch: MonkeyPatch,
     ops_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """运维快照包含健康、依赖和服务器分区。"""
 
@@ -354,7 +354,7 @@ async def test_collect_ops_page_snapshot_builds_health_dependency_and_server_sec
 async def test_collect_ops_page_snapshot_surfaces_health_risk_subtitle(
     monkeypatch: MonkeyPatch,
     ops_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """运维快照在副标题显示健康风险。"""
 
@@ -393,3 +393,12 @@ async def test_collect_ops_page_snapshot_surfaces_health_risk_subtitle(
         snapshot.subtitle
         == '聚焦：数据库连通性 / Redis 连通性 / 依赖版本 | 运维探活存在异常，优先核对数据库/Redis 连通性与依赖版本'
     )
+
+
+def test_app_sections_handle_malformed_payloads(app_adapter: ModuleType) -> None:
+    """环境分区区分缺失与空字典，补全分区在 shell 元数据无效时使用默认值。"""
+    builder = app_adapter.AppSectionBuilder
+    assert builder.build_env_section(None).status == 'fail'
+    assert builder.build_env_section({'ok': True, 'runtime': []}).status == 'fail'
+    assert builder.build_env_section({'ok': True, 'runtime': {}}).status == 'ok'
+    assert builder.resolve_completion_preview_shell({'activeShell': 'fish', 'shells': []}) == 'bash'

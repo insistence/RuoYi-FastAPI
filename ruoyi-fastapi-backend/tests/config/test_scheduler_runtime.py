@@ -53,6 +53,7 @@ async def test_registration_error_is_saved_and_can_be_retried(
     )
     async with runtime.sessions() as db:
         result = await JobService.add_job_services(db, job_info())
+        assert isinstance(result.result, dict)
     state = result.result['jobs'][0]
     assert result.result['saved'] is True
     assert result.result['syncStatus'] == 'failed'
@@ -64,6 +65,7 @@ async def test_registration_error_is_saved_and_can_be_retried(
     monkeypatch.setattr(runtime.scheduler, 'add_job', original_add)
     async with runtime.sessions() as db:
         result = await JobService.retry_sync_services(db, state['jobId'])
+        assert isinstance(result.result, dict)
     assert result.result['syncStatus'] == 'applied'
     assert runtime.scheduler.get_job(str(state['jobId'])) is not None
 
@@ -83,10 +85,11 @@ async def test_edit_is_targeted_and_invalid_edit_preserves_both_states(
     )
     async with runtime.sessions() as db:
         with pytest.raises(ValidationError):
-            await JobService.edit_job_services(db, EditJobModel(jobId=42, jobKwargs='[1]'))
+            await JobService.edit_job_services(db, EditJobModel.model_validate({'jobId': 42, 'jobKwargs': '[1]'}))
     assert runtime.scheduler.get_job('42') is original
     async with runtime.sessions() as db:
-        result = await JobService.edit_job_services(db, EditJobModel(jobId=42, timeZone='Asia/Shanghai'))
+        result = await JobService.edit_job_services(db, EditJobModel(job_id=42, time_zone='Asia/Shanghai'))
+        assert isinstance(result.result, dict)
     assert result.result['jobs'][0]['configVersion'] == UPDATED_CONFIG_VERSION
     assert result.result['jobs'][0]['appliedVersion'] == UPDATED_CONFIG_VERSION
     assert str(runtime.scheduler.get_job('42').trigger.timezone) == 'Asia/Shanghai'
@@ -131,6 +134,7 @@ async def test_manual_request_survives_sync_without_changing_cron(runtime: Runti
     original = runtime.scheduler.get_job('42')
     async with runtime.sessions() as db:
         submitted = await JobService.execute_job_once_services(db, job, requested_by='tester')
+        assert isinstance(submitted.result, dict)
     execution_id = submitted.result['executionId']
     assert submitted.result['status'] == 'pending'
     assert runtime.scheduler.get_job(f'_manual:{execution_id}') is not None
@@ -157,9 +161,11 @@ async def test_cron_and_manual_share_the_same_concurrency_limit(runtime: Runtime
     for _ in range(limit - 1):
         async with runtime.sessions() as db:
             accepted = await JobService.execute_job_once_services(db, job)
+            assert isinstance(accepted.result, dict)
         await runtime.wait_execution(accepted.result['executionId'], {'running'})
     async with runtime.sessions() as db:
         submitted = await JobService.execute_job_once_services(db, job)
+        assert isinstance(submitted.result, dict)
     rejected = await runtime.wait_execution(submitted.result['executionId'], {'rejected'})
     assert f'并发上限 {limit}' in rejected['message']
     assert rejected['startTime'] is None
@@ -176,9 +182,10 @@ async def test_lost_notification_is_recovered_and_duplicate_wakeup_does_not_repe
     """恢复遗漏通知且重复唤醒不会重复执行。"""
     job = await runtime.save()
     monkeypatch.setattr(SchedulerManager, '_is_leader', False)
-    SchedulerManager._redis.publish.side_effect = RuntimeError('offline')
+    runtime.publish.side_effect = RuntimeError('offline')
     async with runtime.sessions() as db:
         pending = await JobService.execute_job_once_services(db, job)
+        assert isinstance(pending.result, dict)
     assert runtime.scheduler.get_jobs() == []
     assert (await runtime.execution(pending.result['executionId']))['status'] == 'pending'
     monkeypatch.setattr(SchedulerManager, '_is_leader', True)
@@ -197,8 +204,10 @@ async def test_delete_cancels_unstarted_requests_and_keeps_queryable_tombstone(r
     job = await runtime.save()
     async with runtime.sessions() as db:
         submitted = await JobService.execute_job_once_services(db, job)
+        assert isinstance(submitted.result, dict)
     async with runtime.sessions() as db:
-        result = await JobService.delete_job_services(db, DeleteJobModel(jobIds='42'))
+        result = await JobService.delete_job_services(db, DeleteJobModel(job_ids='42'))
+        assert isinstance(result.result, dict)
     assert result.result['jobs'][0]['deleted'] is True
     assert result.result['syncStatus'] == 'applied'
     runtime.scheduler.resume()
@@ -210,7 +219,7 @@ async def test_delete_cancels_unstarted_requests_and_keeps_queryable_tombstone(r
     async with runtime.sessions() as db:
         page = await JobService.sync_list_services(db, JobSyncQueryModel())
         assert page.rows[0]['deleted'] is True
-        page = await JobService.execution_list_services(db, JobExecutionQueryModel(jobId=42))
+        page = await JobService.execution_list_services(db, JobExecutionQueryModel(job_id=42))
         assert page.rows[0]['status'] == 'cancelled'
         assert 'ownerToken' not in page.rows[0]
         assert 'jobSnapshot' not in page.rows[0]
@@ -284,7 +293,9 @@ async def test_overlapping_edits_and_late_notifications_apply_latest_version(
         :return: 执行当前操作得到的结果
         """
         async with runtime.sessions() as db:
-            return (await JobService.edit_job_services(db, EditJobModel(jobId=42, **change))).result
+            response = await JobService.edit_job_services(db, EditJobModel(job_id=42, **change))
+            assert isinstance(response.result, dict)
+            return response.result
 
     monkeypatch.setattr(SchedulerManager, 'request_scheduler_sync', delayed_notification)
     results = await asyncio.gather(edit({'timeZone': 'UTC'}), edit({'jobName': 'changed name'}))
@@ -311,12 +322,14 @@ async def test_deleted_configuration_remains_retryable_when_removal_fails(
         runtime.scheduler, 'remove_job', lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError('store offline'))
     )
     async with runtime.sessions() as db:
-        result = await JobService.delete_job_services(db, DeleteJobModel(jobIds='42'))
+        result = await JobService.delete_job_services(db, DeleteJobModel(job_ids='42'))
+        assert isinstance(result.result, dict)
     assert result.result['saved']
     assert result.result['syncStatus'] == 'failed'
     assert result.result['jobs'][0]['deleted']
     monkeypatch.setattr(runtime.scheduler, 'remove_job', remove)
     async with runtime.sessions() as db:
         retried = await JobService.retry_sync_services(db, 42)
+        assert isinstance(retried.result, dict)
     assert retried.result['syncStatus'] == 'applied'
     assert runtime.scheduler.get_job('42') is None

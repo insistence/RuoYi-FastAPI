@@ -37,28 +37,13 @@ class ConfigRuntimeService:
         """
         将 ORM 配置记录显式转换为 CLI 可用的配置模型。
 
-        ``ConfigModel`` 当前未统一开启 ``populate_by_name``，因此 CLI 侧在处理
-        ORM 蛇形字段对象时，需要主动映射为驼峰 alias 输入，避免详情查询结果
-        被静默序列化为空。
-
         :param config_vo_module: 配置 VO 模块
         :param config_record: ORM 配置记录
         :return: CLI 可用配置模型
         """
         if config_record is None:
             return None
-        return config_vo_module.ConfigModel(
-            configId=getattr(config_record, 'config_id', None),
-            configName=getattr(config_record, 'config_name', None),
-            configKey=getattr(config_record, 'config_key', None),
-            configValue=getattr(config_record, 'config_value', None),
-            configType=getattr(config_record, 'config_type', None),
-            createBy=getattr(config_record, 'create_by', None),
-            createTime=getattr(config_record, 'create_time', None),
-            updateBy=getattr(config_record, 'update_by', None),
-            updateTime=getattr(config_record, 'update_time', None),
-            remark=getattr(config_record, 'remark', None),
-        )
+        return config_vo_module.ConfigModel.model_validate(config_record)
 
     async def load_config_from_database(
         self,
@@ -77,7 +62,7 @@ class ConfigRuntimeService:
             async with async_session_local() as session:
                 config_record = await config_dao.get_config_detail_by_info(
                     session,
-                    config_vo_module.ConfigModel(configKey=config_key),
+                    config_vo_module.ConfigModel(config_key=config_key),
                 )
         except Exception as exc:
             return {'ok': False, 'message': '读取参数配置失败', 'error': str(exc), 'exit_code': DATABASE_ERROR}
@@ -253,7 +238,7 @@ class ConfigRuntimeService:
             async with async_session_local() as session:
                 config_record = await config_dao.get_config_detail_by_info(
                     session,
-                    config_vo_module.ConfigModel(configKey=config_key),
+                    config_vo_module.ConfigModel(config_key=config_key),
                 )
                 existing_config = self.build_cli_config_model(config_vo_module, config_record)
                 if existing_config is None and not config_name:

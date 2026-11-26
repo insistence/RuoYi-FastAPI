@@ -2,10 +2,14 @@ import asyncio
 import importlib
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
 import pytest
 from pytest import MonkeyPatch
+
+if TYPE_CHECKING:
+    from cli.tui.adapters.models import BrowserRecordSnapshot
 
 BACKEND_DIR = Path(__file__).resolve().parents[4]
 
@@ -21,7 +25,7 @@ action_execution_module = importlib.import_module('cli.tui.actions.execution')
 adapters_module = importlib.import_module('cli.tui.adapters')
 
 
-def build_record(key: str, title: str, *, status: str = 'ok') -> object:
+def build_record(key: str, title: str, *, status: str = 'ok') -> 'BrowserRecordSnapshot':
     """
     构建动作解析测试使用的浏览记录。
 

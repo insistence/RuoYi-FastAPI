@@ -2,6 +2,7 @@ import re
 
 from common.constant import GenConstant
 from config.env import DataBaseConfig, GenConfig
+from exceptions.exception import ServiceWarning
 from module_generator.entity.vo.gen_vo import GenTableColumnModel, GenTableModel
 from utils.string_util import StringUtil
 from utils.time_util import GenTimeUtil
@@ -16,6 +17,19 @@ class GenUtils:
 
     TEXTAREA_COLUMN_LENGTH = 500
 
+    @staticmethod
+    def require_metadata(value: str | None) -> str:
+        """
+        获取代码生成所需的非空元数据。
+
+        :param value: 表、字段或生成配置中的元数据值
+        :return: 已填写的元数据值
+        :raises ServiceWarning: 缺少生成所需的元数据
+        """
+        if not value:
+            raise ServiceWarning(message='请先完善生成配置信息', msg_key='generator.configurationRequired')
+        return value
+
     @classmethod
     def init_table(cls, gen_table: GenTableModel, oper_name: str) -> None:
         """
@@ -24,11 +38,12 @@ class GenUtils:
         :param gen_table: 业务表对象
         :param oper_name: 操作人
         """
-        gen_table.class_name = cls.convert_class_name(gen_table.table_name)
+        table_name = cls.require_metadata(gen_table.table_name)
+        gen_table.class_name = cls.convert_class_name(table_name)
         gen_table.package_name = GenConfig.package_name
         gen_table.module_name = cls.get_module_name(GenConfig.package_name)
-        gen_table.business_name = cls.get_business_name(gen_table.table_name)
-        gen_table.function_name = cls.replace_text(gen_table.table_comment)
+        gen_table.business_name = cls.get_business_name(table_name)
+        gen_table.function_name = cls.replace_text(gen_table.table_comment or '')
         gen_table.function_author = GenConfig.author
         gen_table.create_by = oper_name
         gen_table.update_by = oper_name
@@ -41,7 +56,8 @@ class GenUtils:
         :param column: 业务表字段对象
         :param table: 业务表对象
         """
-        data_type = cls.get_db_type(column.column_type).lower()
+        column_type = cls.require_metadata(column.column_type)
+        data_type = cls.get_db_type(column_type).lower()
         source_config = DataBaseConfig.get_source(table.data_source_name)
         db_type = source_config.db_type
         python_mapping = GenConstant.DB_TO_PYTHON_TYPE_MAPPING[db_type]
@@ -49,7 +65,7 @@ class GenUtils:
         text_types = GenConstant.COLUMNTYPE_TEXT[db_type]
         time_types = GenConstant.COLUMNTYPE_TIME[db_type]
         number_types = GenConstant.COLUMNTYPE_NUMBER[db_type]
-        column_name = column.column_name
+        column_name = cls.require_metadata(column.column_name)
         column.table_id = table.table_id
         column.create_by = table.create_by
         # 设置Python字段名
@@ -60,7 +76,7 @@ class GenUtils:
 
         if data_type in string_types or data_type in text_types:
             # 字符串长度超过500设置为文本域
-            column_length = cls.get_column_length(column.column_type)
+            column_length = cls.get_column_length(column_type)
             html_type = (
                 GenConstant.HTML_TEXTAREA
                 if column_length >= cls.TEXTAREA_COLUMN_LENGTH or data_type in text_types

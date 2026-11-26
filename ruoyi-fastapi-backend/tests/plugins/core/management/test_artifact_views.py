@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.management.dao.dao import PluginDao
@@ -47,15 +48,19 @@ async def test_disabled_feature_preserves_artifact_identity_and_never_queries_re
     get_release = AsyncMock(side_effect=AssertionError('feature disabled must not query release tables'))
     monkeypatch.setattr(release_view.PluginReleaseDao, 'get_release', get_release)
     backend_plugins = tmp_path / 'backend' / 'plugins'
-    model = await PluginService.plugin_detail_services(object(), 'demo', backend_root=backend_plugins)
+    model = await PluginService.plugin_detail_services(AsyncSession(), 'demo', backend_root=backend_plugins)
+    assert model is not None
     assert model.source == 'artifact'
     assert model.installed_version == '2.0.0'
+    assert model.release is not None
     assert model.release['status'] == 'unavailable'
+    assert model.capability is not None
     assert model.capability['runtimeManageable'] is False
     assert 'purge' in model.capability['blockedOperations']
     items = await PluginService.get_plugin_page_list_services(
-        object(), PluginPageQueryModel(), is_page=False, backend_root=backend_plugins
+        AsyncSession(), PluginPageQueryModel(), is_page=False, backend_root=backend_plugins
     )
+    assert isinstance(items, list)
     assert len(items) == 1
     assert items[0]['source'] == 'artifact'
     get_release.assert_not_awaited()
@@ -149,12 +154,14 @@ async def test_release_view_separates_selected_code_schema_and_worker_activation
 
     monkeypatch.setattr(release_view, 'PluginArtifactCatalog', Catalog)
     model = await release_view.build_artifact_plugin_view(
-        object(), artifact_record(), tmp_path / 'backend' / 'plugins', None, PluginService._build_plugin_model
+        AsyncSession(), artifact_record(), tmp_path / 'backend' / 'plugins', None, PluginService._build_plugin_model
     )
     assert model.source == 'artifact'
     assert model.installed_version == '2.0.0'
     assert model.status == 'installed'
+    assert model.capability is not None
     assert model.capability['runtimeManageable'] is False
+    assert model.release is not None
     assert model.release['targetDigest'] == DIGEST
     assert model.release['preparedDigest'] == DIGEST
     assert model.release['previousDigest'] == PREVIOUS_DIGEST
@@ -177,4 +184,4 @@ async def test_artifact_metadata_cannot_be_purged_as_orphan(monkeypatch: pytest.
     """验证制品插件不会被当作孤儿记录允许清理。"""
     monkeypatch.setattr(PluginDao, 'get_plugin_by_id', AsyncMock(return_value=artifact_record()))
     with pytest.raises(ValueError, match='制品插件不能'):
-        await getattr(PluginService, method)(object(), 'demo')
+        await getattr(PluginService, method)(AsyncSession(), 'demo')

@@ -13,7 +13,7 @@ from common.config import Config
 from system.page import SystemPage
 
 if TYPE_CHECKING:
-    from playwright.async_api import Locator, Request, Response
+    from playwright.async_api import APIRequestContext, Locator, Request, Response
 
     from common.browser_harness import BrowserHarness
 
@@ -207,15 +207,15 @@ async def close_dialog(view: SystemPage) -> None:
     await view.close_dialog()
 
 
-async def assert_unchanged(view: SystemPage, before: dict) -> None:
+async def assert_unchanged(api: APIRequestContext, before: dict) -> None:
     """
     计划查看不能修改插件的安装版本、启用设置或状态。
 
-    :param view: 通过真实界面操作与真实接口结果同步系统管理测试
+    :param api: 查询插件状态的 API 客户端
     :param before: 变更前取得的状态
     """
     # 只读核验允许连接被重置后重建一次；HTTP 和业务错误仍由下方断言报告。
-    response = await view.api.get(f'{RESOURCE}/{PLUGIN_ID}', max_retries=1)
+    response = await api.get(f'{RESOURCE}/{PLUGIN_ID}', max_retries=1)
     assert response.ok
     payload = await response.json()
     assert payload['code'] == HTTPStatus.OK, payload
@@ -296,7 +296,7 @@ async def test_plugin_search_detail_and_metrics(browser_harness: BrowserHarness)
     await verify_manifest_tabs(view, detail)
     await verify_metrics(view)
     await close_dialog(view)
-    await assert_unchanged(view, plugin)
+    await assert_unchanged(view.api, plugin)
 
 
 async def request_dependency_preview(view: SystemPage, endpoint: str) -> dict:
@@ -424,7 +424,7 @@ async def test_plugin_dependency_report_and_plan(browser_harness: BrowserHarness
         assert urlsplit(writes[0].url).path.endswith(f'{endpoint}/install')
         assert parse_qs(urlsplit(writes[0].url).query)['dryRun'] == ['true']
     await close_dialog(view)
-    await assert_unchanged(view, plugin)
+    await assert_unchanged(view.api, plugin)
 
 
 async def test_plugin_install_plan(browser_harness: BrowserHarness) -> None:
@@ -460,7 +460,7 @@ async def test_plugin_install_plan(browser_harness: BrowserHarness) -> None:
         await verify_install_plan_dialog(view, payload)
         await close_dialog(view)
     assert writes == [], '查看拓扑计划不得发出插件写请求'
-    await assert_unchanged(view, plugin)
+    await assert_unchanged(view.api, plugin)
 
 
 async def verify_install_plan_dialog(view: SystemPage, payload: dict) -> None:

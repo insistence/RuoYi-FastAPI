@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 import config.env as env_config
-from plugins.core.validation.dependencies import DependencyInstallPlan, DependencyInstallPlanItem
+from plugins.core.validation.dependencies import DependencyInstallPlan, DependencyInstallPlanItem, DependencyKind
 from plugins.core.validation.dependency_policy import (
     DependencyInstallPolicyConfig,
     DependencyInstallPolicyEvaluator,
@@ -44,7 +44,7 @@ def build_python_item(requirement: str = 'openai>=2.0.0') -> DependencyInstallPl
 def build_npm_item(
     requirement: str = 'dayjs>=1.11.0,<2.0.0',
     *,
-    kind: str = 'npm',
+    kind: DependencyKind = 'npm',
     name: str = 'dayjs',
 ) -> DependencyInstallPlanItem:
     """

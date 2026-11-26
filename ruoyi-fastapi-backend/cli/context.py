@@ -5,6 +5,8 @@ import typer
 
 from cli.completion.providers import COMPLETION_PROVIDER_GATEWAY
 
+OutputFormat = Literal['text', 'json']
+
 
 @dataclass
 class CliContext:
@@ -21,7 +23,7 @@ class CliContext:
     """
 
     env: str = 'dev'
-    output: Literal['text', 'json'] = 'text'
+    output: OutputFormat = 'text'
     operator: str | None = None
     allow_prod: bool = False
     yes: bool = False
@@ -40,7 +42,7 @@ class CliContextBuilder:
     @staticmethod
     def build(
         env: str,
-        output: Literal['text', 'json'],
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -79,7 +81,7 @@ EnvOption = Annotated[
         autocompletion=COMPLETION_PROVIDER_GATEWAY.complete_env_values,
     ),
 ]
-OutputOption = Annotated[Literal['text', 'json'], typer.Option('--output', help='输出格式，支持 text 或 json')]
+OutputOption = Annotated[OutputFormat, typer.Option('--output', help='输出格式，支持 text 或 json')]
 AllowProdOption = Annotated[bool, typer.Option('--allow-prod', help='允许在生产环境中执行危险命令')]
 YesOption = Annotated[bool, typer.Option('--yes', help='跳过危险命令确认')]
 DryRunOption = Annotated[bool, typer.Option('--dry-run', help='仅执行预演，不落地实际变更')]

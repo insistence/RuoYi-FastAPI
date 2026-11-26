@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -42,7 +43,7 @@ class CryptoCommandController:
         self.presenter = presenter or CryptoCommandPresenter()
         self.runtime_service = runtime_service or CRYPTO_RUNTIME
 
-    def validate(self, env: str, output: str) -> None:
+    def validate(self, env: str, output: OutputFormat) -> None:
         """
         校验传输加密配置。
 
@@ -52,7 +53,7 @@ class CryptoCommandController:
         ctx = self.context_factory.build_readonly(env, output)
         self.execution_service.complete_payload(ctx, self.runtime_service.validate_crypto_config())
 
-    def keygen(self, env: str, output: str, *, kid: str, key_size: int) -> None:
+    def keygen(self, env: str, output: OutputFormat, *, kid: str, key_size: int) -> None:
         """
         生成新的传输加密密钥对。
 
@@ -74,7 +75,7 @@ class CryptoCommandController:
     def rotate(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -103,7 +104,7 @@ class CryptoCommandController:
         )
         self.execution_service.complete_payload(ctx, self.runtime_service.build_rotation_payload(next_kid, key_size))
 
-    def export_public(self, env: str, output: str) -> None:
+    def export_public(self, env: str, output: OutputFormat) -> None:
         """
         导出当前运行环境的公钥信息。
 

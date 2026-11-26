@@ -5,9 +5,9 @@ import time
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 
+from common.vo import CamelModel
 from config.env import JwtConfig
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.sdk.config import PluginConfigSnapshot
@@ -31,10 +31,10 @@ def config_revision(plugin_id: str, values: Mapping[str, Any]) -> str:
     return hmac.new(JwtConfig.jwt_secret_key.encode('utf-8'), payload, hashlib.sha256).hexdigest()
 
 
-class PluginConfigObservation(BaseModel):
+class PluginConfigObservation(CamelModel):
     """当前 worker 的启动配置和最近一次按需读取版本，不包含配置值。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra='forbid', strict=True)
+    model_config = ConfigDict(extra='forbid', strict=True)
 
     plugin_id: str = Field(pattern=r'^[a-z][a-z0-9_]{1,63}$', description='插件标识')
     version: str = Field(max_length=128, description='插件版本')

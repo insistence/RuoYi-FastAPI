@@ -1,6 +1,12 @@
 from types import SimpleNamespace
 
-from plugins.core.state import PluginStateResolver, PluginStateSnapshot, PluginStateTransitionTable
+from plugins.core.state import (
+    PluginStateOperation,
+    PluginStateResolver,
+    PluginStateSnapshot,
+    PluginStateTransitionTable,
+    PluginStatus,
+)
 
 
 def test_state_resolver_covers_lifecycle_states() -> None:
@@ -53,7 +59,7 @@ def test_database_enabled_state_respects_error_status() -> None:
 
 def test_state_transition_table_covers_supported_and_rejected_operations() -> None:
     """校验状态转换表覆盖支持与拒绝的操作。"""
-    supported_cases = [
+    supported_cases: list[tuple[PluginStatus, PluginStateOperation, PluginStatus]] = [
         ('discovered', 'install', 'installed'),
         ('discovered', 'disable', 'discovered'),
         ('installed', 'mark_error', 'error'),
@@ -69,7 +75,7 @@ def test_state_transition_table_covers_supported_and_rejected_operations() -> No
 
 def test_state_resolver_and_transition_table_remain_consistent() -> None:
     """校验状态解析器与转换表保持一致。"""
-    cases = [
+    cases: list[tuple[PluginStatus | None, PluginStateOperation, PluginStateSnapshot]] = [
         (None, 'discover', PluginStateSnapshot(source_version='1.0.0', installed_version=None, enabled=True)),
         (
             'discovered',

@@ -7,7 +7,8 @@ import pytest
 import yaml
 
 from plugins.core.artifacts import package
-from plugins.core.manifest.schema import PluginManifest, PluginManifestFactory
+from plugins.core.manifest.schema import PluginManifestFactory
+from plugins.core.manifest.v2 import PluginManifestV2
 from scripts import build_native_plugin
 
 
@@ -30,7 +31,7 @@ def source(tmp_path: Path) -> Path:
     return root
 
 
-def manifest(**overrides: object) -> PluginManifest:
+def manifest(**overrides: object) -> PluginManifestV2:
     """
     构建原生插件包使用的测试清单。
 
@@ -52,7 +53,9 @@ def manifest(**overrides: object) -> PluginManifest:
         'frontend': {'delivery': {'type': 'bundle'}, 'bundle': {'directory': 'web/dist'}},
     }
     data.update(overrides)
-    return PluginManifestFactory.create(data)
+    result = PluginManifestFactory.create(data)
+    assert isinstance(result, PluginManifestV2)
+    return result
 
 
 def test_collects_only_built_bundle_and_declared_resource_directories(source: Path, tmp_path: Path) -> None:

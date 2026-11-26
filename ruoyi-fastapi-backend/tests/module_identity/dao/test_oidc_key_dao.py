@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 from sqlalchemy import event, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from module_identity.dao.oidc_key_dao import OidcKeyDao
 from module_identity.entity.do.oidc_key_do import SysOidcSigningKey
@@ -57,12 +57,14 @@ async def test_activate_serializes_by_algorithm_when_no_active_key_exists(data_s
         if statement.lstrip().upper().startswith(('UPDATE', 'SELECT')):
             statements.append(statement.upper())
 
-    event.listen(data_session.bind.sync_engine, 'before_cursor_execute', capture)
+    engine = data_session.bind
+    assert isinstance(engine, AsyncEngine)
+    event.listen(engine.sync_engine, 'before_cursor_execute', capture)
     try:
         assert await OidcKeyDao.activate(data_session, 'pending-a', 'RS256')
         await data_session.flush()
     finally:
-        event.remove(data_session.bind.sync_engine, 'before_cursor_execute', capture)
+        event.remove(engine.sync_engine, 'before_cursor_execute', capture)
 
     rows = (await data_session.execute(select(SysOidcSigningKey))).scalars().all()
     assert [row.status for row in rows].count('active') == 1

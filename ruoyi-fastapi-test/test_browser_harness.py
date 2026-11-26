@@ -13,6 +13,7 @@ from common.config import Config
 from prepare_e2e_compose import isolate_compose
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from playwright.async_api import Browser, Playwright
@@ -37,7 +38,7 @@ def login_response(status: HTTPStatus, *, retry_after: str | None = None, payloa
     )
 
 
-def login_harness(tmp_path: Path, responses: list[object]) -> tuple[BrowserHarness, AsyncMock]:
+def login_harness(tmp_path: Path, responses: Sequence[object]) -> tuple[BrowserHarness, AsyncMock]:
     """
     仅替换网络边界，直接运行实际登录重试逻辑。
 

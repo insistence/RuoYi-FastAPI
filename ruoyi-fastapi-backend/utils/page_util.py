@@ -1,11 +1,17 @@
 import math
-from typing import Any
+from typing import Any, Literal, TypeVar, overload
 
-from sqlalchemy import Row, Select, func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
+from config.database import Base
 from utils.common_util import CamelCaseUtil
+
+_Entity = TypeVar('_Entity', bound=Base)
+_JoinedEntity = TypeVar('_JoinedEntity', bound=Base)
+_EntityPairs = list[list[dict[str, Any] | None]]
+_Rows = list[dict[str, Any] | list[dict[Any, Any]]] | list[dict[str, Any]] | _EntityPairs
 
 
 class PageUtil:
@@ -30,15 +36,71 @@ class PageUtil:
         has_next = math.ceil(len(data_list) / page_size) > page_num
 
         result = PageModel[Any](
-            rows=paginated_data, pageNum=page_num, pageSize=page_size, total=len(data_list), hasNext=has_next
+            rows=paginated_data, page_num=page_num, page_size=page_size, total=len(data_list), has_next=has_next
         )
 
         return result
 
     @classmethod
+    @overload
+    async def paginate(
+        cls,
+        db: AsyncSession,
+        query: Select,
+        page_num: int,
+        page_size: int,
+        is_page: Literal[True],
+        *,
+        as_mappings: bool = False,
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def paginate(
+        cls,
+        db: AsyncSession,
+        query: Select,
+        page_num: int,
+        page_size: int,
+        is_page: bool = False,
+        *,
+        as_mappings: Literal[True],
+    ) -> PageModel | list[dict[str, Any]]: ...
+
+    @classmethod
+    @overload
+    async def paginate(
+        cls,
+        db: AsyncSession,
+        query: Select[_Entity, _JoinedEntity],
+        page_num: int,
+        page_size: int,
+        is_page: bool = False,
+    ) -> PageModel | _EntityPairs: ...
+
+    @classmethod
+    @overload
+    async def paginate(
+        cls, db: AsyncSession, query: Select[_Entity], page_num: int, page_size: int, is_page: bool = False
+    ) -> PageModel | list[dict[str, Any]]: ...
+
+    @classmethod
+    @overload
     async def paginate(
         cls, db: AsyncSession, query: Select, page_num: int, page_size: int, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any] | list[dict[Any, Any]]]:
+    ) -> PageModel | _Rows: ...
+
+    @classmethod
+    async def paginate(
+        cls,
+        db: AsyncSession,
+        query: Select,
+        page_num: int,
+        page_size: int,
+        is_page: bool = False,
+        *,
+        as_mappings: bool = False,
+    ) -> PageModel | _Rows:
         """
         输入查询语句和分页信息，返回分页数据列表结果。
 
@@ -47,36 +109,28 @@ class PageUtil:
         :param page_num: 当前页码
         :param page_size: 当前页面数据量
         :param is_page: 是否开启分页
-        :return: 分页数据对象
+        :param as_mappings: 按投影列名返回字典，并将列名转换为小驼峰格式
+        :return: 分页对象，关闭分页时返回全部结果行
         """
         if is_page:
-            total = (await db.execute(select(func.count('*')).select_from(query.subquery()))).scalar()
-            query_result = await db.execute(query.offset((page_num - 1) * page_size).limit(page_size))
-            paginated_data: list[Row] = []
-            for row in query_result:
-                if row and len(row) == 1:
-                    paginated_data.append(row[0])
-                else:
-                    paginated_data.append(row)
-            has_next = math.ceil(total / page_size) > page_num
-            result = PageModel[Any](
-                rows=CamelCaseUtil.transform_result(paginated_data),
-                pageNum=page_num,
-                pageSize=page_size,
-                total=total,
-                hasNext=has_next,
-            )
+            total = (await db.execute(select(func.count('*')).select_from(query.subquery()))).scalar_one()
+            query = query.offset((page_num - 1) * page_size).limit(page_size)
         else:
-            query_result = await db.execute(query)
-            no_paginated_data: list[Row] = []
-            for row in query_result:
-                if row and len(row) == 1:
-                    no_paginated_data.append(row[0])
-                else:
-                    no_paginated_data.append(row)
-            result = CamelCaseUtil.transform_result(no_paginated_data)
-
-        return result
+            total = None
+        result = await db.execute(query)
+        if as_mappings:
+            rows = [CamelCaseUtil.transform_result(dict(row)) for row in result.mappings()]
+        else:
+            rows = [CamelCaseUtil.transform_result(row[0] if len(row) == 1 else row) for row in result]
+        if total is None:
+            return rows
+        return PageModel[Any](
+            rows=rows,
+            page_num=page_num,
+            page_size=page_size,
+            total=total,
+            has_next=math.ceil(total / page_size) > page_num,
+        )
 
 
 def get_page_obj(data_list: list, page_num: int, page_size: int) -> PageModel:
@@ -97,7 +151,7 @@ def get_page_obj(data_list: list, page_num: int, page_size: int) -> PageModel:
     has_next = math.ceil(len(data_list) / page_size) > page_num
 
     result = PageModel[Any](
-        rows=paginated_data, pageNum=page_num, pageSize=page_size, total=len(data_list), hasNext=has_next
+        rows=paginated_data, page_num=page_num, page_size=page_size, total=len(data_list), has_next=has_next
     )
 
     return result

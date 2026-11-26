@@ -1,5 +1,4 @@
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -7,19 +6,22 @@ import pytest
 from cli.groups.plugin.payload import PluginCommandPayloadAdapter
 from cli.groups.plugin.presenter import PluginCommandPresenter
 from cli.runtime.plugin.service import CliPluginRuntimeService
+from plugins.core.environment import PluginRuntimeEnvironmentService
 
 
 @pytest.mark.asyncio
-async def test_cli_diagnose_appends_runtime_without_changing_static_result(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_cli_diagnose_appends_runtime_without_changing_static_result(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """命令行诊断在静态结果后追加运行时信息。"""
     read = AsyncMock(return_value={'state': 'unavailable', 'observedTotals': None})
     monkeypatch.setattr('plugins.core.runtime.diagnostics_query.read_cli_runtime_diagnostics', read)
-    runtime = CliPluginRuntimeService(runtime_environment=SimpleNamespace(get_backend_dir=lambda: '/backend'))
-    runtime._core_runtime = SimpleNamespace(diagnose_plugin=AsyncMock(return_value={'ok': True, 'info': {'x': 1}}))
+    runtime = CliPluginRuntimeService(runtime_environment=PluginRuntimeEnvironmentService(backend_root=tmp_path))
+    monkeypatch.setattr(runtime.core_runtime, 'diagnose_plugin', AsyncMock(return_value={'ok': True, 'info': {'x': 1}}))
     payload = await runtime.diagnose_plugin_with_runtime('demo')
     assert payload['ok'] is True and payload['info'] == {'x': 1}
-    assert payload['runtime']['state'] == 'unavailable'
-    read.assert_awaited_once_with('demo', backend_root=Path('/backend'))
+    assert payload['runtime'] == {'state': 'unavailable', 'observedTotals': None}
+    read.assert_awaited_once_with('demo', backend_root=tmp_path)
 
 
 def test_runtime_shared_contract_and_unknown_text_are_preserved() -> None:

@@ -1,4 +1,5 @@
 from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
 
 from pytest import MonkeyPatch
 
@@ -8,7 +9,7 @@ def test_gen_export_wizard_executes_nested_cli_with_selected_tables(
     gen_export_flow: ModuleType,
 ) -> None:
     """导出向导将选中的表传给嵌套命令。"""
-    captured: dict[str, object] = {}
+    complete_payload = Mock()
     answers = iter(['dev', 'sys_user,sys_role', 'zip', 'build/demo.zip', True, True])
     monkeypatch.setattr(
         gen_export_flow.GenExportWizardFlow,
@@ -50,22 +51,18 @@ def test_gen_export_wizard_executes_nested_cli_with_selected_tables(
     monkeypatch.setattr(
         gen_export_flow.GenExportWizardFlow.execution_service,
         'complete_payload',
-        lambda ctx, payload, default_exit_code=0: captured.update(
-            {
-                'ctx': ctx,
-                'payload': payload,
-                'default_exit_code': default_exit_code,
-            }
-        ),
+        complete_payload,
     )
 
     gen_export_flow.run_gen_export_wizard('json')
 
-    assert captured['ctx'].env == 'dev'
-    assert captured['ctx'].output == 'json'
-    assert captured['ctx'].dry_run is True
-    assert captured['payload']['tableNames'] == ['sys_user', 'sys_role']
-    assert captured['payload']['mode'] == 'zip'
+    complete_payload.assert_called_once()
+    ctx, payload = complete_payload.call_args.args
+    assert ctx.env == 'dev'
+    assert ctx.output == 'json'
+    assert ctx.dry_run is True
+    assert payload['tableNames'] == ['sys_user', 'sys_role']
+    assert payload['mode'] == 'zip'
 
 
 def test_gen_export_wizard_accepts_default_context_values(

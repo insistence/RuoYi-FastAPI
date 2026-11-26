@@ -3,13 +3,6 @@ from typing import Self, TypeAlias
 
 from pydantic import Field
 
-from plugins.core.runtime.support.payload.validation import (
-    DependencyItemPayload,
-    MenuConflictItemPayload,
-    PluginDependencyItemPayload,
-    StructureItemPayload,
-    ValidationIssuePayload,
-)
 from plugins.core.validation.dependencies import DependencyCheckResult
 from plugins.core.validation.manifest import PluginManifestCheckResult
 from plugins.core.validation.menus import PluginMenuConflictResult
@@ -19,25 +12,8 @@ from plugins.core.validation.structure import PluginStructureCheckResult
 from .payload import PluginPayloadBuilder
 from .payload.base import PluginPayloadModel
 
-PrecheckOperationPayloadDict: TypeAlias = dict[
-    str,
-    bool
-    | list[DependencyItemPayload]
-    | list[PluginDependencyItemPayload]
-    | list[ValidationIssuePayload]
-    | list[StructureItemPayload]
-    | list[MenuConflictItemPayload],
-]
-PrecheckCheckPayloadDict: TypeAlias = dict[
-    str,
-    bool
-    | list[str]
-    | list[DependencyItemPayload]
-    | list[PluginDependencyItemPayload]
-    | list[ValidationIssuePayload]
-    | list[StructureItemPayload]
-    | list[MenuConflictItemPayload],
-]
+PrecheckOperationPayloadDict: TypeAlias = dict[str, object]
+PrecheckCheckPayloadDict: TypeAlias = dict[str, object]
 
 
 class PluginPrecheckOperationPayload(PluginPayloadModel):
@@ -96,11 +72,11 @@ class PluginPrecheckContext:
     :ivar unsatisfied_dependencies: 版本不满足依赖名称列表
     """
 
-    dependency_result: object
-    manifest_result: object
-    plugin_dependency_result: object
-    structure_result: object
-    menu_conflict_result: object
+    dependency_result: DependencyCheckResult
+    manifest_result: PluginManifestCheckResult
+    plugin_dependency_result: PluginDependencyCheckResult
+    structure_result: PluginStructureCheckResult
+    menu_conflict_result: PluginMenuConflictResult
     manifest_issues: list[dict[str, object]]
     manifest_warnings: list[dict[str, object]]
     plugin_dependency_errors: list[dict[str, object]]

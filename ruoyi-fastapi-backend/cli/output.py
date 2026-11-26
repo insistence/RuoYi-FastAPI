@@ -135,7 +135,7 @@ class OutputStatusStyler:
         :return: 标签文本
         """
         definition = self.get_status_definition(kind)
-        return getattr(definition, self.settings.icon_mode, definition.none)
+        return {'emoji': definition.emoji, 'ascii': definition.ascii}.get(self.settings.icon_mode, definition.none)
 
     def style_status_token(self, kind: str, *, fg: str | None = None) -> str:
         """

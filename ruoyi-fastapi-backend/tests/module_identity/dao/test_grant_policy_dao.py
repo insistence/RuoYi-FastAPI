@@ -46,6 +46,7 @@ async def test_valid_grant_requires_active_unexpired_and_current_client_policy(
     assert await OAuthGrantDao.get_valid_for_user_client(data_session, 4101, 4101) is not None
 
     grant = await OAuthGrantDao.get_active_for_user_client(data_session, 4101, 4101)
+    assert grant is not None
     grant.expires_at = now - timedelta(seconds=1)
     await data_session.flush()
     assert await OAuthGrantDao.get_valid_for_user_client(data_session, 4101, 4101) is None

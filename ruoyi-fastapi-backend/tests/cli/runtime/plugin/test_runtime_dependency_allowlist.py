@@ -69,5 +69,6 @@ def test_plugin_runtime_allowlist_example_rejects_existing_file_without_overwrit
     assert payload['ok'] is False
     assert payload['written'] is False
     assert payload['outputFile'] == str(output_path)
+    assert isinstance(payload['message'], str)
     assert '已存在' in payload['message']
     assert output_path.read_text(encoding='utf-8') == 'python: {}\n'

@@ -1,20 +1,20 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, model_validator
 from pydantic_validation_decorator import NotBlank
 
 from common.constant import GenConstant
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 from utils.string_util import StringUtil
 
 
-class GenTableBaseModel(BaseModel):
+class GenTableBaseModel(CamelModel):
     """代码生成业务表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     table_id: int | None = Field(default=None, description='编号')
     table_name: str | None = Field(default=None, description='表名称')
@@ -144,10 +144,8 @@ class GenTableRowModel(GenTableBaseModel):
     columns: list['GenTableColumnBaseModel'] | None = Field(default=None, description='表列信息')
 
 
-class GenTableDbRowModel(BaseModel):
+class GenTableDbRowModel(CamelModel):
     """代码生成业务表数据库行数据模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     table_name: str | None = Field(default=None, description='表名称')
     table_comment: str | None = Field(default=None, description='表描述')
@@ -155,10 +153,8 @@ class GenTableDbRowModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
 
 
-class GenDataSourceModel(BaseModel):
+class GenDataSourceModel(CamelModel):
     """代码生成数据源选项模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     name: str = Field(description='数据源名称')
     db_type: str = Field(description='数据库类型')
@@ -200,10 +196,8 @@ class EditGenTableModel(GenTableModel):
     params: Optional['GenTableParamsModel'] = Field(default=None, description='业务表参数')
 
 
-class GenTableParamsModel(BaseModel):
+class GenTableParamsModel(CamelModel):
     """代码生成业务表参数模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     tree_code: str | None = Field(default=None, description='树编码字段')
     tree_parent_code: str | None = Field(default=None, description='树父编码字段')
@@ -233,28 +227,24 @@ class GenTablePageQueryModel(GenTableQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class GenTableDetailModel(BaseModel):
+class GenTableDetailModel(CamelModel):
     """代码生成业务表详情模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     info: GenTableModel | None = Field(default=None, description='业务表信息')
     rows: list['GenTableColumnModel'] | None = Field(default=None, description='表列信息')
     tables: list['GenTableModel'] | None = Field(default=None, description='所有业务表信息')
 
 
-class DeleteGenTableModel(BaseModel):
+class DeleteGenTableModel(CamelModel):
     """删除代码生成业务表模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     table_ids: str = Field(description='需要删除的代码生成业务表ID')
 
 
-class GenTableColumnBaseModel(BaseModel):
+class GenTableColumnBaseModel(CamelModel):
     """代码生成业务表字段对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     column_id: int | None = Field(default=None, description='编号')
     table_id: int | None = Field(default=None, description='归属表编号')
@@ -316,14 +306,14 @@ class GenTableColumnModel(GenTableColumnBaseModel):
     vo_type: str | None = Field(default=None, exclude=True, description='生成的 Pydantic 模型使用的字段类型')
 
     @model_validator(mode='after')
-    def check_some_is(self) -> 'GenTableModel':
+    def check_some_is(self) -> 'GenTableColumnModel':
         """
         根据数据库列配置计算生成模板使用的字段标志。
 
         :return: 当前实例
         """
         self.cap_python_field = self.python_field[0].upper() + self.python_field[1:] if self.python_field else None
-        self.pk = self.is_pk and self.is_pk == '1'
+        self.pk = self.is_pk == '1' if self.is_pk is not None else None
         self.increment = bool(self.is_increment and self.is_increment == '1')
         self.required = bool(self.is_required and self.is_required == '1')
         self.unique = bool(self.is_unique and self.is_unique == '1')
@@ -354,9 +344,7 @@ class GenTableColumnPageQueryModel(GenTableColumnQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteGenTableColumnModel(BaseModel):
+class DeleteGenTableColumnModel(CamelModel):
     """删除代码生成业务表字段模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     column_ids: str = Field(description='需要删除的代码生成业务表字段ID')

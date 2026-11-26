@@ -2,12 +2,16 @@ import asyncio
 import json
 import time
 from typing import Any
+from unittest.mock import Mock
+
+from redis.asyncio import Redis
 
 
 class FakeRedis:
     """
     实现本轮服务所用 SET NX、TTL、GET/DEL 和 Lua 等效语义的 FakeRedis。
 
+    :ivar client: 供被测服务调用的异步 Redis 客户端替身
     :ivar values: 当前处理的值集合
     :ivar lists: 模拟 Redis 保存的列表数据
     :ivar lock: 用于串行访问共享资源的锁
@@ -17,8 +21,9 @@ class FakeRedis:
 
     def __init__(self) -> None:
         """初始化测试夹具的 ``values``, ``lists``, ``lock``, ``set_calls``。"""
+        self.client: Redis = Mock(spec_set=Redis, wraps=self)
         self.values: dict[str, tuple[str, float | None]] = {}
-        self.lists: dict[str, list[str]] = {}
+        self.lists: dict[str, list[str | bytes]] = {}
         self.lock = asyncio.Lock()
         self.set_calls: list[tuple[str, dict[str, Any]]] = []
         self.eval_calls: list[tuple[str, tuple[Any, ...]]] = []
@@ -86,7 +91,7 @@ class FakeRedis:
             self._purge(key)
             return int(self.values.pop(key, None) is not None)
 
-    async def rpush(self, key: str, value: str) -> int:
+    async def rpush(self, key: str, value: str | bytes) -> int:
         """
         追加队列元素。
 
@@ -98,7 +103,7 @@ class FakeRedis:
             self.lists.setdefault(key, []).append(value)
             return len(self.lists[key])
 
-    async def lpop(self, key: str) -> str | None:
+    async def lpop(self, key: str) -> str | bytes | None:
         """
         原子弹出队首元素。
 

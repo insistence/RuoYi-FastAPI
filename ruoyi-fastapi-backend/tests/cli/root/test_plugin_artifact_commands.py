@@ -5,8 +5,8 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
+from unittest.mock import create_autospec
 
 import pytest
 import typer
@@ -16,6 +16,7 @@ from typer.testing import CliRunner
 
 from cli.context import CliContext
 from cli.core import CliContextFactory, CliExecutionService
+from cli.core.context_factory import CliRuntimeState
 from cli.exit_codes import ARGUMENT_ERROR, GUARD_REJECTED
 from cli.groups.plugin.artifact_controller import PluginArtifactCommandController
 from cli.groups.plugin.commands.artifact import register_artifact_commands
@@ -280,7 +281,7 @@ def test_help_keeps_config_crypto_database_and_plugin_code_unloaded(help_argumen
     assert not any(payload['loaded'].values())
 
 
-class RecordingContextFactory:
+class RecordingContextFactory(CliContextFactory):
     """
     记录上下文创建顺序的工厂替身。
 
@@ -307,6 +308,7 @@ class RecordingContextFactory:
         :return: ``CliContext`` 实例
         """
         self.events.append('context')
+        assert output in {'text', 'json'}
         return CliContext(env=env, output=output, allow_prod=allow_prod, yes=yes, dry_run=dry_run)
 
     def build_dangerous(
@@ -327,7 +329,7 @@ class RecordingContextFactory:
         return self.build_regular(env, output, allow_prod, yes, dry_run)
 
 
-class RecordingExecution:
+class RecordingExecution(CliExecutionService):
     """
     记录命令结果的执行服务替身。
 
@@ -348,11 +350,12 @@ class RecordingExecution:
         """
         return asyncio.run(coroutine)
 
-    def complete_payload(self, ctx: CliContext, payload: dict[str, Any]) -> None:
+    def complete_payload(self, ctx: CliContext, payload: dict[str, Any], *, default_exit_code: int = 0) -> None:
         """
         保存 CLI 命令最终输出的结果。
 
         :param ctx: CLI 运行上下文
+        :param default_exit_code: 默认退出码
         :param payload: 随调用传入或返回的结构化数据
         """
         self.payload = payload
@@ -364,9 +367,7 @@ def quiet_context_factory() -> CliContextFactory:
 
     :return: 不初始化日志输出的测试上下文工厂
     """
-    return CliContextFactory(
-        runtime_state=SimpleNamespace(suppress_logs=lambda: None, suppress_sqlalchemy_logs=lambda: None)
-    )
+    return CliContextFactory(runtime_state=create_autospec(CliRuntimeState, instance=True, spec_set=True))
 
 
 def test_production_mutations_are_guarded_before_loading_runtime(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -103,6 +103,13 @@ class DevelopmentRuntimeService:
         }
         if not docstrings['ok']:
             payload['exit_code'] = RUNTIME_ERROR
+            return payload
+        types = self.process_gateway.run_command(
+            [self.runtime_environment.get_python_executable(), 'scripts/check_types.py', *normalized_targets]
+        )
+        payload['ty'] = types
+        if not types['ok']:
+            payload.update(ok=False, message='ty 类型检查失败', exit_code=RUNTIME_ERROR)
         return payload
 
     def run_tests(

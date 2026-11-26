@@ -234,10 +234,13 @@ async def test_install_plan_prepare_select_and_pending_restart_are_distinct(
     prepared = await service.prepare(PLUGIN_ID, digest, maintenance=True, actor='operator')
     async with deployment_sessions() as db:
         row = await db.get(SysPluginRelease, PLUGIN_ID)
+        assert row is not None
         assert row.target_digest is None
         assert row.prepared_digest == digest
         assert row.prepared_version == '1.0.0'
-        assert (await db.get(SysPlugin, PLUGIN_ID)).installed_version == '1.0.0'
+        stored = await db.get(SysPlugin, PLUGIN_ID)
+        assert stored is not None
+        assert stored.installed_version == '1.0.0'
     again = await service.prepare(PLUGIN_ID, digest, maintenance=True)
     assert again['ok']
     assert maintenance_factory.calls.count(('install', False, '1.0.0')) == 1
@@ -282,7 +285,9 @@ async def test_same_version_digest_is_not_guessed_from_installed_version(
             PLUGIN_ID, imported['digest'], maintenance=True, expected_generation=selected['generation']
         )
     async with deployment_sessions() as db:
-        assert (await db.get(SysPluginRelease, PLUGIN_ID)).target_digest == selected['digest']
+        stored = await db.get(SysPluginRelease, PLUGIN_ID)
+        assert stored is not None
+        assert stored.target_digest == selected['digest']
 
 
 @pytest.mark.asyncio
@@ -323,6 +328,7 @@ async def test_failed_preparation_clears_proof_and_preserves_previous_target(
         await service.prepare(PLUGIN_ID, imported['digest'], maintenance=True)
     async with deployment_sessions() as db:
         row = await db.get(SysPluginRelease, PLUGIN_ID)
+        assert row is not None
         assert row.target_digest == selected['digest']
         assert row.generation == selected['generation']
         assert row.prepare_status == 'failed'
@@ -362,7 +368,9 @@ async def test_upgrade_and_explicit_code_rollback_preserve_newer_installed_schem
     assert maintenance_factory.calls == [*before, ('check', True, '1.0.0')]
     async with deployment_sessions() as db:
         plugin = await db.get(SysPlugin, PLUGIN_ID)
+        assert plugin is not None
         release = await db.get(SysPluginRelease, PLUGIN_ID)
+        assert release is not None
         assert plugin.installed_version == '2.0.0'
         assert plugin.version == '1.0.0'
         assert release.target_digest == first['digest']
@@ -461,6 +469,7 @@ async def test_generation_conflict_and_audit_failure_cannot_commit_target_change
         )
     async with deployment_sessions() as db:
         row = await db.get(SysPluginRelease, PLUGIN_ID)
+        assert row is not None
         assert row.target_digest is None and row.generation == prepared['generation']
         assert row.prepared_digest == imported['digest']
 
@@ -497,7 +506,9 @@ async def test_rollback_resource_and_target_changes_share_a_transaction(
         )
     async with deployment_sessions() as db:
         plugin = await db.get(SysPlugin, PLUGIN_ID)
+        assert plugin is not None
         row = await db.get(SysPluginRelease, PLUGIN_ID)
+        assert row is not None
         assert plugin.version == plugin.installed_version == '2.0.0'
         assert row.generation == second['generation']
         assert row.target_digest == second['digest'] and row.previous_digest == first['digest']
@@ -568,7 +579,9 @@ async def test_real_maintenance_runtime_prepares_minimal_signed_artifact_in_sqli
     assert prepared['ok']
     async with deployment_sessions() as db:
         plugin = await db.get(SysPlugin, PLUGIN_ID)
+        assert plugin is not None
         release = await db.get(SysPluginRelease, PLUGIN_ID)
+        assert release is not None
         assert plugin.installed_version == '1.0.0'
         assert plugin.source == 'artifact'
         assert plugin.backend_path == f'artifact:{imported["digest"]}'
@@ -592,6 +605,7 @@ async def test_status_reports_disabled_only_after_worker_confirms_current_genera
     selected = await import_prepare_select(service, deployment_archive)
     async with deployment_sessions() as db:
         plugin = await db.get(SysPlugin, PLUGIN_ID)
+        assert plugin is not None
         plugin.enabled = '1'
         await PluginReleaseDao.upsert_worker_report(
             db,

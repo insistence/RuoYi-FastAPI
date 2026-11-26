@@ -1,6 +1,6 @@
 import subprocess
 import threading
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from typing import Any, Literal, Protocol, TypeAlias, runtime_checkable
@@ -108,7 +108,7 @@ def run_plugin_command(
         stderr_thread.join()
         raise subprocess.TimeoutExpired(
             command,
-            timeout,
+            exc.timeout,
             output=''.join(stdout_parts),
             stderr=''.join(stderr_parts),
         ) from exc
@@ -140,7 +140,7 @@ class PluginManagementServiceProtocol(Protocol):
     """插件运行时依赖的管理服务协议。"""
 
     @classmethod
-    async def get_plugin_list_services(cls, query_db: AsyncSession) -> list[PluginStateRecord]:
+    async def get_plugin_list_services(cls, query_db: AsyncSession) -> Sequence[PluginStateRecord]:
         """
         获取插件状态列表。
 
@@ -690,7 +690,14 @@ class PluginLifecycleUnitOfWork(Protocol):
     :ivar session: 当前操作共用的会话
     """
 
-    session: AsyncSession
+    @property
+    def session(self) -> AsyncSession:
+        """
+        获取当前操作共用的数据库会话。
+
+        :return: 当前生命周期事务的会话
+        """
+        ...
 
     async def check_installed_menu_conflicts(self, discovered_plugin: DiscoveredPlugin) -> list[PluginMenuConflictItem]:
         """

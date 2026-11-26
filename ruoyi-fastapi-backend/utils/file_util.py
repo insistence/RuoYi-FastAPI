@@ -4,7 +4,7 @@ import re
 import shutil
 import time
 import uuid
-from collections.abc import AsyncGenerator, Iterator
+from collections.abc import AsyncGenerator, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -307,7 +307,7 @@ class FileUtil:
             return 'invalid'
 
     @classmethod
-    def stage_file_deletions(cls, file_infos: list[FileStorageInfo]) -> list[StagedFile]:
+    def stage_file_deletions(cls, file_infos: Sequence[FileStorageInfo]) -> list[StagedFile]:
         """
         将待删除文件移入回收区。
 
@@ -376,7 +376,7 @@ class FileUtil:
                 logger.error(f'文件删除回滚失败: {exc}')
 
     @classmethod
-    def prepare_deleted_files_for_restore(cls, file_infos: list[FileStorageInfo]) -> list[StagedFile]:
+    def prepare_deleted_files_for_restore(cls, file_infos: Sequence[FileStorageInfo]) -> list[StagedFile]:
         """
         校验待恢复文件并生成暂存信息。
 
@@ -396,7 +396,7 @@ class FileUtil:
         return staged_files
 
     @classmethod
-    def prepare_deleted_files_for_purge(cls, file_infos: list[FileStorageInfo]) -> list[StagedFile]:
+    def prepare_deleted_files_for_purge(cls, file_infos: Sequence[FileStorageInfo]) -> list[StagedFile]:
         """
         校验待永久清理文件并生成暂存信息。
 

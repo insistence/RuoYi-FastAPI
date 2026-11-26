@@ -1,10 +1,12 @@
 import json
 from collections.abc import Awaitable, Callable
+from typing import TypedDict, cast
 from urllib.parse import parse_qs, urlencode
 
 from fastapi import FastAPI, Request
 from fastapi.datastructures import Headers, QueryParams
 from fastapi.responses import JSONResponse
+from starlette.applications import Starlette
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from common.constant import HttpStatusConstant
@@ -17,6 +19,20 @@ from utils.transport_crypto_util import (
     TransportKeyError,
     TransportSecurityUtil,
 )
+
+
+class TransportCryptoContext(TypedDict):
+    """
+    加密请求与响应共享的上下文。
+
+    :ivar active: 当前请求是否启用传输加密
+    :ivar kid: 请求使用的密钥版本
+    :ivar aes_key: 解密得到的 AES 会话密钥
+    """
+
+    active: bool
+    kid: str
+    aes_key: bytes
 
 
 class TransportCryptoMiddleware:
@@ -127,8 +143,8 @@ class TransportCryptoMiddleware:
         request = Request(scope, receive=self._build_receive(body))
         try:
             decrypted_scope, decrypted_body, crypto_context = await self._decrypt_request(scope, request, headers, body)
-            await TransportCryptoMonitorUtil.record_encrypted_request(current_app, str(crypto_context['kid']))
-            await TransportCryptoMonitorUtil.record_decrypt_success(current_app, str(crypto_context['kid']))
+            await TransportCryptoMonitorUtil.record_encrypted_request(current_app, crypto_context['kid'])
+            await TransportCryptoMonitorUtil.record_decrypt_success(current_app, crypto_context['kid'])
         except Exception as exc:
             error_crypto_context = self._build_error_crypto_context(scope, headers, body)
             error_kid = (
@@ -186,7 +202,7 @@ class TransportCryptoMiddleware:
         request: Request,
         headers: Headers,
         body: bytes,
-    ) -> tuple[Scope, bytes, dict[str, str | bytes | bool]]:
+    ) -> tuple[Scope, bytes, TransportCryptoContext]:
         """
         解密请求并回写解密后的headers、query和body。
 
@@ -208,7 +224,7 @@ class TransportCryptoMiddleware:
         if query_envelope is None and body_envelope is None:
             raise ValueError('未找到可解密的请求载荷')
 
-        crypto_context: dict[str, str | bytes | bool] | None = None
+        crypto_context: TransportCryptoContext | None = None
         if query_envelope is not None:
             decrypted_query = await self._decrypt_envelope(request, scope, query_envelope)
             query_payload = self._loads_json_mapping(decrypted_query.plaintext.decode('utf-8'))
@@ -244,7 +260,7 @@ class TransportCryptoMiddleware:
         self,
         request: Request,
         scope: Scope,
-        envelope: dict[str, str],
+        envelope: dict[str, object],
     ) -> DecryptedTransportEnvelope:
         """
         解密单个请求信封并执行时间窗、防重放校验。
@@ -263,7 +279,7 @@ class TransportCryptoMiddleware:
         await TransportSecurityUtil.validate_replay(request, decrypted_payload.kid, decrypted_payload.nonce)
         return decrypted_payload
 
-    def _extract_query_envelope(self, scope: Scope) -> dict[str, str] | None:
+    def _extract_query_envelope(self, scope: Scope) -> dict[str, object] | None:
         """
         从查询参数中提取加密信封。
 
@@ -276,7 +292,7 @@ class TransportCryptoMiddleware:
             return None
         return TransportCryptoUtil.decode_query_envelope(encrypted_query)
 
-    def _extract_body_envelope(self, content_type: str, body: bytes) -> dict[str, str] | None:
+    def _extract_body_envelope(self, content_type: str, body: bytes) -> dict[str, object] | None:
         """
         根据内容类型从请求体中提取加密信封。
 
@@ -292,11 +308,11 @@ class TransportCryptoMiddleware:
             body_payload = json.loads(body.decode('utf-8'))
             if not isinstance(body_payload, dict):
                 raise ValueError('加密请求体格式不合法')
-            return body_payload
+            return cast('dict[str, object]', body_payload)
 
         if 'application/x-www-form-urlencoded' in content_type:
             parsed_form = parse_qs(body.decode('utf-8'), keep_blank_values=True)
-            body_envelope = {
+            body_envelope: dict[str, object] = {
                 key: values[-1] if isinstance(values, list) else values for key, values in parsed_form.items()
             }
             aad = body_envelope.get('aad')
@@ -316,7 +332,7 @@ class TransportCryptoMiddleware:
         app: FastAPI | None,
         scope: Scope,
         send: Send,
-        crypto_context: dict[str, str | bytes | bool],
+        crypto_context: TransportCryptoContext,
     ) -> Callable[[Message], Awaitable[None]]:
         """
         构建响应加密发送器，仅对JSON响应执行加密。
@@ -355,7 +371,7 @@ class TransportCryptoMiddleware:
                                     request_mode='encrypted',
                                     response_mode='plain',
                                     crypto_status='ok',
-                                    kid=str(crypto_context['kid']),
+                                    kid=crypto_context['kid'],
                                 ),
                             ),
                         }
@@ -377,7 +393,7 @@ class TransportCryptoMiddleware:
             encrypted_body = TransportCryptoUtil.encrypt_response_body(
                 aes_key=crypto_context['aes_key'],
                 payload=b''.join(buffered_json_body),
-                kid=str(crypto_context['kid']),
+                kid=crypto_context['kid'],
                 method=str(scope.get('method', '')),
                 path=self._normalize_path(str(scope.get('path', ''))),
             )
@@ -398,7 +414,7 @@ class TransportCryptoMiddleware:
             response_headers = self._replace_header(
                 response_headers,
                 self._ENCRYPT_KID_HEADER.encode('utf-8'),
-                str(crypto_context['kid']).encode('utf-8'),
+                crypto_context['kid'].encode('utf-8'),
             )
             response_headers = self._merge_response_headers(
                 response_headers,
@@ -406,10 +422,10 @@ class TransportCryptoMiddleware:
                     request_mode='encrypted',
                     response_mode='encrypted',
                     crypto_status='ok',
-                    kid=str(crypto_context['kid']),
+                    kid=crypto_context['kid'],
                 ),
             )
-            await TransportCryptoMonitorUtil.record_encrypted_response(app, str(crypto_context['kid']))
+            await TransportCryptoMonitorUtil.record_encrypted_response(app, crypto_context['kid'])
             await send({**response_start_message, 'headers': response_headers})
             await send({'type': 'http.response.body', 'body': encrypted_body, 'more_body': False})
 
@@ -467,7 +483,7 @@ class TransportCryptoMiddleware:
 
         return _observe_response
 
-    def _build_crypto_context(self, decrypted_payload: DecryptedTransportEnvelope) -> dict[str, str | bytes | bool]:
+    def _build_crypto_context(self, decrypted_payload: DecryptedTransportEnvelope) -> TransportCryptoContext:
         """
         从解密结果构建请求生命周期内的加密上下文。
 
@@ -485,7 +501,7 @@ class TransportCryptoMiddleware:
         scope: Scope,
         headers: Headers,
         body: bytes,
-    ) -> dict[str, str | bytes | bool] | None:
+    ) -> TransportCryptoContext | None:
         """
         尝试在解密失败场景下提取AES会话密钥，以便返回加密错误响应。
 
@@ -688,7 +704,7 @@ class TransportCryptoMiddleware:
         receive: Receive,
         send: Send,
         msg_key: str,
-        crypto_context: dict[str, str | bytes | bool] | None = None,
+        crypto_context: TransportCryptoContext | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         """
@@ -711,7 +727,7 @@ class TransportCryptoMiddleware:
             encrypted_body = TransportCryptoUtil.encrypt_response_body(
                 aes_key=crypto_context['aes_key'],
                 payload=json.dumps(response_content, ensure_ascii=False).encode('utf-8'),
-                kid=str(crypto_context['kid']),
+                kid=crypto_context['kid'],
                 method=str(scope.get('method', '')),
                 path=cls._normalize_path(str(scope.get('path', ''))),
             )
@@ -719,7 +735,7 @@ class TransportCryptoMiddleware:
             response.init_headers()
             response.headers[cls._ENCRYPT_RESPONSE_HEADER] = '1'
             response.headers[cls._ENCRYPT_ALG_HEADER] = TransportCryptoUtil.get_response_envelope_algorithm()
-            response.headers[cls._ENCRYPT_KID_HEADER] = str(crypto_context['kid'])
+            response.headers[cls._ENCRYPT_KID_HEADER] = crypto_context['kid']
         if headers:
             response.headers.update(headers)
         await response(scope, receive, send)
@@ -822,7 +838,7 @@ class TransportCryptoMiddleware:
         return any(path == enabled_path or path.startswith(f'{enabled_path}/') for enabled_path in enabled_paths)
 
 
-def add_transport_crypto_middleware(app: ASGIApp) -> None:
+def add_transport_crypto_middleware(app: Starlette) -> None:
     """
     添加传输层加解密中间件。
 

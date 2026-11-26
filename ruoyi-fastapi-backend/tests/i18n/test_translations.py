@@ -1,6 +1,5 @@
 from collections.abc import Awaitable, Callable
 from copy import deepcopy
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -18,6 +17,7 @@ from i18n.translation import TranslationUtil
 from i18n.translator import I18nUtil
 from module_admin.dao.dict_dao import DictDataDao, DictTypeDao
 from module_admin.dao.menu_dao import MenuDao
+from module_admin.dao.user_dao import UserDao
 from module_admin.entity.do.dict_do import SysDictData, SysDictType
 from module_admin.entity.do.menu_do import SysMenu
 from module_admin.entity.vo.dict_vo import DictDataModel, DictDataPageQueryModel, DictTypeModel, DictTypePageQueryModel
@@ -25,6 +25,8 @@ from module_admin.entity.vo.menu_vo import MenuModel, MenuQueryModel
 from module_admin.service.login_service import LoginService
 from module_admin.service.menu_service import MenuService
 from plugins.core.management.dao.dao import PluginDao
+from plugins.core.management.service.router_metadata import PluginRouterMetadataService
+from tests.module_admin.service.helpers import make_query_db
 
 
 @pytest.mark.parametrize(
@@ -79,7 +81,7 @@ async def test_updates_merge_languages_and_preserve_maps_from_old_clients(
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     try:
         async with engine.begin() as connection:
-            await connection.run_sync(Base.metadata.create_all, tables=[model.__table__])
+            await connection.run_sync(Base.metadata.create_all, tables=[model.get_table()])
         async with sessions() as session:
             session.add(model(**{primary_key: 1, field: {'en-US': 'Original', 'ja-JP': '日本語'}, **attributes}))
             await session.commit()
@@ -102,15 +104,19 @@ async def test_updates_merge_languages_and_preserve_maps_from_old_clients(
 @pytest.mark.parametrize('dialect', [mysql.dialect(), postgresql.dialect()])
 async def test_translation_update_locks_latest_database_value(dialect: Dialect) -> None:
     """验证合并译文前会读取并锁定数据库中的最新记录。"""
-    db = SimpleNamespace(scalar=AsyncMock(return_value={'ja-JP': '日本語'}), execute=AsyncMock())
+    db = make_query_db()
+    db.scalar.return_value = {'ja-JP': '日本語'}
     await MenuDao.edit_menu_dao(db, {'menu_id': 1, 'menu_name_i18n': {'en-US': 'Users'}})
     statement = db.scalar.call_args.args[0]
     assert str(statement.compile(dialect=dialect)).endswith(' FOR UPDATE')
     assert db.execute.call_args.args[1][0]['menu_name_i18n'] == {'ja-JP': '日本語', 'en-US': 'Users'}
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize('kind', ['directory', 'page', 'root_page', 'inner_link'])
-def test_router_and_permission_tree_keep_raw_titles_and_translation_maps(kind: str) -> None:
+async def test_router_and_permission_tree_keep_raw_titles_and_translation_maps(
+    kind: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """验证路由与授权菜单树同时保留原始标题和译文。"""
     menu = SysMenu(
         menu_id=1,
@@ -123,11 +129,18 @@ def test_router_and_permission_tree_keep_raw_titles_and_translation_maps(kind: s
         is_frame=1,
         is_cache=0,
     )
-    menus = LoginService._LoginService__generate_menus(menu.parent_id, [menu])
-    routes = LoginService._LoginService__generate_user_router_menu(menus)
-    route = routes[0].children[0] if routes[0].children else routes[0]
-    assert route.meta.title == '用户管理'
-    assert route.meta.title_i18n == {'en-US': 'Users', 'ja-JP': '利用者'}
+    menu.order_num = 1
+    user_menus = [menu]
+    if kind == 'page':
+        user_menus.insert(
+            0, SysMenu(menu_id=10, menu_name='父目录', menu_type='M', parent_id=0, path='system', order_num=0)
+        )
+    monkeypatch.setattr(UserDao, 'get_user_by_id', AsyncMock(return_value={'user_menu_info': user_menus}))
+    monkeypatch.setattr(PluginRouterMetadataService, 'get_menu_plugin_ids', AsyncMock(return_value={}))
+    routes = await LoginService.get_current_user_routers(1, make_query_db())
+    route = routes[0]['children'][0] if routes[0].get('children') else routes[0]
+    assert route['meta']['title'] == '用户管理'
+    assert route['meta']['titleI18n'] == {'en-US': 'Users', 'ja-JP': '利用者'}
     tree = MenuService.list_to_tree([menu])[0].model_dump(by_alias=True)
     assert tree['label'] == '用户管理'
     assert tree['labelI18n'] == {'en-US': 'Users', 'ja-JP': '利用者'}
@@ -189,3 +202,13 @@ def test_message_copy_preserves_deferred_translation_metadata() -> None:
     assert cloned.msg_key == message.msg_key
     assert cloned.msg_params == message.msg_params
     assert cloned.msg_params is not message.msg_params
+
+
+def test_legacy_plural_state_preserves_string_count() -> None:
+    """恢复旧消息时，复数数量与字符串的计数方法都可用。"""
+    quantity = 5
+    message = I18nMessage('条目，条目', msg_key='item', count=quantity, plural_key='items')
+    message.__setstate__({'count': quantity})
+    cloned = deepcopy(message)
+    assert cloned.plural_count == message.plural_count == quantity
+    assert cloned.count('条目') == message.count('条目') == str(message).count('条目')

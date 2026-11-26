@@ -1,6 +1,6 @@
 import base64
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -271,7 +271,7 @@ async def test_import_holds_lifecycle_lock_until_index_commit(maintenance: Any, 
         """记录文件发布和索引写入是否在同一锁范围内。"""
 
         @asynccontextmanager
-        async def lock(self, plugin_id: str, operation: str) -> AsyncIterator[PluginLifecycleLockResult]:
+        async def lock(self, plugin_id: str, operation: str) -> AsyncGenerator[PluginLifecycleLockResult, None]:
             """
             记录导入锁进入与退出顺序。
 

@@ -5,7 +5,7 @@ import shutil
 import stat
 import tempfile
 import time
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
@@ -289,7 +289,7 @@ class ArtifactStore:
         )
 
     @contextmanager
-    def _digest_lock(self, digest: str) -> Iterator[None]:
+    def _digest_lock(self, digest: str) -> Generator[None, None, None]:
         """
         使用操作系统文件锁串行化同一摘要的发布，进程退出时自动释放。
 

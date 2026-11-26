@@ -11,7 +11,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from sqlalchemy.engine.row import Row
 from sqlalchemy.orm.collections import InstrumentedList
-from sqlalchemy.sql.expression import TextClause, null
+from sqlalchemy.sql.expression import Null, null
 
 from config.database import Base
 from config.env import CachePathConfig
@@ -152,7 +152,7 @@ class SqlalchemyUtil:
         return result
 
     @classmethod
-    def get_server_default_null(cls, dialect_name: str, need_explicit_null: bool = True) -> TextClause | None:
+    def get_server_default_null(cls, dialect_name: str, need_explicit_null: bool = True) -> Null | None:
         """
         根据数据库方言动态返回值为null的server_default。
 
@@ -373,8 +373,8 @@ def get_excel_template(header_list: list, selector_header_list: list, option_lis
         # 创建数据有效性规则
         header_option = []
         for option in options:
-            if option.get(selector_header):
-                header_option = option.get(selector_header)
+            if values := option.get(selector_header):
+                header_option = values
         dv = DataValidation(type='list', formula1=f'"{",".join(header_option)}"')
         # 设置数据有效性规则的起始单元格和结束单元格
         dv.add(

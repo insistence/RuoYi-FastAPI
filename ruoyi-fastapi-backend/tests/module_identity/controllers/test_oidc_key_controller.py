@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from inspect import unwrap
 from types import SimpleNamespace
 
 import pytest
@@ -15,28 +16,7 @@ from module_identity.controller.oidc_key_controller import (
 )
 from module_identity.service.key_service import KeyService, KeyServiceError, OidcKeyManagementService
 from module_identity.service.runtime_service import OidcReadiness, OidcRuntimeService
-
-
-class _Session:
-    """
-    记录提交和回滚。
-
-    :ivar commits: 测试中记录的提交次数
-    :ivar rollbacks: 测试中记录的回滚次数
-    """
-
-    def __init__(self) -> None:
-        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
-        self.commits = 0
-        self.rollbacks = 0
-
-    async def commit(self) -> None:
-        """累加 ``commits`` 供后续断言检查。"""
-        self.commits += 1
-
-    async def rollback(self) -> None:
-        """累加 ``rollbacks`` 供后续断言检查。"""
-        self.rollbacks += 1
+from tests.module_identity.support.sessions import RecordingSession
 
 
 def _user() -> SimpleNamespace:
@@ -64,7 +44,7 @@ def test_key_routes_use_separate_permissions_for_rotation_and_activation() -> No
         (route.path, method): route
         for route in oidc_key_controller.routes
         if isinstance(route, APIRoute)
-        for method in route.methods
+        for method in route.methods or ()
     }
     assert ('/system/oauth/key/{kid}/activate', 'PUT') in routes
     assert ('/system/oauth/key/{kid}/retire', 'PUT') in routes
@@ -81,7 +61,7 @@ def test_key_routes_use_separate_permissions_for_rotation_and_activation() -> No
 @pytest.mark.asyncio
 async def test_key_write_failures_rollback_and_never_return_private_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     """密钥状态异常稳定回滚，响应不包含私钥引用。"""
-    db = _Session()
+    db = RecordingSession()
 
     async def fail(*args: object, **kwargs: object) -> bool:
         """
@@ -95,7 +75,8 @@ async def test_key_write_failures_rollback_and_never_return_private_fields(monke
 
     monkeypatch.setattr(KeyService, 'activate_key', fail)
     with pytest.raises(ServiceException) as exc_info:
-        await activate_oidc_key.__wrapped__.__wrapped__(_request(), 'kid-1', db, _user())
+        await unwrap(activate_oidc_key)(_request(), 'kid-1', db, _user())
+    assert exc_info.value.message is not None
     assert 'private_key_ciphertext' not in exc_info.value.message
     assert db.rollbacks == 1 and db.commits == 0
 
@@ -110,19 +91,19 @@ async def test_key_write_failures_rollback_and_never_return_private_fields(monke
         return True
 
     monkeypatch.setattr(KeyService, 'retire_key', retire)
-    response = await retire_oidc_key.__wrapped__.__wrapped__(_request(), 'kid-1', db, _user())
+    response = await unwrap(retire_oidc_key)(_request(), 'kid-1', db, _user())
     assert b'true' in response.body
     assert db.commits == 1
 
     monkeypatch.setattr(KeyService, 'delete_key', retire)
-    response = await delete_oidc_key.__wrapped__.__wrapped__(_request(), 'kid-1', db, _user())
+    response = await unwrap(delete_oidc_key)(_request(), 'kid-1', db, _user())
     assert b'true' in response.body
 
 
 @pytest.mark.asyncio
 async def test_key_activation_returns_clear_message_before_publication(monkeypatch: pytest.MonkeyPatch) -> None:
     """密钥尚未公开时返回可操作提示，不暴露内部异常。"""
-    db = _Session()
+    db = RecordingSession()
 
     async def unpublished(*args: object, **kwargs: object) -> bool:
         """
@@ -136,7 +117,8 @@ async def test_key_activation_returns_clear_message_before_publication(monkeypat
 
     monkeypatch.setattr(KeyService, 'activate_key', unpublished)
     with pytest.raises(ServiceException) as exc_info:
-        await activate_oidc_key.__wrapped__.__wrapped__(_request(), 'kid-1', db, _user())
+        await unwrap(activate_oidc_key)(_request(), 'kid-1', db, _user())
+    assert exc_info.value.message is not None
     assert '签名公钥尚未到公开时间' in exc_info.value.message
     assert db.rollbacks == 1 and db.commits == 0
 
@@ -144,12 +126,6 @@ async def test_key_activation_returns_clear_message_before_publication(monkeypat
 @pytest.mark.asyncio
 async def test_key_list_exposes_only_safe_enabled_capability(monkeypatch: pytest.MonkeyPatch) -> None:
     """密钥列表向管理页暴露启用能力，但不阻断 OIDC 关闭时的引导。"""
-
-    class _Db:
-        """模拟当前测试所需的数据库操作。"""
-
-        async def rollback(self) -> None:
-            """在测试会话中处理事务回滚。"""
 
     async def list_page(*args: object, **kwargs: object) -> tuple[list[object], int]:
         """
@@ -167,7 +143,7 @@ async def test_key_list_exposes_only_safe_enabled_capability(monkeypatch: pytest
         'inspect_readiness',
         lambda db: _async_readiness(OidcReadiness(False, False, 'disabled', datetime.now(UTC))),
     )
-    response = await list_oidc_keys(_Db())
+    response = await list_oidc_keys(RecordingSession())
     assert b'"enabled":false' in response.body
     assert b'"ready":false' in response.body
     assert b'private_key' not in response.body

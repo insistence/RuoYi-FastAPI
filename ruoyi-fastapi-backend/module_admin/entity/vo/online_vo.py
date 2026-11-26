@@ -1,14 +1,12 @@
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import Field
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 
 
-class OnlineModel(BaseModel):
+class OnlineModel(CamelModel):
     """在线用户对应pydantic模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     token_id: str | None = Field(default=None, description='会话编号')
     user_name: str | None = Field(default=None, description='登录名称')
@@ -27,18 +25,14 @@ class OnlineQueryModel(DateRangeQueryMixin, OnlineModel):
     end_time: str | None = Field(default=None, description='结束时间')
 
 
-class OnlinePageResponseModel(BaseModel):
+class OnlinePageResponseModel(CamelModel):
     """在线用户分页响应模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     rows: list[OnlineModel] = Field(description='在线用户记录列表')
     total: int = Field(description='总记录数')
 
 
-class DeleteOnlineModel(BaseModel):
+class DeleteOnlineModel(CamelModel):
     """强退在线用户模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     token_ids: str = Field(description='需要强退的会话编号')

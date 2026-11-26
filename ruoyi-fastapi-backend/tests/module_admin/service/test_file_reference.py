@@ -9,20 +9,12 @@ from sqlalchemy import true
 from exceptions.exception import ServiceException
 from module_admin.dao.file_business_dao import FileReferenceDao
 from module_admin.dao.file_info_dao import FileInfoDao
-from module_admin.entity.do.file_do import SysFileReference
+from module_admin.entity.do.file_do import SysFileInfo, SysFileReference
 from module_admin.entity.vo.file_vo import FileRetentionPolicyModel
 from module_admin.service.file_business_service import FileReferenceService, FileRetentionPolicyService
+from tests.module_admin.service.helpers import make_query_db
 
 FILE_ID = '11111111-1111-4111-8111-111111111111'
-
-
-def make_query_db() -> SimpleNamespace:
-    """
-    创建测试使用的 ``SimpleNamespace`` 实例。
-
-    :return: 测试使用的 ``SimpleNamespace`` 实例
-    """
-    return SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
 
 def test_get_file_reference_list_includes_legacy_reference() -> None:
@@ -137,8 +129,8 @@ def test_replace_business_file_references_locks_files_without_committing() -> No
             )
         )
 
-    assert get_file_infos.await_args.args[1] == [FILE_ID]
-    reference_list = replace_references.await_args.args[3]
+    assert get_file_infos.await_args_list[-1].args[1] == [FILE_ID]
+    reference_list = replace_references.await_args_list[-1].args[3]
     assert len(reference_list) == 1
     assert isinstance(reference_list[0], SysFileReference)
     assert reference_list[0].file_id == FILE_ID
@@ -198,7 +190,7 @@ def test_remove_business_file_references_does_not_lock_files() -> None:
             )
         )
 
-    assert replace_references.await_args.args[3] == []
+    assert replace_references.await_args_list[-1].args[3] == []
     query_db.commit.assert_not_awaited()
 
 
@@ -206,7 +198,7 @@ def test_replace_business_file_references_applies_retention_policy() -> None:
     """替换业务文件引用时应用保留策略。"""
     query_db = make_query_db()
     create_time = datetime(2026, 7, 23, 10, 0, 0, tzinfo=UTC)
-    policy = FileRetentionPolicyModel(businessType='notice', retentionDays=30)
+    policy = FileRetentionPolicyModel(business_type='notice', retention_days=30)
     with (
         patch.object(
             FileInfoDao,
@@ -236,7 +228,7 @@ def test_replace_business_file_references_applies_retention_policy() -> None:
             )
         )
 
-    reference = replace_references.await_args.args[3][0]
+    reference = replace_references.await_args_list[-1].args[3][0]
     assert reference.retention_expire_time == create_time + timedelta(days=30)
 
 
@@ -269,21 +261,15 @@ def test_refresh_file_expire_times_uses_latest_reference_expiration() -> None:
     """按最晚引用到期时间刷新文件的过期时间。"""
     first_expire_time = datetime(2026, 8, 1, tzinfo=UTC)
     last_expire_time = datetime(2026, 9, 1, tzinfo=UTC)
-    file_info = SimpleNamespace(
+    file_info = SysFileInfo(
         file_id=FILE_ID,
         business_type=None,
         business_id=None,
         expire_time=None,
     )
-    query_db = SimpleNamespace(
-        execute=AsyncMock(
-            return_value=SimpleNamespace(
-                all=lambda: [
-                    (FILE_ID, first_expire_time),
-                    (FILE_ID, last_expire_time),
-                ]
-            )
-        )
+    query_db = make_query_db()
+    query_db.execute.return_value = SimpleNamespace(
+        all=lambda: [(FILE_ID, first_expire_time), (FILE_ID, last_expire_time)]
     )
 
     asyncio.run(

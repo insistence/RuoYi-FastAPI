@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import DEFAULT_CORE_SERVICES, CliContextFactory, CliExecutionService
 from cli.runtime.oidc import OIDC_RUNTIME, OidcRuntimeCliService
 
@@ -35,7 +36,7 @@ class OidcCommandController:
     def bootstrap_key(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,

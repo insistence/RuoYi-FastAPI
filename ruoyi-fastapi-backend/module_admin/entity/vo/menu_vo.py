@@ -1,19 +1,19 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, field_validator
 from pydantic_validation_decorator import NotBlank, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 from i18n.translation import TranslationUtil
 
 
-class MenuBaseModel(BaseModel):
+class MenuBaseModel(CamelModel):
     """菜单表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     menu_id: int | None = Field(default=None, description='菜单ID')
     menu_name: str | None = Field(default=None, description='菜单名称')
@@ -145,10 +145,8 @@ class MenuQueryModel(DateRangeQueryMixin, MenuBaseModel):
     end_time: str | None = Field(default=None, description='结束时间')
 
 
-class MenuTreeModel(BaseModel):
+class MenuTreeModel(CamelModel):
     """菜单树模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     id: int = Field(description='菜单id')
     label: str = Field(description='菜单名称')
@@ -157,18 +155,14 @@ class MenuTreeModel(BaseModel):
     children: list['MenuTreeModel'] | None = Field(default=None, description='子菜单树')
 
 
-class DeleteMenuModel(BaseModel):
+class DeleteMenuModel(CamelModel):
     """删除菜单模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     menu_ids: str = Field(description='需要删除的菜单ID')
 
 
-class MenuSortModel(BaseModel):
+class MenuSortModel(CamelModel):
     """菜单排序批量保存模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     menu_ids: str = Field(description='需要更新排序的菜单ID')
     order_nums: str = Field(description='菜单显示顺序')

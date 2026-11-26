@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -11,7 +11,7 @@ def test_utc_now_returns_aware_utc_datetime() -> None:
     now = TimezoneUtil.utc_now()
 
     assert now.tzinfo is UTC
-    assert now.utcoffset().total_seconds() == 0
+    assert now.utcoffset() == timedelta(0)
 
 
 def test_naive_datetime_is_rejected() -> None:
@@ -92,6 +92,7 @@ class TestGenTimeUtil:
         with pytest.raises(ServiceWarning) as error:
             GenTimeUtil.get_time_semantics(column_type, 'postgresql')
 
+        assert error.value.message is not None
         assert 'TIME WITHOUT TIME ZONE' in error.value.message
 
     @pytest.mark.parametrize('db_type', ['mysql', 'postgresql'])

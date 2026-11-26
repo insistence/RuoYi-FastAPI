@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import FastAPI
 from pydantic import ValidationError
+from starlette.types import Message, Receive, Scope, Send
 
 from plugins.core.discovery.registry import RegisteredPlugin
 from plugins.core.discovery.scanner import DiscoveredPlugin
@@ -18,6 +19,7 @@ from plugins.core.runtime.configuration import PluginConfigObservation
 from plugins.core.runtime.diagnostics import PluginRuntimeDiagnostic, PluginRuntimeDiagnosticSnapshot
 from plugins.core.runtime.explicit import ExplicitPluginRuntime, LoadedExplicitPlugin
 from plugins.core.runtime.health import PluginHealthChecker, PluginHealthResult
+from plugins.core.runtime.route_guard import UnavailablePluginRouteStateGateway
 from plugins.core.runtime.task_cleanup import cancel_plugin_tasks, pending_plugin_tasks
 from plugins.core.sdk import PluginDefinition, PluginHostContext, PluginRequestContext
 
@@ -47,7 +49,7 @@ def diagnostic_runtime(tmp_path: Path, plugin_id: str = 'diagnostic_demo') -> Ex
         config_revision='c' * 64,
         config_reader=AsyncMock(side_effect=AssertionError('sampling must not read configuration')),
     )
-    runtime = ExplicitPluginRuntime(SimpleNamespace())
+    runtime = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     runtime.loaded[plugin_id] = LoadedExplicitPlugin(
         RegisteredPlugin(discovered, None, True, 'installed'), host, PluginDefinition()
     )
@@ -72,9 +74,11 @@ def test_snapshot_copies_actual_identity_config_and_most_recent_error(tmp_path: 
     runtime.metrics.identities['diagnostic_demo']['digest'] = 'e' * 64
     runtime.metrics.identities['diagnostic_demo']['generation'] = 'f' * 32
     first = runtime.metrics.begin('diagnostic_demo', 'http', 'old-request')
+    assert first is not None
     first.finish('failed', error_type='OldError')
     first.series.last_error_at = 124.0
     second = runtime.metrics.begin('diagnostic_demo', 'job:refresh', 'latest-request')
+    assert second is not None
     second.finish('failed', error_type='NewError')
     second.series.last_error_at = 125.0
     snapshot = runtime.diagnostic_snapshot()
@@ -85,6 +89,7 @@ def test_snapshot_copies_actual_identity_config_and_most_recent_error(tmp_path: 
     assert plugin.lifespan is None
     assert plugin.activation_health.status == 'unknown'
     assert plugin.activation_health.checked_at is None
+    assert plugin.last_error is not None
     assert plugin.last_error.model_dump(by_alias=True) == {
         'errorType': 'NewError',
         'requestId': 'latest-request',
@@ -93,6 +98,7 @@ def test_snapshot_copies_actual_identity_config_and_most_recent_error(tmp_path: 
     assert plugin.config.startup_revision == 'c' * 64
     assert plugin.config.last_read_revision == 'd' * 64
     assert 'private-config-value' not in snapshot.model_dump_json()
+    assert isinstance(loaded.host.config_reader, AsyncMock)
     loaded.host.config_reader.assert_not_called()
     runtime.metrics.configurations['diagnostic_demo'].last_read_revision = 'e' * 64
     runtime.loaded['diagnostic_demo'].activation_health.status = 'unhealthy'
@@ -157,7 +163,7 @@ async def test_real_lifespan_exit_changes_readiness_without_marking_pending_canc
     loaded = runtime.loaded['diagnostic_demo']
     release = asyncio.Event()
 
-    async def application(scope: dict, receive: object, send: object) -> None:
+    async def application(scope: Scope, receive: Receive, send: Send) -> None:
         """
         模拟应用的生命周期消息交换。
 
@@ -174,12 +180,15 @@ async def test_real_lifespan_exit_changes_readiness_without_marking_pending_canc
         await loaded.lifespan.startup()
         loaded.active = True
         running = runtime.diagnostic_snapshot()
+        assert running.plugins[0].lifespan is not None
         assert running.plugins[0].lifespan.task_active
         assert running.plugins[0].ready
         assert running.worker_pending_cleanup_tasks == 0
         release.set()
+        assert loaded.lifespan._task is not None
         await asyncio.wait({loaded.lifespan._task}, timeout=1)
         stopped = runtime.diagnostic_snapshot()
+        assert stopped.plugins[0].lifespan is not None
         assert not stopped.plugins[0].lifespan.task_active
         assert not stopped.plugins[0].ready
         assert stopped.worker_pending_cleanup_tasks == 0
@@ -198,7 +207,7 @@ async def test_live_connection_counts_do_not_include_ordinary_http_or_auth_data(
     opened = {'http': asyncio.Event(), 'websocket': asyncio.Event()}
     release = asyncio.Event()
 
-    async def authorize(scope: dict) -> PluginRequestContext:
+    async def authorize(scope: Scope) -> PluginRequestContext:
         """
         创建测试使用的 ``PluginRequestContext`` 实例。
 
@@ -207,7 +216,7 @@ async def test_live_connection_counts_do_not_include_ordinary_http_or_auth_data(
         """
         return PluginRequestContext(loaded.host, user=SimpleNamespace(private='private-user'))
 
-    async def application(scope: dict, receive: object, send: object) -> None:
+    async def application(scope: Scope, receive: Receive, send: Send) -> None:
         """
         模拟应用的生命周期消息交换。
 
@@ -237,7 +246,7 @@ async def test_live_connection_counts_do_not_include_ordinary_http_or_auth_data(
         await asyncio.Event().wait()
         return {}
 
-    async def send(message: dict) -> None:
+    async def send(message: Message) -> None:
         """
         完成无需返回值的回调。
 
@@ -291,14 +300,16 @@ async def test_pending_cleanup_is_deduplicated_and_late_completion_disappears(tm
 
     task = asyncio.create_task(resistant())
     await started.wait()
-    manager = PluginGatewayASGI(AsyncMock(), PluginLifespanManager(AsyncMock(), managed=False), AsyncMock()).connections
-    loaded.gateway = SimpleNamespace(connections=manager)
+    loaded.gateway = PluginGatewayASGI(AsyncMock(), PluginLifespanManager(AsyncMock(), managed=False), AsyncMock())
+    manager = loaded.gateway.connections
     try:
         await cancel_plugin_tasks({task}, grace_seconds=0.01)
         await interrupted.wait()
         # 模拟同一任务同时由通用回收器与连接回收器保留，诊断只能计算一次。
         manager._unfinished.add(task)
-        manager._unfinished.add(asyncio.current_task())
+        current = asyncio.current_task()
+        assert current is not None
+        manager._unfinished.add(current)
         snapshot = runtime.diagnostic_snapshot()
         expected_pending = 2
         assert snapshot.worker_pending_cleanup_tasks == expected_pending
@@ -388,15 +399,30 @@ def test_wire_snapshot_requires_every_nested_serialized_field(tmp_path: Path) ->
         ('plugins', 0, 'config'),
         ('plugins', 0, 'lastError'),
     ]
+
+    def object_at(document: dict, path: tuple[str | int, ...]) -> dict:
+        """
+        沿字段名和数组下标定位待验证的协议对象。
+
+        :param document: 诊断快照的 JSON 对象
+        :param path: 从根节点到目标对象的键和下标
+        :return: 可删除字段的目标字典
+        """
+        node: object = document
+        for key in path:
+            if isinstance(key, int):
+                assert isinstance(node, list)
+            else:
+                assert isinstance(node, dict)
+            node = node[key]
+        assert isinstance(node, dict)
+        return node
+
     for path in objects:
-        original = payload
-        for component in path:
-            original = original[component]
+        original = object_at(payload, path)
         for field in original:
             incomplete = deepcopy(payload)
-            target = incomplete
-            for component in path:
-                target = target[component]
+            target = object_at(incomplete, path)
             del target[field]
             with pytest.raises(ValidationError, match='缺少协议字段'):
                 PluginRuntimeDiagnosticSnapshot.model_validate_json(json.dumps(incomplete), context=context)

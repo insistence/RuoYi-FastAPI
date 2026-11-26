@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any
 
-from cli.tui.adapters.base import BaseBrowserAdapter
+from cli.tui.adapters.base import BaseBrowserAdapter, get_dict_field, get_list_field
 from cli.tui.adapters.models import (
     TUI_ADAPTER_MODEL_RENDERER,
     BrowserPageSnapshot,
@@ -81,7 +81,7 @@ class CacheSectionBuilder:
         :param payload: ``cache stats`` JSON 负载
         :return: 分区快照
         """
-        info = payload.get('info') if isinstance(payload, dict) and isinstance(payload.get('info'), dict) else {}
+        info = get_dict_field(payload, 'info')
         cache_rows = self.row_extractor.extract_cache_name_rows(payload)
         return DetailSectionSnapshot(
             title='Redis 摘要',
@@ -110,7 +110,7 @@ class CacheSectionBuilder:
         :param filtered_rows: 当前筛选后的缓存名列表
         :return: 分区快照
         """
-        info = payload.get('info') if isinstance(payload, dict) and isinstance(payload.get('info'), dict) else {}
+        info = get_dict_field(payload, 'info')
         cache_rows = self.row_extractor.extract_cache_name_rows(payload)
         db_size = payload.get('dbSize', '-') if isinstance(payload, dict) else '-'
         client_count = info.get('connected_clients', '-')
@@ -207,7 +207,7 @@ class CacheSectionBuilder:
                     payload, empty_label='键摘要', empty_value='不可用'
                 ),
             )
-        keys = payload.get('keys') if isinstance(payload.get('keys'), list) else []
+        keys = get_list_field(payload, 'keys')
         rendered_keys = [str(item).strip() for item in keys if str(item).strip()]
         lines = [
             '## 统计',
@@ -241,7 +241,7 @@ class CacheSectionBuilder:
                     payload, empty_label='键列表', empty_value='不可用'
                 ),
             )
-        keys = payload.get('keys') if isinstance(payload.get('keys'), list) else []
+        keys = get_list_field(payload, 'keys')
         lines = [
             SHELL_TEXT_FORMATTER.truncate_text(item, 88) for item in keys[:12] if str(item).strip()
         ] or TUI_ADAPTER_MODEL_RENDERER.build_empty_lines(
@@ -360,7 +360,7 @@ class CacheSectionBuilder:
         keys_payload = await self.query_service.get_cache_keys(cache_name)
         key_items: list[str] = []
         if isinstance(keys_payload, dict) and keys_payload.get('ok', False):
-            raw_keys = keys_payload.get('keys') if isinstance(keys_payload.get('keys'), list) else []
+            raw_keys = get_list_field(keys_payload, 'keys')
             key_items = [str(item).strip() for item in raw_keys if str(item).strip()]
         return [
             self.build_keys_summary_section(keys_payload),

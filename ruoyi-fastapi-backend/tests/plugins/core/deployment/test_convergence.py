@@ -1,6 +1,8 @@
 import asyncio
+from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -141,7 +143,7 @@ def clock(monkeypatch: pytest.MonkeyPatch) -> Clock:
     return value
 
 
-async def wait(reader: object, **changes: object) -> dict:
+async def wait(reader: Callable[[str], Awaitable[dict[str, Any]]], **changes: object) -> dict:
     """
     使用固定身份调用被测等待器，同时允许单项参数边界覆盖。
 
@@ -398,7 +400,7 @@ async def test_timer_before_monotonic_deadline_cannot_become_unavailable_or_late
         :raises asyncio.CancelledError: 异步操作被取消时
         """
         try:
-            await asyncio.Future()
+            return await asyncio.Future[dict]()
         except asyncio.CancelledError:
             if swallow_cancel:
                 return payload(ready(WORKER, OTHER))
@@ -436,10 +438,11 @@ async def test_cancellation_propagates_and_does_not_continue_polling(
         将调用保持在等待状态以验证取消行为。
 
         :param value: 待处理的输入值
+        :return: 等待本应提供的发布状态
         """
         entered.set()
         try:
-            await asyncio.Future()
+            return await asyncio.Future[dict]()
         finally:
             finished.set()
 

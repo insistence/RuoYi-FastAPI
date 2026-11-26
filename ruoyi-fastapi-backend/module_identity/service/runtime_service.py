@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from time import monotonic
 
 from fastapi import FastAPI
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.constant import OidcAuditEvent
@@ -334,7 +335,7 @@ class OidcRuntimeService:
                 logger.error('OIDC 签名密钥生命周期维护任务执行失败')
 
     @staticmethod
-    async def backchannel_retry_loop(redis: object) -> None:
+    async def backchannel_retry_loop(redis: Redis) -> None:
         """
         运行 Back-Channel 重试后台循环。
 

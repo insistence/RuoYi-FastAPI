@@ -1,5 +1,8 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import TypeVar
+
+SectionT = TypeVar('SectionT')
 
 
 @dataclass(frozen=True)
@@ -289,7 +292,7 @@ class TuiSearchService:
         return [str(candidate).strip() for candidate in candidates if str(candidate).strip()]
 
     @staticmethod
-    def filter_detail_sections(sections: list[object], query: str) -> list[object]:
+    def filter_detail_sections(sections: list[SectionT], query: str) -> list[SectionT]:
         """
         按搜索词过滤详情页分区列表。
 
@@ -300,7 +303,7 @@ class TuiSearchService:
         normalized_query = str(query or '').strip().lower()
         if not normalized_query:
             return sections
-        filtered_sections: list[object] = []
+        filtered_sections: list[SectionT] = []
         for section in sections:
             title = str(getattr(section, 'title', '') or '').strip().lower()
             lines = getattr(section, 'lines', [])

@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import Literal
 
 from packaging.requirements import InvalidRequirement
+from pydantic import TypeAdapter
 
 from i18n.message import I18nMessage
 from plugins.core.environment import PLUGIN_RUNTIME_ENVIRONMENT, PluginRuntimeEnvironmentService
-from plugins.core.manifest.schema import PluginManifest
+from plugins.core.manifest.v2 import VersionedPluginManifest
 from plugins.core.validation.python_requirements import PythonRequirementParser
 from plugins.core.validation.versioning import PluginVersionComparator, PluginVersionConstraintMatcher
 
@@ -528,7 +529,7 @@ class NpmDependencyInspector:
         dependencies = package_json.get('dependencies', {})
         dev_dependencies = package_json.get('devDependencies', {})
 
-        return {**dependencies, **dev_dependencies}
+        return TypeAdapter(dict[str, str]).validate_python({**dependencies, **dev_dependencies}, strict=True)
 
     @staticmethod
     def _normalize_npm_version(version: str | None) -> str | None:
@@ -597,7 +598,7 @@ class PluginDependencyChecker:
         )
         self.frontend_mode = frontend_mode
 
-    def check_manifest(self, manifest: PluginManifest) -> DependencyCheckResult:
+    def check_manifest(self, manifest: VersionedPluginManifest) -> DependencyCheckResult:
         """
         检查插件清单依赖。
 

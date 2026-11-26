@@ -7,14 +7,19 @@ import sys
 import traceback
 from collections.abc import Mapping, Sequence
 from datetime import UTC
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from loguru import logger as _logger
-from loguru._logger import Logger
 
 from config.env import AppConfig, LogConfig
 from middlewares.trace_middleware import TraceCtx
 from utils.server_util import WorkerIdUtil
+
+if TYPE_CHECKING:
+    from loguru import Logger, Record
+else:
+    Logger = type(_logger)
+    Record = dict
 
 
 def _split_field_tokens(field_name: str) -> tuple[str, ...]:
@@ -456,7 +461,7 @@ class LoggerInitializer:
         if self._log_base_dir and not os.path.exists(self._log_base_dir):
             os.makedirs(self._log_base_dir, exist_ok=True)
 
-    def _filter(self, record: dict) -> bool:
+    def _filter(self, record: 'Record') -> bool:
         """
         注入 Trace 上下文并执行日志扩展字段脱敏。
 
@@ -507,7 +512,7 @@ class LoggerInitializer:
             traceback_text = str(exception.traceback)
         return LogSanitizer.sanitize_text(traceback_text.rstrip())
 
-    def _build_plain_exception_suffix(self, record: dict) -> str:
+    def _build_plain_exception_suffix(self, record: 'Record') -> str:
         """
         构建普通文本日志使用的异常后缀。
 
@@ -517,7 +522,7 @@ class LoggerInitializer:
         exception_text = self._get_exception_traceback_text(record.get('exception'))
         return f'\n{exception_text}' if exception_text else ''
 
-    def _build_json_payload(self, record: dict) -> dict:
+    def _build_json_payload(self, record: 'Record') -> dict:
         """
         构建统一的 JSON 日志结构。
 
@@ -551,7 +556,7 @@ class LoggerInitializer:
             'extra': {key: value for key, value in record['extra'].items() if key != 'json_payload'},
         }
 
-    def _json_log_formatter(self, record: dict) -> str:
+    def _json_log_formatter(self, record: 'Record') -> str:
         """
         将 Loguru 日志记录格式化为 JSON 文本。
 
@@ -561,7 +566,7 @@ class LoggerInitializer:
         record['extra']['json_payload'] = json.dumps(self._build_json_payload(record), ensure_ascii=False, default=str)
         return '{extra[json_payload]}\n'
 
-    def _plain_log_formatter(self, record: dict) -> str:
+    def _plain_log_formatter(self, record: 'Record') -> str:
         """
         将 Loguru 日志记录格式化为普通文本，并追加脱敏后的异常堆栈。
 
@@ -580,18 +585,16 @@ class LoggerInitializer:
             '<level>{message}</level>{extra[sanitized_exception]}\n'
         )
 
-    def _patch_record(self, record: dict) -> dict:
+    def _patch_record(self, record: 'Record') -> None:
         """
         在日志落地前统一脱敏。
 
         :param record: Loguru 日志记录字典
-        :return: 脱敏后的日志记录字典
         """
         record['message'] = LogSanitizer.sanitize_text(record['message'])
         record['time'] = record['time'].astimezone(UTC)
-        return record
 
-    def _info_file_filter(self, record: dict) -> bool:
+    def _info_file_filter(self, record: 'Record') -> bool:
         """
         仅输出 INFO 级别日志到 info 文件。
 
@@ -600,7 +603,7 @@ class LoggerInitializer:
         """
         return self._filter(record) and record['level'].name == 'INFO'
 
-    def _error_file_filter(self, record: dict) -> bool:
+    def _error_file_filter(self, record: 'Record') -> bool:
         """
         输出 WARNING 及以上日志到 error 文件。
 
@@ -618,7 +621,7 @@ class LoggerInitializer:
         for logger_name in ('LiteLLM', 'litellm'):
             logging.getLogger(logger_name).setLevel(logging.WARNING)
 
-    def init_log(self) -> Logger:
+    def init_log(self) -> 'Logger':
         """
         初始化 Loguru 输出与标准 logging 配置。
 

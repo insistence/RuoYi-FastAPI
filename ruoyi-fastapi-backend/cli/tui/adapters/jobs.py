@@ -341,8 +341,7 @@ class JobSectionBuilder:
         :param payload: ``job detail`` JSON 负载
         :return: 分区快照
         """
-        job = payload.get('job') if isinstance(payload, dict) else None
-        if not isinstance(job, dict):
+        if not isinstance(payload, dict) or not isinstance(job := payload.get('job'), dict):
             return DetailSectionSnapshot(
                 title='任务摘要',
                 status='fail',
@@ -368,8 +367,7 @@ class JobSectionBuilder:
         :param payload: ``job detail`` JSON 负载
         :return: 分区快照
         """
-        job = payload.get('job') if isinstance(payload, dict) else None
-        if not isinstance(job, dict):
+        if not isinstance(payload, dict) or not isinstance(job := payload.get('job'), dict):
             return DetailSectionSnapshot(
                 title='调度配置',
                 status='fail',

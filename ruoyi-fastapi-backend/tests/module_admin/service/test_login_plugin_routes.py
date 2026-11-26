@@ -62,8 +62,8 @@ async def test_plugin_metadata_uses_menu_ownership_for_nested_and_root_pages() -
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     try:
         async with engine.begin() as connection:
-            await connection.run_sync(SysPlugin.__table__.create)
-            await connection.run_sync(SysPluginMenu.__table__.create)
+            await connection.run_sync(SysPlugin.get_table().create)
+            await connection.run_sync(SysPluginMenu.get_table().create)
         session_factory = async_sessionmaker(engine)
         async with session_factory() as db:
             db.add(_plugin('demo'))
@@ -106,8 +106,8 @@ async def test_menu_ownership_rejects_inactive_uninstalled_and_ambiguous_plugins
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     try:
         async with engine.begin() as connection:
-            await connection.run_sync(SysPlugin.__table__.create)
-            await connection.run_sync(SysPluginMenu.__table__.create)
+            await connection.run_sync(SysPlugin.get_table().create)
+            await connection.run_sync(SysPluginMenu.get_table().create)
         session_factory = async_sessionmaker(engine)
         async with session_factory() as db:
             db.add_all(

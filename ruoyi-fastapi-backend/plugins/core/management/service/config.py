@@ -2,6 +2,7 @@ import json
 import re
 from typing import cast
 
+from plugins.core.management.entity.do.models import SysPluginConfig
 from plugins.core.management.entity.vo.schemas import PluginConfigModel, PluginConfigValueModel
 from plugins.core.manifest.schema import PluginConfigItemManifest
 from plugins.core.types import PluginConfigValue
@@ -34,12 +35,12 @@ class PluginConfigManager:
         serialized_default = cls.serialize_config_value(item.default, secret=item.secret)
 
         return PluginConfigModel(
-            pluginId=plugin_id,
-            configKey=item.key,
-            configLabel=item.label,
-            configType=item.type,
-            configValue=serialized_default,
-            defaultValue=serialized_default,
+            plugin_id=plugin_id,
+            config_key=item.key,
+            config_label=item.label,
+            config_type=item.type,
+            config_value=serialized_default,
+            default_value=serialized_default,
             required='0' if item.required else '1',
             secret='0' if item.secret else '1',
             options=cls.serialize_value([option.model_dump() for option in item.options]),
@@ -49,7 +50,7 @@ class PluginConfigManager:
     @classmethod
     def build_config_value(
         cls,
-        config: object,
+        config: SysPluginConfig | PluginConfigModel,
         manifest_item: PluginConfigItemManifest | None = None,
         *,
         reveal_secret: bool = False,
@@ -94,7 +95,7 @@ class PluginConfigManager:
     @classmethod
     def migrate_config_secret_storage(
         cls,
-        config: object,
+        config: SysPluginConfig | PluginConfigModel,
         item: PluginConfigItemManifest,
     ) -> str | None:
         """
@@ -106,7 +107,7 @@ class PluginConfigManager:
         """
         old_secret = getattr(config, 'secret', '1') == '0'
         if old_secret == item.secret:
-            return getattr(config, 'config_value', None)
+            return config.config_value
 
         current_value = cls.deserialize_config_value(
             getattr(config, 'config_value', None),
@@ -227,14 +228,14 @@ class PluginConfigManager:
             raise ValueError(f'配置 {item.key} 不能为空')
         if item.type == 'boolean' and not isinstance(value, bool):
             raise ValueError(f'配置 {item.key} 必须是布尔值')
-        if item.type == 'number' and (not isinstance(value, int | float) or isinstance(value, bool)):
-            raise ValueError(f'配置 {item.key} 必须是数字')
+        if item.type == 'number':
+            if not isinstance(value, int | float) or isinstance(value, bool):
+                raise ValueError(f'配置 {item.key} 必须是数字')
+            cls._validate_number_range(item, value)
         if item.type == 'select' and item.options:
             allowed_values = [option.value for option in item.options]
             if value not in allowed_values:
                 raise ValueError(f'配置 {item.key} 不在允许的选项范围内')
-        if item.type == 'number':
-            cls._validate_number_range(item, value)
         if (
             item.pattern
             and item.type in {'string', 'textarea', 'password'}

@@ -2,7 +2,7 @@ import json
 from collections.abc import AsyncIterator, Iterator
 from copy import deepcopy
 from types import SimpleNamespace
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 from unittest.mock import AsyncMock
 from uuid import UUID
 
@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, FastAPI, Request, status
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 
 from common.aspect.db_session import get_db_session_provider
-from common.aspect.pre_auth import CurrentUserDependency, PreAuthDependency
+from common.aspect.pre_auth import CurrentUserDependency, PreAuth, PreAuthDependency
 from common.context import RequestContext
 from config.env import AppConfig
 from exceptions.exception import AuthException
@@ -21,6 +21,9 @@ from middlewares.context_middleware import add_context_cleanup_middleware
 from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
 from module_admin.service.login_service import LoginService, oauth2_scheme
 from utils.server_util import APIDocsUtil
+
+if TYPE_CHECKING:
+    from common.auth_policy import ExcludeRoute
 
 LOGIN_SECURITY = {'OAuth2PasswordBearer': []}
 AUTHORIZATION = {'Authorization': 'Bearer valid'}
@@ -70,7 +73,7 @@ def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         current_user = CurrentUserModel(
             permissions=['demo:read'],
             roles=['reader'],
-            user=UserInfoModel(userId=2, userName='reader'),
+            user=UserInfoModel(user_id=2, user_name='reader'),
         )
         RequestContext.set_current_user(current_user)
         return current_user
@@ -446,7 +449,7 @@ async def test_public_login_exclusion_preserves_other_required_security(
 ) -> None:
     """排除登录要求时保留其他安全要求。"""
     path = '/key/{name}' if conditional else '/key'
-    rule = {'path': '/key/free' if conditional else path}
+    rule: ExcludeRoute = {'path': '/key/free' if conditional else path}
     api_key = APIKeyHeader(name='X-API-Key', scheme_name='ServiceKey')
 
     @docs_app.app.get(
@@ -636,7 +639,7 @@ async def test_duplicate_path_with_different_convertors_preserves_native_securit
     docs_app: SimpleNamespace, public_first: bool, include_first: bool
 ) -> None:
     """同一路径使用不同转换器时保留原生安全要求。"""
-    rule = {'path': '/duplicate-convertor/{value}'}
+    rule: ExcludeRoute = {'path': '/duplicate-convertor/{value}'}
 
     @docs_app.app.get(
         '/duplicate-convertor/{value:int}',
@@ -858,7 +861,7 @@ async def test_overlapping_public_values_respect_each_pre_auth_exception(
     docs_app: SimpleNamespace, reallow: bool
 ) -> None:
     """公开值重叠时遵循每个预认证依赖的例外。"""
-    rules = [{'path': '/overlap/{name}', 'ignore_paths': ['/overlap/free']}]
+    rules: list[ExcludeRoute] = [{'path': '/overlap/{name}', 'ignore_paths': ['/overlap/free']}]
     if reallow:
         rules.append({'path': '/overlap/free'})
 
@@ -935,6 +938,7 @@ async def test_changed_exclusion_rules_restore_native_security_and_description(d
     assert before['description'].startswith(description)
     assert before['x-login-auth']['mode'] == 'conditional'
     original_cache = docs_app.app.openapi_schema
+    assert isinstance(pre_auth.dependency, PreAuth)
     pre_auth.dependency.exclude_patterns.clear()
     after = docs_app.app.openapi()['paths']['/mutable/{name}']['get']
     assert docs_app.app.openapi_schema is original_cache

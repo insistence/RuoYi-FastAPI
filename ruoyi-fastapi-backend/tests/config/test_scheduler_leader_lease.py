@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Coroutine
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
@@ -81,7 +82,7 @@ async def test_non_leader_scheduler_starts_reacquire_task() -> None:
     SchedulerManager._reacquire_task = None
     SchedulerManager._is_closing = False
 
-    def create_task(coroutine: object) -> MagicMock:
+    def create_task(coroutine: Coroutine) -> MagicMock:
         """
         创建测试任务并将其交给调用方。
 
@@ -221,7 +222,7 @@ def test_scheduler_lock_lost_callback_revokes_leader_state() -> None:
     original_lock_lost_task = SchedulerManager._lock_lost_task
     scheduled_task = MagicMock()
 
-    def create_task(coroutine: object) -> MagicMock:
+    def create_task(coroutine: Coroutine) -> MagicMock:
         """
         创建测试任务并将其交给调用方。
 

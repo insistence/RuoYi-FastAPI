@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from config.env import OidcConfig
 from exceptions.exception import OAuthProtocolException
@@ -15,7 +15,9 @@ from module_admin.entity.do.dept_do import SysDept
 from module_admin.entity.do.role_do import SysRole
 from module_admin.entity.do.user_do import SysUser, SysUserRole
 from module_identity.dao.oauth_access_policy_dao import OAuthAccessPolicyDao
+from module_identity.entity.do.identity_subject_do import SysIdentitySubject
 from module_identity.entity.do.oauth_client_do import SysOAuthClient
+from module_identity.entity.do.oauth_grant_do import SysSsoSession
 from module_identity.entity.do.oauth_resource_do import (
     SysOAuthClientResource,
     SysOAuthClientScope,
@@ -59,7 +61,7 @@ async def test_confidential_auth_marks_only_matching_secret_used(monkeypatch: py
     )
     mark_used = AsyncMock(return_value=True)
     monkeypatch.setattr('module_identity.service.token_service.OAuthClientDao.mark_secret_used', mark_used)
-    db = object()
+    db = AsyncSession()
     header = 'Basic ' + base64.b64encode(f'{client.client_id}:{secret}'.encode()).decode()
 
     await TokenService.authenticate_client(db, authorization=header)
@@ -109,7 +111,7 @@ def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(OidcConfig, name, value)
 
 
-def _client(**overrides: object) -> SimpleNamespace:
+def _client(**overrides: object) -> SysOAuthClient:
     """
     构造 Token 流程所需的 Client 标量快照。
 
@@ -128,7 +130,7 @@ def _client(**overrides: object) -> SimpleNamespace:
         'status': '0',
     }
     value.update(overrides)
-    return SimpleNamespace(**value)
+    return SysOAuthClient(**value)
 
 
 def _code_payload(**overrides: object) -> dict[str, object]:
@@ -227,10 +229,10 @@ async def test_authorization_code_binds_client_redirect_and_pkce(
     monkeypatch.setattr(TokenService, '_issue_id_token', lambda *args, **kwargs: _async_value('id'))
 
     redis = FakeRedis()
-    code = await AuthorizationCodeService.issue(redis, payload, pepper=_PEPPER)
+    code = await AuthorizationCodeService.issue(redis.client, payload, pepper=_PEPPER)
     result = await TokenService.authorization_code(
-        object(),
-        redis,
+        AsyncSession(),
+        redis.client,
         {
             'grant_type': 'authorization_code',
             'client_id': 'portal-client',
@@ -245,10 +247,11 @@ async def test_authorization_code_binds_client_redirect_and_pkce(
     assert result.refresh_token is None
     assert await redis.get(f'oidc:authorization_code:{code.split(".")[1]}') is None
 
+    code = await AuthorizationCodeService.issue(redis.client, payload, pepper=_PEPPER)
     with pytest.raises(OAuthProtocolException) as raised:
         await TokenService.authorization_code(
-            object(),
-            redis,
+            AsyncSession(),
+            redis.client,
             {
                 'grant_type': 'authorization_code',
                 'client_id': 'portal-client',
@@ -261,10 +264,11 @@ async def test_authorization_code_binds_client_redirect_and_pkce(
         )
     assert raised.value.error == 'invalid_grant'
 
+    code = await AuthorizationCodeService.issue(redis.client, payload, pepper=_PEPPER)
     with pytest.raises(OAuthProtocolException) as raised:
         await TokenService.authorization_code(
-            object(),
-            redis,
+            AsyncSession(),
+            redis.client,
             {
                 'grant_type': 'authorization_code',
                 'client_id': 'portal-client',
@@ -299,12 +303,12 @@ async def test_authorization_code_reuse_revokes_bound_grant(monkeypatch: pytest.
     revoke = AsyncMock(return_value=True)
     monkeypatch.setattr('module_identity.service.token_service.OAuthGrantDao.revoke', revoke)
     monkeypatch.setattr(AuditService, 'record_independent', AsyncMock())
-    db = SimpleNamespace(execute=AsyncMock())
+    db = AsyncMock(spec=AsyncSession)
 
     with pytest.raises(AuthorizationCodeReuseError):
         await TokenService.authorization_code(
             db,
-            FakeRedis(),
+            FakeRedis().client,
             {
                 'grant_type': 'authorization_code',
                 'client_id': 'portal-client',
@@ -337,7 +341,7 @@ async def test_client_credentials_is_machine_domain_isolated(monkeypatch: pytest
     )
     monkeypatch.setattr(TokenService, '_resolve_signer', lambda *args, **kwargs: _async_value((key, 'kid-1')))
     result = await TokenService.client_credentials(
-        object(),
+        AsyncSession(),
         {'grant_type': 'client_credentials', 'scope': 'portal.service.read', 'resource': 'https://api.example'},
         OAuthClientPrincipal('portal-client', 'confidential', 'client_secret_basic'),
     )
@@ -360,11 +364,11 @@ async def test_client_credentials_uses_real_async_dao_and_resource_scope(monkeyp
     """验证 Client Credentials 通过真实 AsyncSession 查询 Client/Scope/Resource 绑定。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [
-        SysOAuthClient.__table__,
-        SysOAuthResource.__table__,
-        SysOAuthScope.__table__,
-        SysOAuthClientScope.__table__,
-        SysOAuthClientResource.__table__,
+        SysOAuthClient.get_table(),
+        SysOAuthResource.get_table(),
+        SysOAuthScope.get_table(),
+        SysOAuthClientScope.get_table(),
+        SysOAuthClientResource.get_table(),
     ]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync: SysOAuthClient.metadata.create_all(sync, tables=tables))
@@ -428,10 +432,10 @@ async def test_user_access_and_id_profiles_have_fixed_claims_and_ttl(monkeypatch
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     config = _config()
     client = _client(access_token_ttl_seconds=_ACCESS_TTL)
-    user = SimpleNamespace(user_id=2001, user_name='user', nick_name='User', status='0', del_flag='0')
-    subject = SimpleNamespace(subject_id='subject-2001', auth_version=4)
+    user = SysUser(user_id=2001, user_name='user', nick_name='User', status='0', del_flag='0')
+    subject = SysIdentitySubject(subject_id='subject-2001', auth_version=4)
     now = datetime.now(UTC)
-    session = SimpleNamespace(
+    session = SysSsoSession(
         sid='sid-2001',
         auth_time=now - timedelta(minutes=1),
         acr='urn:test:pwd',
@@ -453,7 +457,7 @@ async def test_user_access_and_id_profiles_have_fixed_claims_and_ttl(monkeypatch
     )
     monkeypatch.setattr(TokenService, '_resolve_signer', lambda *args, **kwargs: _async_value((key, 'kid-1')))
     access, expires = await TokenService._issue_access_token(
-        object(),
+        AsyncSession(),
         client,
         user,
         subject,
@@ -478,7 +482,7 @@ async def test_user_access_and_id_profiles_have_fixed_claims_and_ttl(monkeypatch
     assert claims['sid'] == 'sid-2001'
     assert 'user_id' not in claims
     identity = await TokenService._issue_id_token(
-        object(),
+        AsyncSession(),
         client,
         user,
         subject,
@@ -505,7 +509,7 @@ async def test_user_access_and_id_profiles_have_fixed_claims_and_ttl(monkeypatch
 async def test_user_claims_load_real_roles_and_department_rows(monkeypatch: pytest.MonkeyPatch) -> None:
     """验证 Claims 从真实角色、用户角色和部门行加载，并仍受三层白名单约束。"""
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
-    tables = [SysUser.__table__, SysDept.__table__, SysRole.__table__, SysUserRole.__table__]
+    tables = [SysUser.get_table(), SysDept.get_table(), SysRole.get_table(), SysUserRole.get_table()]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync: SysUser.metadata.create_all(sync, tables=tables))
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -554,7 +558,7 @@ async def test_user_claims_load_real_roles_and_department_rows(monkeypatch: pyte
             db,
             client,
             user,
-            SimpleNamespace(subject_id='subject-7201'),
+            SysIdentitySubject(subject_id='subject-7201'),
             ['roles', 'dept'],
             None,
         )
@@ -568,19 +572,20 @@ def test_access_ttl_uses_overrides_and_global_cap() -> None:
     """验证默认、Client/Resource 覆盖和全局上限的最严格策略。"""
     assert TokenService._access_ttl(_client(), None) == _DEFAULT_TTL
     assert TokenService._access_ttl(_client(access_token_ttl_seconds=_LONG_TTL), None) == _LONG_TTL
-    resource = SimpleNamespace(access_token_ttl_seconds=_RESOURCE_TTL)
+    resource = SysOAuthResource(access_token_ttl_seconds=_RESOURCE_TTL)
     assert TokenService._access_ttl(_client(access_token_ttl_seconds=_LONG_TTL), resource) == _RESOURCE_TTL
     assert TokenService._access_ttl(_client(access_token_ttl_seconds=3000), None) == _MAX_TTL
 
 
 @pytest.mark.asyncio
-async def test_public_token_entrypoints_require_authenticated_principal() -> None:
+@pytest.mark.parametrize('invalid_principal', ['portal-client'])
+async def test_public_token_entrypoints_require_authenticated_principal(invalid_principal: Any) -> None:
     """验证公开 Token 流程拒绝 ORM 行和裸 Client ID。"""
     with pytest.raises(OAuthProtocolException) as raised:
         await TokenService.client_credentials(
-            object(),
+            AsyncSession(),
             {'grant_type': 'client_credentials'},
-            'portal-client',
+            invalid_principal,
         )
     assert raised.value.error == 'invalid_client'
 
@@ -608,7 +613,7 @@ async def test_signer_loads_private_key_from_same_active_record(monkeypatch: pyt
         return private_key
 
     monkeypatch.setattr('module_identity.service.token_service.KeyService.load_private_key_async', load)
-    key, kid = await TokenService._resolve_signer(object(), None, None, datetime.now(UTC))
+    key, kid = await TokenService._resolve_signer(AsyncSession(), None, None, datetime.now(UTC))
     assert key is private_key
     assert kid == 'kid-stable'
     assert calls == [record]
@@ -663,7 +668,7 @@ async def test_refresh_scope_expansion_is_rejected_before_rotation(monkeypatch: 
     )
     with pytest.raises(OAuthProtocolException) as raised:
         await TokenService.refresh_token(
-            object(),
+            AsyncSession(),
             {
                 'grant_type': 'refresh_token',
                 'client_id': 'portal-client',
@@ -700,7 +705,9 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
     )
     token = generate_refresh_token()
     row.token_hash = token_digest(token, _PEPPER)
-    state = {'rotated': False, 'reuse': 0, 'mark_now': None}
+    rotated = False
+    reuse_count = 0
+    mark_now = None
     lock = asyncio.Lock()
     monkeypatch.setattr(
         'module_identity.service.token_service.OAuthClientDao.get_by_client_id',
@@ -740,11 +747,12 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
         :param kwargs: 传给被调用对象的关键字参数
         :return: 是否记录授权凭据被使用的时间
         """
-        state['mark_now'] = kwargs.get('now')
+        nonlocal rotated, mark_now
+        mark_now = kwargs.get('now')
         async with lock:
-            if state['rotated']:
+            if rotated:
                 return False
-            state['rotated'] = True
+            rotated = True
             return True
 
     async def reuse(*args: object, **kwargs: object) -> int:
@@ -755,7 +763,8 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
         :param kwargs: 传给被调用对象的关键字参数
         :return: 此分支的固定值 ``1``
         """
-        state['reuse'] += 1
+        nonlocal reuse_count
+        reuse_count += 1
         return 1
 
     monkeypatch.setattr('module_identity.service.token_service.OAuthTokenDao.mark_used', mark_used)
@@ -764,13 +773,13 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
     monkeypatch.setattr(TokenService, '_issue_access_token', lambda *a, **k: _async_value(('access', 600)))
     results = await asyncio.gather(
         TokenService.refresh_token(
-            object(),
+            AsyncSession(),
             {'grant_type': 'refresh_token', 'client_id': 'portal-client', 'refresh_token': token},
             OAuthClientPrincipal('portal-client', 'public', 'none'),
             token_pepper=_PEPPER,
         ),
         TokenService.refresh_token(
-            object(),
+            AsyncSession(),
             {'grant_type': 'refresh_token', 'client_id': 'portal-client', 'refresh_token': token},
             OAuthClientPrincipal('portal-client', 'public', 'none'),
             token_pepper=_PEPPER,
@@ -779,9 +788,9 @@ async def test_refresh_concurrent_rotation_has_one_success_and_reuse_revoke(monk
     )
     assert sum(isinstance(item, TokenResult) for item in results) == 1
     assert sum(isinstance(item, RefreshTokenReuseDetected) for item in results) == 1
-    assert state['reuse'] == 1
-    assert isinstance(state['mark_now'], datetime)
-    assert state['mark_now'].tzinfo is UTC
+    assert reuse_count == 1
+    assert isinstance(mark_now, datetime)
+    assert mark_now.tzinfo is UTC
 
 
 def _async_value(value: object) -> Any:

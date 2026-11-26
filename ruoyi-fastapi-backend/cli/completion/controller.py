@@ -5,6 +5,7 @@ import typer
 from cli.completion.doctor import COMPLETION_DOCTOR, CompletionDoctorService
 from cli.completion.installers import COMPLETION_INSTALLER, CompletionInstallerService
 from cli.completion.presenter import CompletionCommandPresenter
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -64,7 +65,7 @@ class CompletionCommandController:
 
     def install(
         self,
-        output: str,
+        output: OutputFormat,
         *,
         shell: str | None,
         target_file: Path | None,
@@ -97,7 +98,7 @@ class CompletionCommandController:
             text_builder=self.presenter.build_completion_install_text,
         )
 
-    def doctor(self, output: str) -> None:
+    def doctor(self, output: OutputFormat) -> None:
         """
         检查当前 completion 配置状态。
 

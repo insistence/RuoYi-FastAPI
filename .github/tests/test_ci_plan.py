@@ -5,6 +5,7 @@ import pytest
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'scripts' / 'ci_plan.py'
 SPEC = importlib.util.spec_from_file_location('ci_plan', SCRIPT)
+assert SPEC is not None and SPEC.loader is not None, SCRIPT
 ci = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ci)
 FRONTEND_PROJECT_COUNT = 6
@@ -167,7 +168,10 @@ def test_full_run_preserves_python_database_and_framework_combinations() -> None
 def test_gate_rejects_unsuccessful_required_job(result: str | None) -> None:
     """必跑任务失败、取消、跳过或缺失均不能通过门禁。"""
     plan = ci.build_plan(['README.md'])
-    needs = {'plan': {'result': 'success'}, **{name: {'result': 'skipped'} for name in ci.CATEGORIES}}
+    needs: dict[str, dict[str, str | None]] = {
+        'plan': {'result': 'success'},
+        **{name: {'result': 'skipped'} for name in ci.CATEGORIES},
+    }
     needs['quality']['result'] = result
     assert ci.check_results(plan, needs)
 

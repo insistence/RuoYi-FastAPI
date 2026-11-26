@@ -139,6 +139,7 @@ def build_runtime_diagnostics(
         if host.get('state') != 'stopped' and _heartbeat_fresh(host, now, ttl)
     }
     workers = []
+    observed = []
     for worker_id in sorted(set(snapshots) | set(hosts) | set(plugins) | stale_ids | invalid_ids):
         snapshot = snapshots.get(worker_id)
         reported_snapshot = reported_snapshots.get(worker_id)
@@ -147,6 +148,8 @@ def build_runtime_diagnostics(
             if snapshot
             else None
         )
+        if actual is not None:
+            observed.append(actual)
         freshness = (
             'fresh'
             if snapshot
@@ -181,13 +184,12 @@ def build_runtime_diagnostics(
                 'releaseReport': _release_report(worker_report, now, ttl),
             }
         )
-    observed = [worker for worker in workers if worker['actual'] is not None]
     totals = None
     if observed:
         totals = {
-            **{key: sum(worker['actual'][key] for worker in observed) for key in RUNTIME_COUNTERS},
-            'sse': sum(worker['actual']['connections']['sse'] for worker in observed),
-            'websocket': sum(worker['actual']['connections']['websocket'] for worker in observed),
+            **{key: sum(plugin[key] for plugin in observed) for key in RUNTIME_COUNTERS},
+            'sse': sum(plugin['connections']['sse'] for plugin in observed),
+            'websocket': sum(plugin['connections']['websocket'] for plugin in observed),
         }
     expected = summary.get('expectedWorkers') if summary else None
     missing = len(live_hosts - set(snapshots))

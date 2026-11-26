@@ -1,11 +1,11 @@
 import asyncio
 from pathlib import Path
-from types import SimpleNamespace
+from typing import Never
 
 import pytest
 
 import plugins.core.runtime.service.audit as audit_module
-from plugins.core.runtime.service.audit import PluginAuditUseCase
+from plugins.core.management.entity.vo.schemas import PluginModel
 from plugins.core.runtime.service.dependencies import PLUGIN_DEPENDENCY_INSTALL_TIMEOUT_SECONDS
 from plugins.core.validation.dependency_policy import DependencyInstallPolicyConfig
 from tests.plugins.core.runtime.fakes import (
@@ -18,6 +18,7 @@ from tests.plugins.core.runtime.fakes import (
     create_frontend_view,
     write_manifest,
 )
+from tests.plugins.core.runtime.fakes.management import RecordedPluginOperation
 
 
 def test_plugin_runtime_check_deps_reports_dependency_items(tmp_path: Path) -> None:
@@ -46,6 +47,7 @@ dependencies:
     assert payload['ok'] is False
     assert payload['pluginId'] == 'demo'
     assert payload['missingDependencies'] == ['missing-python']
+    assert isinstance(payload['dependencies'], list)
     assert len(payload['dependencies']) == EXPECTED_DEPENDENCY_COUNT
 
 
@@ -80,6 +82,7 @@ backend:
 
     assert payload['ok'] is True
     assert payload['operation'] == 'install'
+    assert isinstance(payload['plan'], dict)
     assert payload['plan']['orderedPluginIds'] == ['base', 'app']
     assert payload['plan']['items'][0]['requested'] is False
     assert payload['plan']['items'][1]['requested'] is True
@@ -105,6 +108,7 @@ dependencies:
     payload = build_runtime(backend_root).plan_plugins('install', ['app'])
 
     assert payload['ok'] is False
+    assert isinstance(payload['plan'], dict)
     assert payload['plan']['blockerCount'] == 1
     assert payload['plan']['blockers'][0]['status'] == 'missing'
 
@@ -151,15 +155,16 @@ backend:
     assert payload['databaseError'] == 'db unavailable'
 
 
-def test_record_plugin_failure_state_logs_and_swallows_persistence_error(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_record_plugin_failure_state_logs_and_swallows_persistence_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """校验失败状态辅助写入异常会记录日志且不影响主流程。"""
     logged_messages = []
 
-    class BrokenAuditGateway:
+    class BrokenAuditGateway(FakePluginRuntimeGateway):
         """测试用异常审计网关。"""
 
-        @staticmethod
-        async def mark_plugin_error(plugin_id: str, error_message: str) -> None:
+        async def mark_plugin_error(self, plugin_id: str, error_message: str) -> Never:
             """
             模拟标记插件异常失败。
 
@@ -179,7 +184,7 @@ def test_record_plugin_failure_state_logs_and_swallows_persistence_error(monkeyp
         logged_messages.append(message % args)
 
     monkeypatch.setattr(audit_module.logger, 'exception', fake_exception)
-    use_case = PluginAuditUseCase(SimpleNamespace(audit_gateway=BrokenAuditGateway()))
+    use_case = build_runtime_with_gateway(tmp_path, BrokenAuditGateway()).audit
 
     asyncio.run(use_case.record_plugin_failure_state({'ok': False, 'pluginId': 'demo'}, '失败'))
 
@@ -218,6 +223,7 @@ backend:
     assert payload['ok'] is True
     assert payload['dryRun'] is True
     assert payload['continueOnError'] is False
+    assert isinstance(payload['plan'], dict)
     assert payload['plan']['orderedPluginIds'] == ['base', 'app']
     assert payload['executed'] == []
     assert payload['failed'] is None
@@ -246,6 +252,7 @@ dependencies:
 
     assert payload['ok'] is False
     assert payload['continueOnError'] is False
+    assert isinstance(payload['plan'], dict)
     assert payload['plan']['blockerCount'] == 1
     assert payload['executed'] == []
     assert payload['failed'] is None
@@ -289,20 +296,23 @@ frontend:
     create_controller_dir(backend_root / 'plugins' / 'base')
     gateway = FakePluginRuntimeGateway()
     FakePluginService.plugin_list = [
-        SimpleNamespace(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed')
+        PluginModel(plugin_id='base', installed_version='1.0.0', enabled='0', status='installed')
     ]
 
     payload = asyncio.run(build_runtime_with_gateway(backend_root, gateway).batch_plugins('install', ['app']))
 
     assert payload['ok'] is True
+    assert isinstance(payload['plan'], dict)
     assert payload['plan']['orderedPluginIds'] == ['base', 'app']
     assert payload['plan']['requestedPluginIds'] == ['app']
+    assert isinstance(payload['executed'], list)
     assert [item['pluginId'] for item in payload['executed']] == ['app']
     assert all(item['status'] == 'success' for item in payload['executed'])
     assert all(isinstance(item['durationMs'], int) for item in payload['executed'])
     assert payload['summary'] == {'total': 1, 'succeeded': 1, 'failed': 0, 'skipped': 0}
     assert payload['failed'] is None
     assert len(FakePluginService.operation_logs) == 1
+    assert isinstance(FakePluginService.operation_logs[0].payload['summary'], dict)
     assert FakePluginService.operation_logs[0].payload['summary']['succeeded'] == 1
 
 
@@ -325,12 +335,12 @@ frontend:
 
     gateway = FakePluginRuntimeGateway()
     FakePluginService.operation_logs = [
-        SimpleNamespace(
+        RecordedPluginOperation(
             payload={'ok': True, 'operation': 'install', 'pluginId': 'demo', 'message': 'installed'},
             dry_run=False,
             continue_on_error=False,
         ),
-        SimpleNamespace(
+        RecordedPluginOperation(
             payload={'ok': True, 'operation': 'install', 'pluginId': 'other', 'message': 'other installed'},
             dry_run=False,
             continue_on_error=False,
@@ -361,7 +371,9 @@ frontend:
     assert payload['ok'] is False
     assert payload['continueOnError'] is True
     assert executed_plugin_ids == ['alpha', 'beta', 'gamma']
+    assert isinstance(payload['executed'], list)
     assert [item['pluginId'] for item in payload['executed']] == ['alpha', 'beta', 'gamma']
+    assert isinstance(payload['failed'], dict)
     assert payload['failed']['pluginId'] == 'beta'
     assert payload['summary'] == {'total': 3, 'succeeded': 2, 'failed': 1, 'skipped': 0}
 
@@ -421,6 +433,7 @@ dependencies:
     assert payload['ok'] is True
     assert payload['dryRun'] is True
     assert payload['planCount'] == expected_plan_count
+    assert isinstance(payload['plan'], list)
     assert payload['plan'][0]['kind'] == 'python'
     assert payload['plan'][0]['command'][1:4] == ['-m', 'pip', 'install']
     assert payload['plan'][1]['kind'] == 'npm'
@@ -521,6 +534,7 @@ dependencies:
 
     assert payload['ok'] is False
     assert payload['dryRun'] is False
+    assert isinstance(payload['policy'], dict)
     assert payload['policy']['mode'] == 'plan_only'
     assert payload['policy']['allowed'] is False
     assert '当前策略仅允许生成依赖安装计划' in payload['policy']['reasons']
@@ -559,6 +573,7 @@ dependencies:
     assert log_payload['operation'] == 'dependency_install'
     assert log_payload['pluginId'] == 'demo'
     assert log_payload['confirmed'] is True
+    assert isinstance(log_payload['policy'], dict)
     assert log_payload['policy']['allowed'] is False
 
 
@@ -588,6 +603,7 @@ dependencies:
     )
 
     assert payload['ok'] is False
+    assert isinstance(payload['policy'], dict)
     assert payload['policy']['mode'] == 'explicit'
     assert payload['policy']['requirements'] == ['需要显式确认 --yes']
     assert gateway.commands == []
@@ -625,8 +641,10 @@ dependencies:
     assert log_payload['operation'] == 'dependency_install'
     assert log_payload['pluginId'] == 'demo'
     assert log_payload['confirmed'] is True
+    assert isinstance(log_payload['policy'], dict)
     assert log_payload['policy']['mode'] == 'explicit'
     assert log_payload['policy']['allowed'] is True
+    assert isinstance(log_payload['results'], list)
     assert log_payload['results'][0]['returnCode'] == 0
 
 
@@ -687,6 +705,7 @@ backend:
 
     assert payload['ok'] is False
     assert payload['status'] == 'blocked'
+    assert isinstance(payload['capability'], dict)
     assert payload['capability']['backendRuntimeManageable'] is False
     assert 'install' in payload['capability']['blockedOperations']
 
@@ -758,12 +777,15 @@ dependencies:
 
     assert web_payload['ok'] is False
     assert web_payload['status'] == 'blocked'
+    assert isinstance(web_payload['capability'], dict)
     assert 'dependency_install' in web_payload['capability']['blockedOperations']
     assert cli_policy_blocked_payload['ok'] is False
+    assert isinstance(cli_policy_blocked_payload['policy'], dict)
     assert cli_policy_blocked_payload['policy']['allowed'] is False
     assert 'capability' not in cli_policy_blocked_payload
     assert cli_payload['ok'] is True
     assert 'capability' not in cli_payload
+    assert isinstance(cli_payload['dependencies'], list)
     assert [item['kind'] for item in cli_payload['dependencies']] == ['python', 'npm']
     assert cli_payload['dependencies'][1]['status'] == 'skipped'
     assert len(gateway.commands) == 1

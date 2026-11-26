@@ -6,7 +6,7 @@ from typing import Any, ParamSpec, TypeVar
 
 from fastapi import Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse, ORJSONResponse, Response, StreamingResponse, UJSONResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from redis import asyncio as aioredis
 
 from common.constant import HttpStatusConstant
@@ -153,7 +153,7 @@ class _ApiCacheSupport:
         if result is None or isinstance(result, StreamingResponse):
             return None
 
-        if isinstance(result, (JSONResponse, ORJSONResponse, UJSONResponse)):
+        if isinstance(result, JSONResponse):
             return self._load_json_content(result.body.decode('utf-8'))
 
         if isinstance(result, Response):
@@ -229,7 +229,7 @@ class ApiCache(_ApiCacheSupport):
             cache_response_codes if cache_response_codes is not None else {HttpStatusConstant.SUCCESS}
         )
 
-    def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+    def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R | JSONResponse]]:
         """
         为目标异步接口函数增加接口缓存能力。
 
@@ -238,7 +238,7 @@ class ApiCache(_ApiCacheSupport):
         """
 
         @wraps(func)
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | JSONResponse:
             """
             读取匹配请求的接口缓存，并在缓存未命中时执行接口。
 
@@ -258,7 +258,7 @@ class ApiCache(_ApiCacheSupport):
             cache_key = await self._build_cache_key(request, catalog_fingerprint=catalog_fingerprint)
             cached_response = await redis.get(cache_key)
             if cached_response and CatalogRegistry.fingerprint() == catalog_fingerprint:
-                return self._build_cached_response(cached_response)  # type: ignore[return-value]
+                return self._build_cached_response(cached_response)
 
             result = await func(*args, **kwargs)
             # 业务 await 期间可能发布新词库；不能把新版译文写入旧发布仍在使用的缓存键。
@@ -352,7 +352,7 @@ class ApiCache(_ApiCacheSupport):
         if isinstance(result, StreamingResponse):
             return None
 
-        if isinstance(result, (JSONResponse, ORJSONResponse, UJSONResponse)):
+        if isinstance(result, JSONResponse):
             # 命中缓存时无法安全复放后台任务，因此带有后台任务的响应不参与缓存
             if getattr(result, 'background', None) is not None:
                 return None
@@ -382,7 +382,7 @@ class ApiCache(_ApiCacheSupport):
             'headers': {},
         }
 
-    def _build_cached_response(self, cached_response: str) -> JSONResponse:
+    def _build_cached_response(self, cached_response: str | bytes) -> JSONResponse:
         """
         根据缓存内容重建JSON响应对象。
 

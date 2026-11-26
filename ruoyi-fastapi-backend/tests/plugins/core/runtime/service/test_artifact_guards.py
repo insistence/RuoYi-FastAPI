@@ -1,9 +1,11 @@
 import asyncio
+from collections.abc import Mapping
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
+from plugins.core.discovery.scanner import DiscoveredPlugin
+from plugins.core.management.entity.vo.schemas import PluginModel
 from plugins.core.validation.dependency_policy import DependencyInstallPolicyConfig
 from tests.plugins.core.runtime.fakes import (
     FakePluginRuntimeGateway,
@@ -23,7 +25,7 @@ async def test_database_artifact_source_blocks_legacy_lifecycle_without_source_d
 ) -> None:
     """数据库中的产物来源即使没有源码目录也阻止旧生命周期操作。"""
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(plugin_id='demo', source='artifact')
+    FakePluginService.detail_plugin = PluginModel(plugin_id='demo', source='artifact')
     runtime = build_runtime_with_gateway(tmp_path / 'backend', gateway)
     if operation in {'enable', 'disable'}:
         payload = await runtime.set_plugin_enabled('demo', enabled=operation == 'enable', dry_run=dry_run)
@@ -32,6 +34,7 @@ async def test_database_artifact_source_blocks_legacy_lifecycle_without_source_d
     assert payload['ok'] is False
     assert payload['status'] == 'blocked'
     assert payload['operation'] == operation
+    assert isinstance(payload['capability'], dict)
     assert payload['capability']['runtimeManageable'] is False
     assert gateway.lifecycle_uows == []
     assert gateway.session_local.sessions == []
@@ -59,6 +62,7 @@ async def test_state_query_failure_cannot_authorize_orphan_purge(tmp_path: Path)
     gateway = FailingGateway()
     payload = await build_runtime_with_gateway(tmp_path / 'backend', gateway).purge_plugin('demo')
     assert payload['status'] == 'blocked'
+    assert isinstance(payload['message'], str)
     assert '无法确认插件来源' in payload['message']
     assert gateway.session_local.sessions == []
 
@@ -83,7 +87,7 @@ async def test_config_read_resolves_selected_artifact_without_source_directory(t
             assert backend_root == tmp_path / 'backend'
             return selected
 
-        async def get_plugin_config(self, discovered_plugin: object, *, reveal_secret: bool = False) -> list:
+        async def get_plugin_config(self, discovered_plugin: DiscoveredPlugin, *, reveal_secret: bool = False) -> list:
             """
             检查插件选择和配置读取参数。
 
@@ -95,7 +99,7 @@ async def test_config_read_resolves_selected_artifact_without_source_directory(t
             assert reveal_secret is False
             return []
 
-        async def set_plugin_config(self, discovered_plugin: object, values: dict, **kwargs: object) -> list:
+        async def set_plugin_config(self, discovered_plugin: DiscoveredPlugin, values: dict, **kwargs: object) -> list:
             """
             校验写入配置的目标插件及字段值。
 
@@ -108,7 +112,7 @@ async def test_config_read_resolves_selected_artifact_without_source_directory(t
             assert values == {'provider': 'local'}
             return []
 
-    FakePluginService.detail_plugin = SimpleNamespace(plugin_id='demo', source='artifact')
+    FakePluginService.detail_plugin = PluginModel(plugin_id='demo', source='artifact')
     runtime = build_runtime_with_gateway(tmp_path / 'backend', ArtifactGateway())
     result = await runtime.get_plugin_config('demo')
     assert result['ok'] is True
@@ -126,7 +130,7 @@ def test_artifact_source_blocks_dependency_install_even_when_same_id_source_exis
         'id: demo\nname: Demo\nversion: 1.0.0\nbackend:\n  module: plugins.demo\n',
     )
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(plugin_id='demo', source='artifact')
+    FakePluginService.detail_plugin = PluginModel(plugin_id='demo', source='artifact')
     payload = getattr(build_runtime_with_gateway(backend, gateway), method)('demo', confirmed=True)
     assert payload['status'] == 'blocked'
     assert '签名制品' in payload['message']
@@ -173,6 +177,7 @@ async def test_sync_dependency_install_never_runs_nested_event_loop(tmp_path: Pa
     gateway = UnexpectedQueryGateway()
     payload = build_runtime_with_gateway(tmp_path, gateway).install_plugin_dependencies_from_cli('demo', confirmed=True)
     assert payload['status'] == 'blocked'
+    assert isinstance(payload['message'], str)
     assert '事件循环' in payload['message']
     assert gateway.commands == []
 
@@ -199,7 +204,7 @@ async def test_configuration_never_falls_back_to_conflicting_source(tmp_path: Pa
             """
             raise ValueError('制品与源码目录冲突')
 
-    FakePluginService.detail_plugin = SimpleNamespace(plugin_id='demo', source='artifact')
+    FakePluginService.detail_plugin = PluginModel(plugin_id='demo', source='artifact')
     gateway = ConflictingGateway()
     runtime = build_runtime_with_gateway(backend, gateway)
     for payload in (await runtime.get_plugin_config('demo'), await runtime.set_plugin_config('demo', {'key': 'value'})):
@@ -230,7 +235,9 @@ def test_dependency_source_check_and_audit_share_one_event_loop(tmp_path: Path, 
             """
             loops.append(asyncio.get_running_loop())
 
-        async def add_plugin_operation_log(self, payload: dict, *, dry_run: bool, continue_on_error: bool) -> None:
+        async def add_plugin_operation_log(
+            self, payload: Mapping[str, object], *, dry_run: bool, continue_on_error: bool
+        ) -> None:
             """
             记录插件日志调用及其事件循环。
 

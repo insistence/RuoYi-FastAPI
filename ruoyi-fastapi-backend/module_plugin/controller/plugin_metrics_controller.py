@@ -50,9 +50,10 @@ async def get_plugin_config_status(
     plugin_id: Annotated[str, Path(description='插件ID', pattern=r'^[a-z][a-z0-9_]{1,63}$')],
 ) -> Response:
     payload = await get_plugin_runtime_service().get_plugin_config(plugin_id, reveal_secret=True)
-    if not payload.get('ok'):
+    configs = payload.get('configs', [])
+    if not payload.get('ok') or not isinstance(configs, list):
         return ResponseUtil.failure(msg_key='plugin.config.statusReadFailed')
-    values = {item['key']: item.get('value') for item in payload.get('configs', [])}
+    values = {item['key']: item.get('value') for item in configs}
     reporter = getattr(request.app.state, 'plugin_metrics_reporter', None)
     report = await reporter.read(plugin_id) if isinstance(reporter, PluginMetricsReporter) else {'scope': 'unavailable'}
     return ResponseUtil.success(data=build_config_status(plugin_id, config_revision(plugin_id, values), report))

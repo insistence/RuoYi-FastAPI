@@ -206,14 +206,21 @@ class PluginValidationPayloadBuilderProtocol(Protocol):
         ...
 
 
-class PluginCheckPrecheckProtocol(Protocol):
-    """
-    插件检查单项所需的预检上下文协议。
+class SupportsOk(Protocol):
+    """提供检查结果的成功状态。"""
 
-    :ivar ok: 操作或检查是否成功
-    """
+    @property
+    def ok(self) -> bool:
+        """
+        获取检查成功标记。
 
-    ok: bool
+        :return: 检查成功标记
+        """
+        ...
+
+
+class PluginCheckPrecheckProtocol(SupportsOk, Protocol):
+    """插件检查单项所需的预检上下文。"""
 
     @property
     def check_payload(self) -> Mapping[str, object]:
@@ -221,6 +228,64 @@ class PluginCheckPrecheckProtocol(Protocol):
         获取插件检查命令通用负载片段。
 
         :return: 插件检查命令通用负载片段
+        """
+        ...
+
+
+class PluginRuntimePrecheckProtocol(PluginCheckPrecheckProtocol, Protocol):
+    """构建运行时响应时使用的预检结果。"""
+
+    @property
+    def dependency_result(self) -> SupportsOk:
+        """
+        获取软件包依赖检查结果。
+
+        :return: 软件包依赖检查结果
+        """
+        ...
+
+    @property
+    def manifest_result(self) -> SupportsOk:
+        """
+        获取插件清单检查结果。
+
+        :return: 插件清单检查结果
+        """
+        ...
+
+    @property
+    def plugin_dependency_result(self) -> SupportsOk:
+        """
+        获取插件间依赖检查结果。
+
+        :return: 插件间依赖检查结果
+        """
+        ...
+
+    @property
+    def structure_result(self) -> SupportsOk:
+        """
+        获取插件结构检查结果。
+
+        :return: 插件结构检查结果
+        """
+        ...
+
+    @property
+    def menu_conflict_result(self) -> SupportsOk:
+        """
+        获取菜单冲突检查结果。
+
+        :return: 菜单冲突检查结果
+        """
+        ...
+
+    @property
+    def operation_payload(self) -> Mapping[str, object]:
+        """
+        获取当前操作的预检数据。
+
+        :return: 当前操作的预检数据
         """
         ...
 

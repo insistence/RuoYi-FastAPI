@@ -16,6 +16,7 @@ from module_identity.dao.oauth_client_dao import OAuthClientDao
 from module_identity.dao.oauth_resource_dao import OAuthResourceDao
 from module_identity.entity.do.oauth_client_do import SysOAuthClient, SysOAuthClientSecret, SysOAuthClientUri
 from module_identity.entity.do.oauth_resource_do import SysOAuthResource, SysOAuthScope
+from module_identity.entity.types import ClientUriType
 from module_identity.entity.vo.oauth_client_vo import (
     ClientCreateModel,
     ClientPageQueryModel,
@@ -129,7 +130,7 @@ class OAuthManagementBaseService:
     _MAX_CLAIMS = 64
     _MAX_CLAIM_NAME_LENGTH = 64
     _MAX_CLIENT_ID_LENGTH = 64
-    _URI_TYPES = (
+    _URI_TYPES: tuple[tuple[ClientUriType, str], ...] = (
         ('redirect', 'redirect_uris'),
         ('post_logout', 'post_logout_redirect_uris'),
         ('backchannel_logout', 'backchannel_logout_uris'),
@@ -260,7 +261,7 @@ class OAuthManagementBaseService:
             raise OAuthClientManagementError('资源访问令牌有效期超过平台上限')
 
     @classmethod
-    def _validate_uri(cls, uri_type: str, uri: str) -> str:
+    def _validate_uri(cls, uri_type: ClientUriType, uri: str) -> str:
         """
         校验并规范化 Client 注册 URI。
 
@@ -986,7 +987,7 @@ class OAuthClientManagementService(OAuthManagementBaseService):
                 if isinstance(role, str)
             }
         )
-        uri_map = {uri_type: [] for uri_type, _ in cls._URI_TYPES}
+        uri_map: dict[str, list[str]] = {uri_type: [] for uri_type, _ in cls._URI_TYPES}
         for row in uri_rows:
             if row.status != '0':
                 continue

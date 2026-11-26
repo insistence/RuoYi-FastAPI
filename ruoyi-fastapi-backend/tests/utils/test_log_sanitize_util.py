@@ -2,7 +2,6 @@ import asyncio
 import json
 from collections.abc import Iterator
 from datetime import UTC, datetime
-from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -205,29 +204,19 @@ def test_sanitize_text_returns_original_when_mask_disabled() -> None:
 def test_build_json_payload_sanitizes_exception_and_extra() -> None:
     """构造 JSON 日志时对异常和附加字段脱敏。"""
     initializer = LoggerInitializer()
+    outputs = []
+    test_logger = _logger.patch(initializer._patch_record)
+    handler = test_logger.add(
+        lambda message: outputs.append(initializer._build_json_payload(message.record)),
+        filter=initializer._filter,
+    )
     try:
         raise ValueError('token=abc.def')
-    except ValueError as exc:
-        exception = SimpleNamespace(
-            type=type(exc),
-            value=exc,
-            traceback=exc.__traceback__,
-        )
-    record = {
-        'time': datetime(2026, 4, 20, 12, 0, 0),
-        'level': SimpleNamespace(name='ERROR'),
-        'message': 'password=123456',
-        'name': 'test_logger',
-        'module': 'test_module',
-        'function': 'test_function',
-        'line': 1,
-        'extra': {'authorization': 'Bearer abc.def', 'trace_id': 'trace-1'},
-        'exception': exception,
-    }
-
-    initializer._patch_record(record)
-    initializer._filter(record)
-    payload = initializer._build_json_payload(record)
+    except ValueError:
+        test_logger.bind(authorization='Bearer abc.def', trace_id='trace-1').exception('password=123456')
+    finally:
+        test_logger.remove(handler)
+    (payload,) = outputs
 
     assert '123456' not in payload['message']
     assert 'abc.def' not in payload['exception']['value']

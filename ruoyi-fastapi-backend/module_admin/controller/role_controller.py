@@ -27,7 +27,12 @@ from module_admin.entity.vo.role_vo import (
     RoleModel,
     RolePageQueryModel,
 )
-from module_admin.entity.vo.user_vo import CrudUserRoleModel, CurrentUserModel, UserInfoModel, UserRolePageQueryModel
+from module_admin.entity.vo.user_vo import (
+    CrudUserRoleModel,
+    CurrentUserModel,
+    UserInfoModel,
+    UserRolePageQueryModel,
+)
 from module_admin.service.dept_service import DeptService
 from module_admin.service.role_service import RoleService
 from module_admin.service.user_service import UserService
@@ -155,11 +160,11 @@ async def edit_system_role_datascope(
     if not current_user.user.admin:
         await RoleService.check_role_data_scope_services(query_db, str(role_data_scope.role_id), data_scope_sql)
     edit_role = AddRoleModel(
-        roleId=role_data_scope.role_id,
-        dataScope=role_data_scope.data_scope,
-        deptIds=role_data_scope.dept_ids,
-        deptCheckStrictly=role_data_scope.dept_check_strictly,
-        updateBy=current_user.user.user_name,
+        role_id=role_data_scope.role_id,
+        data_scope=role_data_scope.data_scope,
+        dept_ids=role_data_scope.dept_ids,
+        dept_check_strictly=role_data_scope.dept_check_strictly,
+        update_by=current_user.user.user_name,
     )
     role_data_scope_result = await RoleService.role_datascope_services(query_db, edit_role)
     logger.info(role_data_scope_result.message)
@@ -186,10 +191,10 @@ async def delete_system_role(
     role_id_list = role_ids.split(',') if role_ids else []
     if role_id_list:
         for role_id in role_id_list:
-            await RoleService.check_role_allowed_services(RoleModel(roleId=int(role_id)))
+            await RoleService.check_role_allowed_services(RoleModel(role_id=int(role_id)))
             if not current_user.user.admin:
                 await RoleService.check_role_data_scope_services(query_db, role_id, data_scope_sql)
-    delete_role = DeleteRoleModel(roleIds=role_ids, updateBy=current_user.user.user_name)
+    delete_role = DeleteRoleModel(role_ids=role_ids, update_by=current_user.user.user_name)
     delete_role_result = await RoleService.delete_role_services(query_db, delete_role)
     logger.info(delete_role_result.message)
 
@@ -272,9 +277,9 @@ async def reset_system_role_status(
     if not current_user.user.admin:
         await RoleService.check_role_data_scope_services(query_db, str(change_role.role_id), data_scope_sql)
     edit_role = AddRoleModel(
-        roleId=change_role.role_id,
+        role_id=change_role.role_id,
         status=change_role.status,
-        updateBy=current_user.user.user_name,
+        update_by=current_user.user.user_name,
         type='status',
     )
     edit_role_result = await RoleService.edit_role_services(query_db, edit_role)

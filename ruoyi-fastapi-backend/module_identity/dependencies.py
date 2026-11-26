@@ -2,12 +2,13 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any, cast
 from urllib.parse import parse_qsl
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from fastapi import Depends, HTTPException, Request, params
+from fastapi import HTTPException, Request, params
+from jwt.algorithms import RSAAlgorithm
 from jwt.exceptions import PyJWTError
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -17,6 +18,7 @@ from common.aspect.db_session import DBSessionDependency
 from config.env import OidcConfig
 from exceptions.exception import OAuthProtocolException, OidcInteractionException
 from module_identity.dao.oidc_key_dao import OidcKeyDao
+from module_identity.entity.types import InteractionRecord
 from module_identity.security.client_auth import ClientAuthenticationError
 from module_identity.security.jwt_profile import JwtProfileError, decode_access_token
 from module_identity.security.principal import OAuthClientPrincipal
@@ -75,7 +77,10 @@ async def load_access_verification_key(
     if record is None or not isinstance(record.public_jwk, dict):
         raise JwtProfileError('未知的签名密钥标识 kid')
     try:
-        return jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(record.public_jwk, separators=(',', ':')))
+        key = RSAAlgorithm.from_jwk(json.dumps(record.public_jwk, separators=(',', ':')))
+        if not isinstance(key, RSAPublicKey):
+            raise JwtProfileError('签名公钥无效')
+        return key
     except (TypeError, ValueError, KeyError) as exc:
         raise JwtProfileError('签名公钥无效') from exc
 
@@ -96,7 +101,7 @@ def _disabled() -> None:
 
 async def require_oidc_protocol_ready(
     request: Request,
-    query_db: AsyncSession = DBSessionDependency(),
+    query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> None:
     """
     在 OIDC 已启用但签名能力尚未就绪时阻断公共协议端点。
@@ -130,7 +135,7 @@ def _redis(request: Request) -> Redis:
     value = getattr(request.app.state, 'redis', None)
     if value is None:
         raise HTTPException(status_code=503, detail='认证服务暂不可用')
-    return value
+    return cast('Redis', value)
 
 
 async def read_form(request: Request) -> dict[str, str]:
@@ -187,7 +192,7 @@ async def read_form(request: Request) -> dict[str, str]:
 
 async def get_oidc_client(
     request: Request,
-    query_db: AsyncSession = DBSessionDependency(),
+    query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> OAuthClientPrincipal:
     """
     验证 Basic 或 Public Client 表单认证。
@@ -257,7 +262,7 @@ async def _load_access_context(request: Request, query_db: AsyncSession) -> Acce
 
 async def get_oidc_access_token(
     request: Request,
-    query_db: AsyncSession = DBSessionDependency(),
+    query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> AccessTokenContext:
     """
     验证 UserInfo 使用的 Bearer Access Token。
@@ -272,7 +277,7 @@ async def get_oidc_access_token(
 async def get_interaction_csrf(
     request: Request,
     interaction_id: str,
-) -> dict[str, Any]:
+) -> InteractionRecord:
     """
     验证 Interaction CSRF Header，并返回内部状态记录。
 
@@ -312,7 +317,7 @@ def OidcClientDependency() -> params.Depends:  # noqa: N802
 
     :return: Client Authentication 依赖
     """
-    return Depends(get_oidc_client)
+    return params.Depends(get_oidc_client)
 
 
 def OidcAccessTokenDependency() -> params.Depends:  # noqa: N802
@@ -321,7 +326,7 @@ def OidcAccessTokenDependency() -> params.Depends:  # noqa: N802
 
     :return: 严格 Access Token 依赖
     """
-    return Depends(get_oidc_access_token)
+    return params.Depends(get_oidc_access_token)
 
 
 def InteractionCsrfDependency() -> params.Depends:  # noqa: N802
@@ -330,4 +335,4 @@ def InteractionCsrfDependency() -> params.Depends:  # noqa: N802
 
     :return: Interaction CSRF 依赖
     """
-    return Depends(get_interaction_csrf)
+    return params.Depends(get_interaction_csrf)

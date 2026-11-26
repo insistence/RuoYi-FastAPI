@@ -7,7 +7,8 @@ from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.environment import PluginRuntimeEnvironmentService
 from plugins.core.manifest.menu_tree import PluginMenuTree
-from plugins.core.manifest.schema import PluginJobManifest, PluginManifest, PluginMenuManifest
+from plugins.core.manifest.schema import PluginMenuManifest
+from plugins.core.manifest.v2 import FrontendManifestV2, VersionedPluginJobManifest, VersionedPluginManifest
 from plugins.core.validation.result import PluginValidationIssue, PluginValidationLevelResolver, ValidationLevel
 from utils.cron_util import CronUtil
 
@@ -201,15 +202,16 @@ class PluginStructureChecker:
             for callback in callbacks:
                 loader.locate_module(callback.split(':', 1)[0])
         except (ImportError, ValueError, OSError) as exc:
-            items.append(PluginStructureCheckItem('entrypoint', plugin.manifest.backend.entrypoint, False, str(exc)))
+            items.append(PluginStructureCheckItem('entrypoint', loader.backend.entrypoint, False, str(exc)))
         items.extend(self._check_migration_files(plugin))
         items.extend(self._check_seed_files(plugin))
         for job in plugin.manifest.backend.jobs:
             items.append(self._check_job_name_length(plugin.manifest.id, job))
             items.append(self._check_job_callable_boundary(plugin.manifest.backend.module, job))
             items.append(self._check_job_cron_expression(job))
-        if plugin.manifest.frontend.delivery.type == 'bundle':
-            bundle = plugin.manifest.frontend.bundle
+        frontend = plugin.manifest.frontend
+        if isinstance(frontend, FrontendManifestV2) and frontend.bundle is not None:
+            bundle = frontend.bundle
             items.append(
                 self._check_plugin_relative_file(
                     'frontend_bundle', plugin.backend_path, f'{bundle.directory}/{bundle.entry}'
@@ -462,7 +464,7 @@ class PluginStructureChecker:
         return items
 
     @staticmethod
-    def _check_job_name_length(plugin_id: str, job: PluginJobManifest) -> PluginStructureCheckItem:
+    def _check_job_name_length(plugin_id: str, job: VersionedPluginJobManifest) -> PluginStructureCheckItem:
         """
         检查插件任务映射到系统任务表后的名称长度。
 
@@ -482,7 +484,7 @@ class PluginStructureChecker:
     @staticmethod
     def _check_job_callable_boundary(
         backend_module: str,
-        job: PluginJobManifest,
+        job: VersionedPluginJobManifest,
     ) -> PluginStructureCheckItem:
         """
         检查任务 callable 是否位于当前插件后端模块内。
@@ -499,7 +501,7 @@ class PluginStructureChecker:
             message=f'任务 callable 位于插件模块内：{job.callable}' if ok else f'任务 callable 越界：{job.callable}',
         )
 
-    def _check_job_callable_importable(self, job: PluginJobManifest) -> PluginStructureCheckItem:
+    def _check_job_callable_importable(self, job: VersionedPluginJobManifest) -> PluginStructureCheckItem:
         """
         检查任务 callable 是否可通过源码静态解析。
 
@@ -598,7 +600,7 @@ class PluginStructureChecker:
         return any(isinstance(node, ast.AsyncFunctionDef) and node.name == callable_name for node in module_ast.body)
 
     @staticmethod
-    def _check_job_cron_expression(job: PluginJobManifest) -> PluginStructureCheckItem:
+    def _check_job_cron_expression(job: VersionedPluginJobManifest) -> PluginStructureCheckItem:
         """
         检查任务 cron 表达式。
 
@@ -752,7 +754,7 @@ class PluginStructureChecker:
     def _check_plugin_view(
         self,
         frontend_plugin_root: Path,
-        manifest: PluginManifest,
+        manifest: VersionedPluginManifest,
         menu: PluginMenuManifest,
         frontend_framework: str = 'vue3',
     ) -> PluginStructureCheckItem:

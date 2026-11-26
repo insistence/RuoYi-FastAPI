@@ -2,14 +2,16 @@ import asyncio
 import builtins
 import json
 from datetime import UTC, datetime, timedelta
+from unittest.mock import Mock
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi import Response
+from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config.env import OidcConfig
+from config.env import OidcConfig, OidcSettings
 from module_admin.entity.do.user_do import SysUser
 from module_identity.dao.sso_session_dao import SsoSessionDao
 from module_identity.entity.do.identity_subject_do import SysIdentitySubject
@@ -29,6 +31,7 @@ class SessionFakeRedis:
     """
     覆盖 Session 服务所需字符串、Set 和 publish 语义的 FakeRedis。
 
+    :ivar client: 供被测服务调用的异步 Redis 客户端替身
     :ivar values: 当前处理的值集合
     :ivar sets: 模拟 Redis 保存的集合数据
     :ivar set_expiries: 为模拟键设置的到期时间
@@ -39,6 +42,7 @@ class SessionFakeRedis:
 
     def __init__(self) -> None:
         """初始化测试夹具的 ``values``, ``sets``, ``set_expiries``, ``expire_seconds``。"""
+        self.client: Redis = Mock(spec_set=Redis, wraps=self)
         self.values: dict[str, tuple[str, float | None]] = {}
         self.sets: dict[str, set[str]] = {}
         self.set_expiries: dict[str, float] = {}
@@ -195,7 +199,7 @@ def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(OidcConfig, name, value)
 
 
-def _config() -> OidcConfig:
+def _config() -> OidcSettings:
     """
     返回当前测试使用的全局 OIDC 配置。
 
@@ -204,7 +208,7 @@ def _config() -> OidcConfig:
     return OidcConfig
 
 
-def _config_with_long_remember() -> OidcConfig:
+def _config_with_long_remember() -> OidcSettings:
     """
     创建超过协议上限的 remember-me 配置。
 
@@ -239,7 +243,7 @@ async def _create(db: AsyncSession, redis: SessionFakeRedis, *, remember: bool =
     queue = AfterCommitCoordinator()
     result = await SsoSessionService.create(
         db,
-        redis,
+        redis.client,
         1,
         _SUBJECT_ID,
         2,
@@ -274,7 +278,7 @@ async def test_create_validate_and_remember_absolute_ttl(data_session: AsyncSess
     assert 'session_secret_hash' not in session_payload
     queue = AfterCommitCoordinator()
     validated = await SsoSessionService.validate(
-        data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
     )
     await queue.commit(data_session)
     assert validated.subject_id == _SUBJECT_ID
@@ -286,7 +290,7 @@ async def test_create_validate_and_remember_absolute_ttl(data_session: AsyncSess
     queue = AfterCommitCoordinator()
     capped = await SsoSessionService.create(
         data_session,
-        redis,
+        redis.client,
         1,
         _SUBJECT_ID,
         2,
@@ -322,7 +326,7 @@ async def test_stale_cookie_index_does_not_reject_valid_database_session(data_se
     await redis.set(OidcRedisKey.sso_cookie(digest), str(uuid4()), ex=3600)
     coordinator = AfterCommitCoordinator()
     validated = await SsoSessionService.validate(
-        data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=coordinator
+        data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=coordinator
     )
     await coordinator.commit(data_session)
     assert validated.sid == sid == row.sid
@@ -366,17 +370,20 @@ async def test_wrong_secret_and_security_version_fail_closed(data_session: Async
     wrong = f'ss1.{sid}.{wrong_secret}'
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, wrong, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(data_session, redis.client, wrong, pepper=_PEPPER, now=_NOW, coordinator=queue)
     await queue.commit(data_session)
     assert row.status == 'active'
 
     cookie, row = await _create(data_session, redis)
     subject = await data_session.scalar(select(SysIdentitySubject).where(SysIdentitySubject.user_id == 1))
+    assert subject is not None
     subject.auth_version = 3
     await data_session.flush()
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
     assert row.status == 'revoked'
 
@@ -392,7 +399,7 @@ async def test_touch_never_crosses_absolute_and_rotation_invalidates_old(data_se
     queue = AfterCommitCoordinator()
     touched = await SsoSessionService.touch(
         data_session,
-        redis,
+        redis.client,
         cookie,
         pepper=_PEPPER,
         now=_NOW + timedelta(seconds=90),
@@ -402,16 +409,20 @@ async def test_touch_never_crosses_absolute_and_rotation_invalidates_old(data_se
     assert touched.idle_expires_at == _NOW + timedelta(seconds=100)
     queue = AfterCommitCoordinator()
     rotated = await SsoSessionService.rotate_cookie(
-        data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
     )
     await queue.commit(data_session)
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
     queue = AfterCommitCoordinator()
     assert (
-        await SsoSessionService.validate(data_session, redis, rotated, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, rotated, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     ).sid == row.sid
     await queue.commit(data_session)
 
@@ -426,7 +437,7 @@ async def test_expired_session_is_marked_expired(data_session: AsyncSession) -> 
     with pytest.raises(SsoSessionError):
         await SsoSessionService.validate(
             data_session,
-            redis,
+            redis.client,
             cookie,
             pepper=_PEPPER,
             now=_NOW + timedelta(seconds=8 * 60 * 60 + 1),
@@ -446,14 +457,16 @@ async def test_db_revocation_invalidates_cached_hit_and_after_commit_order(data_
     await data_session.commit()
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
 
     cookie, row = await _create(data_session, redis)
     coordinator = AfterCommitCoordinator()
 
     assert await SsoSessionService.revoke(
-        data_session, redis, row.sid, reason='admin', now=_NOW, coordinator=coordinator
+        data_session, redis.client, row.sid, reason='admin', now=_NOW, coordinator=coordinator
     )
     assert row.status == 'revoked'
     assert redis.values
@@ -484,7 +497,7 @@ async def test_revoke_db_failure_does_not_clear_cache(
     monkeypatch.setattr(SsoSessionDao, 'revoke', fail)
     queue = AfterCommitCoordinator()
     with pytest.raises(RuntimeError):
-        await SsoSessionService.revoke(data_session, redis, row.sid, now=_NOW, coordinator=queue)
+        await SsoSessionService.revoke(data_session, redis.client, row.sid, now=_NOW, coordinator=queue)
     assert redis.values
 
 
@@ -498,7 +511,7 @@ async def test_revoke_rollback_keeps_cache_until_after_commit(data_session: Asyn
     sid = row.sid
     coordinator = AfterCommitCoordinator()
 
-    assert await SsoSessionService.revoke(data_session, redis, sid, now=_NOW, coordinator=coordinator)
+    assert await SsoSessionService.revoke(data_session, redis.client, sid, now=_NOW, coordinator=coordinator)
     await coordinator.rollback(data_session)
     assert redis.values
     assert coordinator.pending_count == 0
@@ -515,7 +528,7 @@ async def test_commit_failure_does_not_run_registered_cleanup(
     redis = SessionFakeRedis()
     _, row = await _create(data_session, redis)
     queue = AfterCommitCoordinator()
-    assert await SsoSessionService.revoke(data_session, redis, row.sid, now=_NOW, coordinator=queue)
+    assert await SsoSessionService.revoke(data_session, redis.client, row.sid, now=_NOW, coordinator=queue)
 
     async def fail_commit() -> None:
         """
@@ -542,7 +555,9 @@ async def test_inactive_validation_only_cleans_cache_without_event(data_session:
     await data_session.commit()
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
     assert not redis.published
 
@@ -558,7 +573,7 @@ async def test_create_requires_uuid_and_positive_integer_ttls(data_session: Asyn
     with pytest.raises(SsoSessionError):
         await SsoSessionService.create(
             data_session,
-            redis,
+            redis.client,
             1,
             _SUBJECT_ID,
             2,
@@ -572,7 +587,7 @@ async def test_create_requires_uuid_and_positive_integer_ttls(data_session: Asyn
     with pytest.raises(SsoSessionError):
         await SsoSessionService.create(
             data_session,
-            redis,
+            redis.client,
             1,
             _SUBJECT_ID,
             2,
@@ -592,7 +607,7 @@ async def test_create_rotate_touch_cache_writes_wait_for_commit(data_session: As
     queue = AfterCommitCoordinator()
     await SsoSessionService.create(
         data_session,
-        redis,
+        redis.client,
         1,
         _SUBJECT_ID,
         2,
@@ -609,7 +624,9 @@ async def test_create_rotate_touch_cache_writes_wait_for_commit(data_session: As
     await _seed_identity(data_session)
     cookie, _ = await _create(data_session, redis)
     queue = AfterCommitCoordinator()
-    await SsoSessionService.rotate_cookie(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+    await SsoSessionService.rotate_cookie(
+        data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+    )
     assert redis.values
     await data_session.rollback()
     assert redis.values
@@ -622,7 +639,7 @@ async def test_touch_cache_write_waits_for_commit(data_session: AsyncSession) ->
     redis = SessionFakeRedis()
     cookie, _ = await _create(data_session, redis)
     queue = AfterCommitCoordinator()
-    await SsoSessionService.touch(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+    await SsoSessionService.touch(data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
     await data_session.rollback()
     assert redis.values
 
@@ -637,7 +654,7 @@ async def test_after_commit_uses_snapshot_and_publishes_when_cache_clear_fails(
     coordinator = AfterCommitCoordinator()
     cookie, row = await SsoSessionService.create(
         data_session,
-        redis,
+        redis.client,
         1,
         _SUBJECT_ID,
         2,
@@ -666,7 +683,7 @@ async def test_after_commit_uses_snapshot_and_publishes_when_cache_clear_fails(
         raise RuntimeError('redis clear failed')
 
     monkeypatch.setattr(SsoSessionService, '_clear_cache', fail_clear)
-    await SsoSessionService._best_effort_cleanup(redis, snapshot, reason='logout')
+    await SsoSessionService._best_effort_cleanup(redis.client, snapshot, reason='logout')
     assert redis.published
 
 
@@ -677,11 +694,14 @@ async def test_user_status_and_cookie_response_security(data_session: AsyncSessi
     redis = SessionFakeRedis()
     cookie, _ = await _create(data_session, redis)
     user = await data_session.scalar(select(SysUser).where(SysUser.user_id == 1))
+    assert user is not None
     user.status = '1'
     await data_session.flush()
     queue = AfterCommitCoordinator()
     with pytest.raises(SsoSessionError):
-        await SsoSessionService.validate(data_session, redis, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue)
+        await SsoSessionService.validate(
+            data_session, redis.client, cookie, pepper=_PEPPER, now=_NOW, coordinator=queue
+        )
     await queue.commit(data_session)
     response = Response()
     OidcUtil.parse_sso_cookie(cookie)
@@ -735,7 +755,7 @@ async def test_session_entry_points_preserve_domain_errors_for_invalid_credentia
         else:
             await SsoSessionService.validate(
                 data_session,
-                SessionFakeRedis(),
+                SessionFakeRedis().client,
                 cookie,
                 pepper=pepper,
                 now=_NOW,

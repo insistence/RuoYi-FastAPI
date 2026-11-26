@@ -42,7 +42,7 @@ def build_runtime(backend_root: Path, frontend_root: Path | None = None) -> Plug
     )
 
 
-def build_gateway_overrides(gateway: object) -> PluginRuntimeGatewayOverrides:
+def build_gateway_overrides(gateway: FakePluginRuntimeGateway) -> PluginRuntimeGatewayOverrides:
     """
     构建测试用插件运行时窄端口覆盖项。
 

@@ -21,7 +21,7 @@ class WizardPromptService:
         env_names = ENVIRONMENT_OPTION_SERVICE.discover_env_names()
         prompt_message = f'运行环境（可选值: {", ".join(env_names)}）'
         while True:
-            env_value = typer.prompt(prompt_message, default=default_env).strip()
+            env_value = str(typer.prompt(prompt_message, default=default_env)).strip()
             if env_value in env_names:
                 return env_value
             typer.echo(f'不支持的环境名称：{env_value}，请重新输入。')
@@ -37,10 +37,7 @@ class WizardPromptService:
         :return: 用户选择的枚举值
         """
         while True:
-            value = typer.prompt(
-                f'{prompt_text}（可选值: {", ".join(choices)}）',
-                default=default_value,
-            ).strip()
+            value = str(typer.prompt(f'{prompt_text}（可选值: {", ".join(choices)}）', default=default_value)).strip()
             if value in choices:
                 return value
             typer.echo(f'不支持的选项：{value}，请重新输入。')
@@ -55,7 +52,7 @@ class WizardPromptService:
         :return: 用户输入文本
         """
         while True:
-            value = typer.prompt(prompt_text, default=default_value).strip()
+            value = str(typer.prompt(prompt_text, default=default_value)).strip()
             if value:
                 return value
             typer.echo('该字段不能为空，请重新输入。')
@@ -69,7 +66,7 @@ class WizardPromptService:
         :param default_value: 默认值
         :return: 用户输入文本
         """
-        return typer.prompt(prompt_text, default=default_value).strip()
+        return str(typer.prompt(prompt_text, default=default_value)).strip()
 
     @staticmethod
     def prompt_confirm(prompt_text: str, default_value: bool = False) -> bool:

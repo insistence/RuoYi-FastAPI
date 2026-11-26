@@ -1,6 +1,7 @@
 import json
 from collections.abc import Callable
 from importlib.resources import files
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -199,7 +200,8 @@ class PluginV2ScaffoldBuilder:
                     }
                 ],
             )
-        return yaml.safe_dump(
+        stream = StringIO()
+        yaml.safe_dump(
             {
                 'manifestVersion': 2,
                 'id': plugin_id,
@@ -211,9 +213,11 @@ class PluginV2ScaffoldBuilder:
                 'permissions': [{'code': f'{plugin_id}:view', 'name': '访问插件'}],
                 'compatibility': {'hostApiVersion': '^1.2.0', 'pythonVersion': '>=3.11'},
             },
+            stream,
             allow_unicode=True,
             sort_keys=False,
         )
+        return stream.getvalue()
 
     @staticmethod
     def _readme(plugin_id: str, *, native: bool, bundle: bool, test: bool) -> str:

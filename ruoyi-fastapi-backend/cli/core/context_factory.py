@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from importlib import import_module
 from typing import Any
 
-from cli.context import CLI_CONTEXT_BUILDER, CliContext, CliContextBuilder
+from cli.context import CLI_CONTEXT_BUILDER, CliContext, CliContextBuilder, OutputFormat
 from cli.guards import (
     DEFAULT_DANGEROUS_COMMAND_GUARD,
     DEFAULT_DANGEROUS_COMMAND_RULE_REGISTRY,
@@ -175,7 +175,7 @@ class CliContextFactory:
     def build_regular(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -196,7 +196,7 @@ class CliContextFactory:
     def build_readonly(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
     ) -> CliContext:
         """
         构建只读命令上下文。
@@ -210,7 +210,7 @@ class CliContextFactory:
     def build_dangerous(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,

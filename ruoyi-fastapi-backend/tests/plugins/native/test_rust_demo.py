@@ -8,7 +8,7 @@ from dataclasses import replace
 from importlib.machinery import EXTENSION_SUFFIXES
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 from zipfile import ZipFile
 
 import httpx
@@ -26,10 +26,12 @@ from module_admin.service.login_service import LoginService, oauth2_scheme
 from plugins.core.discovery.registry import RegisteredPlugin
 from plugins.core.discovery.scanner import DiscoveredPlugin, PluginScanner
 from plugins.core.lifecycle.jobs import PluginJobModelBuilder
+from plugins.core.manifest.v2 import PluginManifestV2
 from plugins.core.runtime.entrypoint import PluginEntrypointLoader
 from plugins.core.runtime.explicit import ExplicitPluginRuntime
 from plugins.core.runtime.health import PluginHealthChecker
 from plugins.core.runtime.job_dispatcher import dispatch_plugin_job
+from plugins.core.runtime.route_guard import PluginRouteStateGateway
 from plugins.core.sdk import PluginHostContext, PluginRequestContext, await_plugin_callback
 from plugins.core.sdk.version import HOST_API_VERSION
 from plugins.core.validation.structure import PluginStructureChecker
@@ -48,6 +50,7 @@ def plugin() -> DiscoveredPlugin:
 
     :return: 测试所需的插件及其清单
     """
+    assert PLUGIN_DIRECTORY is not None
     root = Path(PLUGIN_DIRECTORY).resolve()
     assert (root / 'plugin.yaml').is_file(), '指定的 Rust 交付目录不存在'
     return PluginScanner(root.parent).load_manifest(root / 'plugin.yaml')
@@ -72,7 +75,9 @@ def test_distribution_contains_native_business_code_and_passes_static_discovery(
 async def test_compiled_native_health_returns_rust_future(plugin: DiscoveredPlugin) -> None:
     """编译后的原生健康检查返回 Rust Future。"""
     loader = PluginEntrypointLoader(plugin)
-    callback = loader.load_callable(plugin.manifest.backend.health.checker)
+    checker = plugin.manifest.backend.health.checker
+    assert checker is not None
+    callback = loader.load_callable(checker)
     assert not inspect.iscoroutinefunction(callback)
     result = await PluginHealthChecker(plugin).check()
     assert result.ok, result.error
@@ -92,7 +97,7 @@ async def fake_session() -> AsyncGenerator[object, None]:
 async def test_real_native_subapp_uses_host_auth_lifespan_and_python_service(plugin: DiscoveredPlugin) -> None:
     """真实原生子应用使用宿主认证、生命周期和 Python 服务。"""
     app = FastAPI()
-    gateway = SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True))
+    gateway = Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
     runtime = ExplicitPluginRuntime(gateway)
     user = SimpleNamespace(user=SimpleNamespace(user_id=7), permissions=['rust_demo:view', 'rust_demo:profile'])
     profile = SimpleNamespace(
@@ -110,7 +115,9 @@ async def test_real_native_subapp_uses_host_auth_lifespan_and_python_service(plu
         runtime.prepare(RegisteredPlugin(plugin, None, True, 'installed'), app, startup_write_enabled=False)
         await runtime.activate('rust_demo', app)
         try:
-            assert runtime.loaded['rust_demo'].lifespan.state == {'nativeReady': True}
+            lifespan = runtime.loaded['rust_demo'].lifespan
+            assert lifespan is not None
+            assert lifespan.state == {'nativeReady': True}
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
                 assert (await client.get('/apps/rust_demo/api/info')).status_code == status.HTTP_401_UNAUTHORIZED
                 headers = {'Authorization': 'Bearer test-token'}
@@ -122,6 +129,7 @@ async def test_real_native_subapp_uses_host_auth_lifespan_and_python_service(plu
                 response = await client.get('/apps/rust_demo/api/profile', headers=headers)
                 assert response.json()['userName'] == 'rust-user'
                 assert 'password' not in response.json()
+                assert service.await_args is not None
                 assert service.await_args.args[1] == user.user.user_id
                 response = await client.post(
                     '/apps/rust_demo/api/echo/item-7?tag=first&tag=second',
@@ -144,7 +152,7 @@ async def test_real_native_subapp_uses_host_auth_lifespan_and_python_service(plu
                 assert response.status_code == status.HTTP_403_FORBIDDEN
         finally:
             await runtime.shutdown()
-    assert not runtime.loaded['rust_demo'].lifespan.ready
+    assert not lifespan.ready
 
 
 @pytest.mark.asyncio
@@ -208,12 +216,13 @@ async def test_native_python_service_exception_propagates(plugin: DiscoveredPlug
 async def test_real_native_router_gets_host_context_and_permissions(plugin: DiscoveredPlugin) -> None:
     """真实原生路由获取宿主上下文及权限。"""
     manifest = plugin.manifest.model_copy(deep=True)
+    assert isinstance(manifest, PluginManifestV2)
     manifest.backend.integration = 'router'
     manifest.backend.asgi = None
     manifest.backend.entrypoint = 'ruoyi_plugin_rust_demo._native:create_router_plugin'
     router_plugin = replace(plugin, manifest=manifest)
     app = FastAPI()
-    gateway = SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True))
+    gateway = Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
     runtime = ExplicitPluginRuntime(gateway)
     user = SimpleNamespace(user=SimpleNamespace(user_id=7), permissions=['rust_demo:view', 'rust_demo:profile'])
 
@@ -279,7 +288,7 @@ async def test_real_native_router_gets_host_context_and_permissions(plugin: Disc
 async def test_real_scheduler_invokes_rust_awaitable_through_persistent_dispatcher(plugin: DiscoveredPlugin) -> None:
     """真实调度器通过持久化分派器等待 Rust 结果。"""
     app = FastAPI()
-    gateway = SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True))
+    gateway = Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
     runtime = ExplicitPluginRuntime(gateway)
     scheduler = AsyncIOScheduler()
     completed = asyncio.get_running_loop().create_future()

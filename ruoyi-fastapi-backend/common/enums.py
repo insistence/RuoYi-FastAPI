@@ -1,4 +1,7 @@
 from enum import Enum, StrEnum
+from typing import Literal
+
+ExcludeRouteMethod = Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
 
 
 class HttpMethod(StrEnum):

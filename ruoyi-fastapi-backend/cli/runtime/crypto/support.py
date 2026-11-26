@@ -1,10 +1,14 @@
 import json
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from cli.exit_codes import ARGUMENT_ERROR, RUNTIME_ERROR
 
 from .gateway import CryptoInfrastructureGateway
+
+if TYPE_CHECKING:
+    from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+
 
 MIN_RSA_KEY_SIZE = 2048
 RSA_KEY_SIZE_STEP = 256
@@ -48,7 +52,7 @@ class CryptoDomainSupport:
         """
         rsa_module = self.infrastructure_gateway.get_rsa_module()
         serialization_module = self.infrastructure_gateway.get_serialization_module()
-        private_key = rsa_module.generate_private_key(public_exponent=65537, key_size=key_size)
+        private_key: RSAPrivateKey = rsa_module.generate_private_key(public_exponent=65537, key_size=key_size)
         private_key_pem = private_key.private_bytes(
             encoding=serialization_module.Encoding.PEM,
             format=serialization_module.PrivateFormat.PKCS8,

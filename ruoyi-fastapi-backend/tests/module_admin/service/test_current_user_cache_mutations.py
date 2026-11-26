@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from sqlalchemy import delete, update
+from sqlalchemy import Alias, delete, update
 from sqlalchemy.orm import aliased
 
 from common.constant import HttpStatusConstant
@@ -112,7 +112,7 @@ async def test_user_role_assignment_and_revocation_refresh_admin_permission(
 ) -> None:
     """分配或撤销用户角色后刷新管理员权限。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
-    assignment = UserRoleModel(userId=USER_ID, roleId=ADMIN_ID)
+    assignment = UserRoleModel(user_id=USER_ID, role_id=ADMIN_ID)
     async with cache_env.sessions.begin() as db:
         await UserDao.add_user_role_dao(db, assignment)
 
@@ -131,7 +131,7 @@ async def test_user_role_assignment_and_revocation_refresh_admin_permission(
 async def test_user_post_removal_and_assignment_refresh_cached_post_ids(cache_env: SimpleNamespace) -> None:  # noqa: F811
     """删除或分配用户岗位后刷新缓存的岗位标识。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
-    assignment = UserPostModel(userId=USER_ID, postId=USER_ID)
+    assignment = UserPostModel(user_id=USER_ID, post_id=USER_ID)
     async with cache_env.sessions.begin() as db:
         await UserDao.delete_user_post_dao(db, assignment)
 
@@ -179,10 +179,17 @@ async def test_aliased_mutations_refresh_cached_user_and_permissions(
     """通过别名修改数据后刷新用户及权限缓存。"""
     first = await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     assert first.json()['permissions'] == ['demo:read']
-    model = SysUser if target_name == 'user' else SysMenu
-    target = aliased(model, name='cache_target') if alias_type == 'orm' else model.__table__.alias('cache_target')
-    columns = target if alias_type == 'orm' else target.c
-    target_id = columns.user_id if target_name == 'user' else columns.menu_id
+    if alias_type == 'core':
+        table = SysUser.__table__ if target_name == 'user' else SysMenu.__table__
+        target = table.alias('cache_target')
+        assert isinstance(target, Alias)
+        target_id = target.c.user_id if target_name == 'user' else target.c.menu_id
+    elif target_name == 'user':
+        target = aliased(SysUser, name='cache_target')
+        target_id = target.user_id
+    else:
+        target = aliased(SysMenu, name='cache_target')
+        target_id = target.menu_id
     if mutation == 'update':
         values = {'nick_name': 'Alias updated reader'} if target_name == 'user' else {'perms': 'demo:updated'}
         statement = update(target).where(target_id == USER_ID).values(**values)
@@ -215,7 +222,9 @@ async def test_alias_update_with_original_table_condition_refreshes_all_affected
     for user_id in (ADMIN_ID, USER_ID):
         response = await cache_env.client.get('/profile', headers=cache_env.headers[user_id])
         assert response.json()['user']['userId'] == user_id
-    target = SysUser.__table__.alias('cache_target')
+    table = SysUser.__table__
+    target = table.alias('cache_target')
+    assert isinstance(target, Alias)
     async with cache_env.sessions.begin() as db:
         # 条件引用原表，匹配管理员时会更新别名目标中的全部用户。
         await db.execute(

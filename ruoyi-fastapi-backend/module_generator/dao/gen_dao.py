@@ -2,10 +2,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import Row, bindparam, delete, func, select, text, update
+from sqlalchemy import Row, bindparam, delete, func, select, text, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlglot.expressions import Expression
+from sqlglot.expressions import Expr
 
 from common.types import DbUtcDateTime
 from common.vo import PageModel
@@ -215,7 +215,7 @@ class GenTableDao:
 
     @classmethod
     async def create_table_by_sql_dao(
-        cls, db: AsyncSession, sql_statements: list[Expression], *, source_config: DataSourceSettings
+        cls, db: AsyncSession, sql_statements: list[Expr], *, source_config: DataSourceSettings
     ) -> None:
         """
         根据sql语句创建表结构。
@@ -247,13 +247,13 @@ class GenTableDao:
             .where(
                 func.lower(GenTable.table_name).like(f'%{query_object.table_name.lower()}%')
                 if query_object.table_name
-                else True,
+                else true(),
                 func.lower(GenTable.table_comment).like(f'%{query_object.table_comment.lower()}%')
                 if query_object.table_comment
-                else True,
-                GenTable.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                GenTable.create_time < time_range[1] if time_range and time_range[1] is not None else True,
-                GenTable.data_source_name == query_object.data_source_name if query_object.data_source_name else True,
+                else true(),
+                GenTable.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                GenTable.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
+                GenTable.data_source_name == query_object.data_source_name if query_object.data_source_name else true(),
             )
             .distinct()
         )
@@ -317,10 +317,10 @@ class GenTableDao:
                 message='PostgreSQL 系统目录不记录建表时间，请清除建表日期筛选',
                 msg_key='generator.creationDateUnsupported',
             )
-        if query_object.begin_time:
+        if metadata_range and metadata_range[0] is not None:
             query_sql += metadata.created_after_filter
             query_params['begin_time'] = metadata_range[0]
-        if query_object.end_time:
+        if metadata_range and metadata_range[1] is not None:
             query_sql += metadata.created_before_filter
             query_params['end_time'] = metadata_range[1]
         query_sql += ' order by create_time desc'
@@ -367,9 +367,9 @@ class GenTableDao:
         :return: 新增的生成表记录
         """
         db_gen_table = GenTable(
-            **GenTableBaseModel(
-                **gen_table.model_dump(by_alias=True, exclude={'create_time', 'update_time'})
-            ).model_dump(exclude={'create_time', 'update_time'})
+            **GenTableBaseModel(**gen_table.model_dump(exclude={'create_time', 'update_time'})).model_dump(
+                exclude={'create_time', 'update_time'}
+            )
         )
         db.add(db_gen_table)
         await db.flush()
@@ -404,7 +404,7 @@ class GenTableColumnDao:
     """代码生成业务表字段模块数据库操作层。"""
 
     @classmethod
-    async def get_gen_table_column_list_by_table_id(cls, db: AsyncSession, table_id: int) -> GenTableColumn:
+    async def get_gen_table_column_list_by_table_id(cls, db: AsyncSession, table_id: int) -> Sequence[GenTableColumn]:
         """
         根据业务表id获取需要生成的业务表字段列表信息。
 
@@ -453,9 +453,9 @@ class GenTableColumnDao:
         :return: 新增的生成表列记录
         """
         db_gen_table_column = GenTableColumn(
-            **GenTableColumnBaseModel(
-                **gen_table_column.model_dump(by_alias=True, exclude={'create_time', 'update_time'})
-            ).model_dump(exclude={'create_time', 'update_time'})
+            **GenTableColumnBaseModel(**gen_table_column.model_dump(exclude={'create_time', 'update_time'})).model_dump(
+                exclude={'create_time', 'update_time'}
+            )
         )
         db.add(db_gen_table_column)
         await db.flush()

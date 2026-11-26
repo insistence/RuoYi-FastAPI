@@ -31,9 +31,13 @@ async def public_dns_addresses(hostname: str, port: int) -> set[str]:
         )
     except (OSError, socket.gaierror, ValueError):
         return set()
-    addresses = {item[4][0] for item in records if item[4]}
-
-    return addresses if addresses and all(OidcUtil.is_public_ip(address) for address in addresses) else set()
+    addresses: set[str] = set()
+    for _, _, _, _, sockaddr in records:
+        address = sockaddr[0]
+        if not isinstance(address, str) or not OidcUtil.is_public_ip(address):
+            return set()
+        addresses.add(address)
+    return addresses
 
 
 async def is_safe_backchannel_uri(uri: object) -> bool:

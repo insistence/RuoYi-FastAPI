@@ -1,10 +1,13 @@
 import asyncio
 from pathlib import Path
-from types import SimpleNamespace
+from typing import Never
 
-from plugins.core.lifecycle.purge import PluginPurgePlanner
+from plugins.core.discovery.scanner import DiscoveredPlugin
+from plugins.core.lifecycle.purge import PluginPurgePlan, PluginPurgePlanner
+from plugins.core.management.entity.vo.schemas import PluginModel
 from plugins.core.runtime.service import PluginRuntimeService
 from plugins.core.runtime.service.dependency_container import PluginRuntimeGatewayOverrides
+from plugins.core.types import PluginStateRecord
 from plugins.core.validation.dependencies import PluginDependencyChecker
 from tests.plugins.core.runtime.fakes import (
     EXPECTED_PURGE_DESTRUCTIVE_COUNT,
@@ -22,7 +25,7 @@ from tests.plugins.core.runtime.fakes import (
 class PrecheckStateQueryGateway:
     """仅提供预检所需插件状态查询能力的测试网关。"""
 
-    async def get_plugin_state(self, plugin_id: str) -> object | None:
+    async def get_plugin_state(self, plugin_id: str) -> PluginStateRecord | None:
         """
         获取插件状态。
 
@@ -30,7 +33,7 @@ class PrecheckStateQueryGateway:
         """
         return None
 
-    async def list_plugin_states(self) -> list[object]:
+    async def list_plugin_states(self) -> list[PluginStateRecord]:
         """
         获取插件状态列表。
 
@@ -38,7 +41,7 @@ class PrecheckStateQueryGateway:
         """
         return []
 
-    def get_plugin_service(self) -> object:
+    def get_plugin_service(self) -> Never:
         """
         禁止预检状态读取回退到管理服务胖接口。
 
@@ -58,7 +61,7 @@ class PurgePlanOnlyGateway:
         """初始化测试清理计划网关。"""
         self.calls: list[str] = []
 
-    async def build_plugin_purge_plan(self, discovered_plugin: object) -> object:
+    async def build_plugin_purge_plan(self, discovered_plugin: DiscoveredPlugin) -> PluginPurgePlan:
         """
         构建测试清理计划。
 
@@ -74,7 +77,7 @@ class PurgePlanOnlyGateway:
             job_count=4,
         )
 
-    def get_plugin_service(self) -> object:
+    def get_plugin_service(self) -> Never:
         """
         禁止清理计划链路回退到管理服务胖接口。
 
@@ -103,6 +106,7 @@ dependencies:
     payload = build_runtime(backend_root).check_plugin('demo')
 
     assert payload['ok'] is False
+    assert isinstance(payload['checks'], list)
     assert payload['checks'][0]['missingDependencies'] == ['missing-python']
     assert payload['checks'][0]['dependencies'][0]['level'] == 'error'
 
@@ -132,6 +136,7 @@ config:
     payload = build_runtime(backend_root).check_plugin('demo')
 
     assert payload['ok'] is True
+    assert isinstance(payload['checks'], list)
     assert payload['checks'][0]['manifestOk'] is True
     assert payload['checks'][0]['manifestWarnings'][0]['level'] == 'warning'
     assert payload['checks'][0]['manifestWarnings'][0]['kind'] == 'secret_config_default'
@@ -158,6 +163,7 @@ compatibility:
     payload = build_runtime(backend_root).check_plugin('demo')
 
     assert payload['ok'] is False
+    assert isinstance(payload['checks'], list)
     assert payload['checks'][0]['ok'] is False
     assert payload['checks'][0]['manifestOk'] is False
     assert payload['checks'][0]['manifestIssues'][0]['level'] == 'error'
@@ -190,6 +196,7 @@ config:
     result = asyncio.run(build_runtime(backend_root).install_plugin('demo', dry_run=True))
 
     assert result['ok'] is True, result
+    assert isinstance(result['manifestWarnings'], list)
     assert result['manifestWarnings'][0]['level'] == 'warning'
     assert result['manifestWarnings'][0]['kind'] == 'secret_config_default'
 
@@ -217,6 +224,7 @@ compatibility:
     assert result['ok'] is True, result
     assert result['dryRun'] is True
     assert result['manifestOk'] is False
+    assert isinstance(result['manifestIssues'], list)
     assert result['manifestIssues'][0]['level'] == 'error'
     assert result['manifestIssues'][0]['kind'] == 'compatibility_unsatisfied'
 
@@ -258,7 +266,9 @@ permissions:
     assert result['pluginDependencyOk'] is True
     assert result['structureOk'] is True
     assert result['menuConflictOk'] is True
+    assert isinstance(result['precheck'], dict)
     assert result['precheck']['menuConflicts'] == []
+    assert isinstance(result['actions'], list)
     assert any(action['name'] == 'install_menus' for action in result['actions'])
 
 
@@ -291,6 +301,7 @@ backend:
 
     assert result['ok'] is True
     assert result['operation'] == 'purge'
+    assert isinstance(result['plan'], dict)
     assert result['plan']['pluginId'] == 'demo'
     assert result['plan']['destructiveCount'] == EXPECTED_PURGE_DESTRUCTIVE_COUNT
     assert purge_plan_gateway.calls == ['demo']
@@ -311,7 +322,7 @@ backend:
 """,
     )
     create_controller_dir(plugin_root)
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.0.0',
         enabled='0',
@@ -391,6 +402,7 @@ config:
 
     assert result['ok'] is True
     assert result['format'] == 'markdown'
+    assert isinstance(result['markdown'], str)
     assert '# 演示插件' in result['markdown']
     assert '| Demo | `demo` | `plugin/demo/index` | `demo:list` | `C` |' in result['markdown']
     assert '| `demo:list` | 演示列表 | - |' in result['markdown']

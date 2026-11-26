@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from subprocess import CompletedProcess
 
+from cli.runtime.plugin.gateway import PluginRuntimeGateway
 from cli.runtime.plugin.service import CliPluginRuntimeService
 
 from .conftest import (
@@ -13,7 +14,7 @@ from .conftest import (
 )
 
 
-class LazyPluginGateway:
+class LazyPluginGateway(PluginRuntimeGateway):
     """
     测试用 CLI 插件网关，验证测试命令可懒解析运行时依赖。
 
@@ -100,6 +101,7 @@ def test_plugin_runtime_test_plugin_runs_pytest_target(tmp_path: Path) -> None:
     assert result['message'] == '插件测试执行完成'
     assert result['pluginId'] == 'demo'
     assert result['targets'] == [str(test_root)]
+    assert isinstance(result['test'], dict)
     assert result['test']['returnCode'] == 0
     assert gateway.commands[0][0] == [
         sys.executable,
@@ -132,6 +134,7 @@ def test_plugin_runtime_test_plugin_runs_backend_and_frontend_targets(tmp_path: 
     assert result['targets'] == [str(backend_test_root), str(frontend_test_file)]
     assert result['test'] is None
     assert result['command'] is None
+    assert isinstance(result['results'], list)
     assert [item['kind'] for item in result['results']] == ['backend', 'frontend']
     assert gateway.commands[0][0] == [sys.executable, '-m', 'pytest', str(backend_test_root)]
     assert gateway.commands[0][1] == str(backend_root)
@@ -172,6 +175,7 @@ def test_plugin_runtime_test_plugin_can_run_frontend_build_acceptance(tmp_path: 
 
     assert result['ok'] is True
     assert result['frontendBuild'] is True
+    assert isinstance(result['results'], list)
     assert [item['kind'] for item in result['results']] == ['backend', 'frontend-build']
     assert result['targets'] == [str(backend_test_root), str(frontend_root)]
     assert gateway.commands[0][0] == [sys.executable, '-m', 'pytest', str(backend_test_root)]
@@ -187,6 +191,7 @@ def test_plugin_runtime_test_plugin_reports_missing_test_dir(tmp_path: Path) -> 
     result = build_runtime(backend_root).test_plugin('demo')
 
     assert result['ok'] is False
+    assert isinstance(result['message'], str)
     assert result['message'].startswith('插件测试目录不存在')
     assert result['targets'] == [
         str(backend_root / 'tests' / 'plugins' / 'demo'),
@@ -231,6 +236,7 @@ def test_plugin_runtime_test_plugin_reports_pytest_failure(tmp_path: Path) -> No
 
     assert result['ok'] is False
     assert result['message'] == '插件测试执行失败'
+    assert isinstance(result['test'], dict)
     assert result['test']['returnCode'] == 1
     assert result['test']['stderr'] == 'failed\n'
 
@@ -250,5 +256,6 @@ def test_plugin_runtime_test_plugin_truncates_command_output(tmp_path: Path) -> 
     result = build_runtime_with_gateway(backend_root, gateway).test_plugin('demo')
 
     assert result['ok'] is True
+    assert isinstance(result['test'], dict)
     assert result['test']['stdout'] == 'x' * 4000
     assert result['test']['stderr'] == 'y' * 4000

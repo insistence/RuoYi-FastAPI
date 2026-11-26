@@ -5,7 +5,8 @@ from module_admin.entity.vo.menu_vo import MenuModel
 from plugins.core.management.dao.dao import PluginDao
 from plugins.core.management.entity.vo.schemas import PluginMenuModel
 from plugins.core.manifest.menu_key import InstalledPluginMenu, PluginMenuKeyBuilder
-from plugins.core.manifest.schema import PluginManifest, PluginMenuManifest, PluginPermissionManifest
+from plugins.core.manifest.schema import PluginMenuManifest, PluginPermissionManifest
+from plugins.core.manifest.v2 import VersionedPluginManifest
 from utils.log_util import logger
 
 ROOT_MENU_ID = 0
@@ -41,7 +42,7 @@ class PluginMenuInstaller:
         """
         self.query_db = query_db
 
-    async def install_manifest_menus(self, manifest: PluginManifest) -> list[InstalledPluginMenu]:
+    async def install_manifest_menus(self, manifest: VersionedPluginManifest) -> list[InstalledPluginMenu]:
         """
         安装插件清单中的菜单。
 
@@ -125,7 +126,7 @@ class PluginMenuInstaller:
 
     async def _install_permission_button_menus(
         self,
-        manifest: PluginManifest,
+        manifest: VersionedPluginManifest,
         installed_menus: list[InstalledPluginMenu],
         seen_menu_keys: set[str],
     ) -> list[InstalledPluginMenu]:
@@ -216,12 +217,12 @@ class PluginMenuInstaller:
         action = permission.code.rsplit(':', maxsplit=1)[-1]
         return PluginMenuManifest(
             name=permission.name or PERMISSION_BUTTON_LABELS.get(action, action),
-            nameI18n=permission.name_i18n,
+            name_i18n=permission.name_i18n,
             path=action,
             component='',
             perms=permission.code,
             type='F',
-            orderNum=AUTO_BUTTON_ORDER_START + order_index,
+            order_num=AUTO_BUTTON_ORDER_START + order_index,
             icon='#',
         )
 
@@ -287,7 +288,7 @@ class PluginMenuInstaller:
         :param menu_id: 菜单ID
         :param menu_key: 插件菜单自然键
         """
-        plugin_menu_model = PluginMenuModel(pluginId=plugin_id, menuId=menu_id, menuKey=menu_key)
+        plugin_menu_model = PluginMenuModel(plugin_id=plugin_id, menu_id=menu_id, menu_key=menu_key)
         existing_plugin_menu = await PluginDao.get_plugin_menu_by_key(self.query_db, plugin_id, menu_key)
         if existing_plugin_menu and existing_plugin_menu.menu_id != menu_id:
             await PluginDao.update_plugin_menu_by_key(self.query_db, plugin_menu_model)
@@ -332,18 +333,18 @@ class PluginMenuInstaller:
         """
         menu_remark = PluginMenuInstaller._build_remark(plugin_id, existing_remark)
         return MenuModel(
-            menuId=menu_id,
-            menuName=menu.name,
-            menuNameI18n=menu.name_i18n,
-            parentId=parent_id,
-            orderNum=menu.order_num,
+            menu_id=menu_id,
+            menu_name=menu.name,
+            menu_name_i18n=menu.name_i18n,
+            parent_id=parent_id,
+            order_num=menu.order_num,
             path=menu.path,
             component=menu.component,
             query=menu.query,
-            routeName=menu.route_name,
-            isFrame=menu.is_frame,
-            isCache=menu.is_cache,
-            menuType=menu.type,
+            route_name=menu.route_name,
+            is_frame=menu.is_frame,
+            is_cache=menu.is_cache,
+            menu_type=menu.type,
             visible=menu.visible,
             status=menu.status,
             perms=menu.perms or None,

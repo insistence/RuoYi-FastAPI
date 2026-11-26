@@ -5,6 +5,28 @@ from cli.runtime.base import RuntimeEnvironmentService
 from cli.runtime.dev import DevelopmentRuntimeService
 from cli.runtime.dev.gateway import DevelopmentProcessGateway
 from cli.runtime.dev.support import DevelopmentCommandSupport, DevelopmentToolingSupport
+from scripts.check_types import BACKEND, CI, E2E, project_targets
+
+
+def test_dev_lint_rejects_new_type_error(tmp_path: Path) -> None:
+    """验证新增类型错误使 CLI 失败，修正同一文件后通过。"""
+    target = tmp_path / 'example.py'
+    target.write_text("answer: int = '42'\n", encoding='utf-8')
+    runtime = DevelopmentRuntimeService()
+    failure = runtime.run_lint([str(target)], check_only=True)
+    assert failure['docstrings']['ok']
+    assert not failure['ok']
+    assert failure['exit_code'] == RUNTIME_ERROR
+    assert 'invalid-assignment' in failure['ty']['stdout']
+    target.write_text('answer: int = 42\n', encoding='utf-8')
+    assert runtime.run_lint([str(target)], check_only=True)['ok']
+
+
+def test_ty_uses_separate_project_roots() -> None:
+    """验证整仓或混合路径检查按实际导入根目录分组。"""
+    assert project_targets([BACKEND.parent]) == {root: [root] for root in (BACKEND, E2E, CI)}
+    targets = [BACKEND / 'common', E2E / 'common', CI / 'scripts', CI / 'tests']
+    assert project_targets(targets) == {BACKEND: targets[:1], E2E: targets[1:2], CI: targets[2:]}
 
 
 def test_lint_reports_route_metadata_even_when_function_has_docstring(tmp_path: Path) -> None:
@@ -174,4 +196,5 @@ def test_development_runtime_service_run_lint_uses_command_support() -> None:
         ['format-command'],
         ['check-command'],
         ['/usr/bin/python3', 'scripts/check_docstrings.py', 'tests/cli'],
+        ['/usr/bin/python3', 'scripts/check_types.py', 'tests/cli'],
     ]

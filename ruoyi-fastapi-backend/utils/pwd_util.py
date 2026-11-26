@@ -5,7 +5,7 @@ class PwdUtil:
     """密码工具类。"""
 
     @classmethod
-    def verify_password(cls, plain_password: str, hashed_password: str) -> bool:
+    def verify_password(cls, plain_password: str, hashed_password: str) -> bool | None:
         """
         工具方法：校验当前输入的密码与数据库存储的密码是否一致。
 

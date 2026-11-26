@@ -7,6 +7,25 @@ permissions:
   contents: read
 
 jobs:
+  type-check:
+    name: Browser and CI types on Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12', '3.13', '3.14', '3.15']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            .github/requirements.txt
+            ruoyi-fastapi-test/requirements.txt
+      - run: python -m pip install -r .github/requirements.txt -r ruoyi-fastapi-test/requirements.txt
+      - run: python ruoyi-fastapi-backend/scripts/check_types.py --python-version ${{ matrix.python }} ruoyi-fastapi-test .github
+
   checks:
     name: Code and CI contracts
     runs-on: ubuntu-latest
@@ -17,8 +36,10 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: .github/requirements.txt
-      - run: python -m pip install -r .github/requirements.txt
+          cache-dependency-path: |
+            .github/requirements.txt
+            ruoyi-fastapi-test/requirements.txt
+      - run: python -m pip install -r .github/requirements.txt -r ruoyi-fastapi-test/requirements.txt
       - name: Python lint and format
         run: |
           ruff check ruoyi-fastapi-backend ruoyi-fastapi-test .github/scripts .github/tests

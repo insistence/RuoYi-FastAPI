@@ -134,8 +134,8 @@ class ExcelUtil:
             # 创建数据有效性规则
             header_option = []
             for option in options:
-                if option.get(selector_header):
-                    header_option = option.get(selector_header)
+                if values := option.get(selector_header):
+                    header_option = values
             dv = DataValidation(type='list', formula1=f'"{",".join(header_option)}"')
             # 设置数据有效性规则的起始单元格和结束单元格
             dv.add(

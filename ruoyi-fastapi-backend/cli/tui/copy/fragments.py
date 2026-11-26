@@ -300,28 +300,30 @@ METRIC_COPY = {
     'value_label': '数值',
 }
 
-ACTION_HINT_COPY = {
-    'browser_default': '当前页面以浏览为主。{interaction_hint}',
-    'browser_templates': {
-        'cache': '建议先核对 Redis 概览与键值样本，再决定预热或执行清理预演。{interaction_hint}',
-        'configs': '建议先看高风险配置，再决定是否刷新参数缓存。{interaction_hint}',
-        'gen': '建议先看生成前校验、同步预检查与代码预览，再决定是否同步表结构或执行导出预演。{interaction_hint}',
-        'jobs': '建议先看失败聚合，再决定执行一次、暂停恢复或同步调度。{interaction_hint}',
-    },
-    'detail_default': '当前页面以查看分区为主。{interaction_hint}',
-    'detail_templates': {
-        'app': '建议先确认环境映射、应用配置、补全诊断和路由状态，再决定是否执行启动前检查或安装补全。{interaction_hint}',
-        'crypto': '建议先确认运行校验、公钥身份和兼容版本，再决定是否生成新密钥或执行轮换预演。{interaction_hint}',
-        'database': '建议先确认 revision、Heads 和历史链路，再决定是否执行初始化预演或升级预演。{interaction_hint}',
-        'ops': '建议先确认数据库探活、Redis 探活、依赖版本和服务器资源，再决定是否执行综合运行巡检。{interaction_hint}',
-    },
-    'operation_hint_lines': [
-        '> [←/→] 切换焦点',
-        '> [J/K] 向上/向下滚动',
-        '> [PgUp/PgDn] 整页滚动',
-        '> [Home/End] 跳到首尾',
-    ],
+BROWSER_ACTION_HINT_DEFAULT = '当前页面以浏览为主。{interaction_hint}'
+
+BROWSER_ACTION_HINT_TEMPLATES = {
+    'cache': '建议先核对 Redis 概览与键值样本，再决定预热或执行清理预演。{interaction_hint}',
+    'configs': '建议先看高风险配置，再决定是否刷新参数缓存。{interaction_hint}',
+    'gen': '建议先看生成前校验、同步预检查与代码预览，再决定是否同步表结构或执行导出预演。{interaction_hint}',
+    'jobs': '建议先看失败聚合，再决定执行一次、暂停恢复或同步调度。{interaction_hint}',
 }
+
+DETAIL_ACTION_HINT_DEFAULT = '当前页面以查看分区为主。{interaction_hint}'
+
+DETAIL_ACTION_HINT_TEMPLATES = {
+    'app': '建议先确认环境映射、应用配置、补全诊断和路由状态，再决定是否执行启动前检查或安装补全。{interaction_hint}',
+    'crypto': '建议先确认运行校验、公钥身份和兼容版本，再决定是否生成新密钥或执行轮换预演。{interaction_hint}',
+    'database': '建议先确认 revision、Heads 和历史链路，再决定是否执行初始化预演或升级预演。{interaction_hint}',
+    'ops': '建议先确认数据库探活、Redis 探活、依赖版本和服务器资源，再决定是否执行综合运行巡检。{interaction_hint}',
+}
+
+OPERATION_HINT_LINES = [
+    '> [←/→] 切换焦点',
+    '> [J/K] 向上/向下滚动',
+    '> [PgUp/PgDn] 整页滚动',
+    '> [Home/End] 跳到首尾',
+]
 
 ACTION_FEEDBACK_COPY = {
     'toast_prefix': '动作结果',

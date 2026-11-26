@@ -3,8 +3,10 @@ from collections import OrderedDict
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from time import monotonic
+from typing import ClassVar
 
 from textual.app import App
+from textual.binding import BindingType
 from textual.css.query import NoMatches
 
 from cli.tui.adapters import (
@@ -797,7 +799,7 @@ class RuoyiTuiApp(App[None]):
     """
 
     CSS = _TUI_APP_CSS
-    BINDINGS = TUI_APP_BINDINGS
+    BINDINGS: ClassVar[list[BindingType]] = list(TUI_APP_BINDINGS)
 
     def __init__(self, env: str) -> None:
         """

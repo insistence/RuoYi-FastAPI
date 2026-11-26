@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Literal, overload
 
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +15,7 @@ from i18n.translation import TranslationUtil
 from module_admin.dao.job_dao import JobDao
 from module_admin.dao.job_runtime_dao import JobRuntimeDao
 from module_admin.entity.vo.job_runtime_vo import JobExecutionQueryModel, JobSyncQueryModel
-from module_admin.entity.vo.job_vo import DeleteJobModel, EditJobModel, JobModel, JobPageQueryModel
+from module_admin.entity.vo.job_vo import DeleteJobModel, EditJobModel, JobModel, JobPageQueryModel, JobRunModel
 from module_admin.service.dict_service import DictDataService
 from utils.cron_util import CronUtil
 from utils.excel_util import ExcelUtil
@@ -72,6 +72,7 @@ class JobService:
         :return: 业务提交及调度同步结果
         """
         job_ids = {state['jobId'] for state in states}
+        sync: dict[str, Any]
         try:
             sync = await SchedulerManager.request_scheduler_sync(job_ids, immediate=True)
         except Exception as exc:
@@ -89,6 +90,18 @@ class JobService:
         return CrudResponseModel(
             is_success=True, message=message, result={**sync, 'saved': True, 'jobs': list(results.values())}
         )
+
+    @classmethod
+    @overload
+    async def get_job_list_services(
+        cls, query_db: AsyncSession, query_object: JobPageQueryModel, is_page: Literal[True]
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_job_list_services(
+        cls, query_db: AsyncSession, query_object: JobPageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_job_list_services(
@@ -125,7 +138,8 @@ class JobService:
             return None
         if TimezoneUtil.utc_now() - TimezoneUtil.to_utc(observed) > timedelta(seconds=30):
             return None
-        return row.get('nextRunTime')
+        next_run_time = row.get('nextRunTime')
+        return next_run_time if isinstance(next_run_time, datetime) else None
 
     @staticmethod
     def _get_next_valid_time(cron_expression: str | None, time_zone: str | None) -> datetime | None:
@@ -234,7 +248,7 @@ class JobService:
                     msg_params={'job_name': str(changed.job_name)},
                 )
             await JobDao.edit_job_dao(query_db, edit_job, job_info)
-            state = await JobRuntimeDao.record_configuration(query_db, job_info.job_id, changed)
+            state = await JobRuntimeDao.record_configuration(query_db, db_job.job_id, changed)
             await query_db.commit()
         except Exception:
             await query_db.rollback()
@@ -245,7 +259,7 @@ class JobService:
     async def execute_job_once_services(
         cls,
         query_db: AsyncSession,
-        page_object: JobModel,
+        page_object: JobRunModel | JobModel,
         *,
         requested_by: str | None = None,
     ) -> CrudResponseModel:
@@ -259,6 +273,8 @@ class JobService:
         :raises Exception: 事务失败并回滚后重新抛出原异常
         """
         try:
+            if page_object.job_id is None:
+                raise ServiceException(message='定时任务不存在', msg_key='job.notFound')
             db_job, _state = await JobRuntimeDao.lock_job(query_db, page_object.job_id)
             if db_job is None:
                 raise ServiceException(message='定时任务不存在', msg_key='job.notFound')
@@ -296,7 +312,7 @@ class JobService:
             try:
                 for job_id in job_id_list:
                     await JobRuntimeDao.lock_job(query_db, job_id)
-                    await JobDao.delete_job_dao(query_db, JobModel(jobId=job_id))
+                    await JobDao.delete_job_dao(query_db, JobModel(job_id=job_id))
                     state = await JobRuntimeDao.record_configuration(query_db, job_id, None)
                     states.append(JobRuntimeDao.state_result(state))
                 await JobRuntimeDao.cancel_unstarted(query_db, job_id_list)
@@ -426,7 +442,7 @@ class JobService:
         )
         job_executor_option = [
             {
-                'label': TranslationUtil.resolve(item.get('dictLabel'), item.get('dictLabelI18n')),
+                'label': TranslationUtil.resolve(item.get('dictLabel') or '', item.get('dictLabelI18n')),
                 'value': item.get('dictValue'),
             }
             for item in job_executor_list
@@ -439,7 +455,7 @@ class JobService:
             else:
                 item['status'] = I18nMessage('暂停', msg_key='export.paused')
             if str(item.get('jobExecutor')) in job_executor_option_dict:
-                item['jobExecutor'] = job_executor_option_dict.get(str(item.get('jobExecutor'))).get('label')
+                item['jobExecutor'] = job_executor_option_dict[str(item.get('jobExecutor'))]['label']
             item['misfireGraceTime'] = (
                 item.get('misfireGraceTime')
                 if item.get('misfireGraceTime') is not None

@@ -108,10 +108,10 @@ class GenRuntimeService:
         try:
             gen_vo_module = self.infrastructure_gateway.get_gen_vo_module()
             query_model = gen_vo_module.GenTablePageQueryModel(
-                tableName=table_name or None,
-                tableComment=table_comment or None,
-                pageNum=page_num,
-                pageSize=page_size,
+                table_name=table_name or None,
+                table_comment=table_comment or None,
+                page_num=page_num,
+                page_size=page_size,
             )
             async with async_session_local() as session:
                 result = await gen_table_service.get_gen_table_list_services(session, query_model, is_page=paged)
@@ -156,10 +156,10 @@ class GenRuntimeService:
         try:
             gen_vo_module = self.infrastructure_gateway.get_gen_vo_module()
             query_model = gen_vo_module.GenTablePageQueryModel(
-                tableName=table_name or None,
-                tableComment=table_comment or None,
-                pageNum=page_num,
-                pageSize=page_size,
+                table_name=table_name or None,
+                table_comment=table_comment or None,
+                page_num=page_num,
+                page_size=page_size,
             )
             async with async_session_local() as session:
                 result = await gen_table_service.get_gen_db_table_list_services(session, query_model, is_page=paged)

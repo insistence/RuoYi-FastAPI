@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from cli.tui.actions.models import (
     ActionParameterBuilder,
+    ActionParameters,
     ActionSummaryBuilder,
     ActionTextBuilder,
     TuiActionSpec,
@@ -70,7 +71,7 @@ class TuiActionSpecFactory:
         *,
         action_id: str,
         label: str,
-        parameters: dict[str, object],
+        parameters: ActionParameters,
         env: str,
         summary_lines: list[str],
         preview_title: str | None = None,

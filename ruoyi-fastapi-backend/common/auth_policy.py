@@ -1,15 +1,22 @@
 import re
 from collections.abc import Callable, Iterator
-from typing import Literal, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict
 
 from fastapi import Request
 from fastapi.dependencies.models import Dependant
 from fastapi.dependencies.utils import get_dependant
+from pydantic import TypeAdapter
 
+from common.enums import ExcludeRouteMethod
 from utils.dependency_util import DependencyUtil
 
+if TYPE_CHECKING:
+    from common.context import CompiledExcludeRoute
 
-# 定义排除路由的字典结构
+
+_exclude_route_method = TypeAdapter(ExcludeRouteMethod)
+
+
 class ExcludeRoute(TypedDict, total=False):
     """
     排除路由的字典结构。
@@ -20,7 +27,7 @@ class ExcludeRoute(TypedDict, total=False):
     """
 
     path: str
-    methods: list[Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']]
+    methods: list[ExcludeRouteMethod]
     ignore_paths: list[str]
 
 
@@ -42,7 +49,7 @@ class AuthRule:
         """
         self.exclude_routes = exclude_routes or []
         # 编译排除路径为正则表达式模式，并存储方法信息
-        self.exclude_patterns = []
+        self.exclude_patterns: list[CompiledExcludeRoute] = []
 
         for route in self.exclude_routes:
             # 使用TypedDict，确保路由字典包含path字段
@@ -55,7 +62,7 @@ class AuthRule:
             self.exclude_patterns.append(
                 {
                     'pattern': pattern,
-                    'methods': [method.upper() for method in methods],
+                    'methods': [_exclude_route_method.validate_python(method.upper()) for method in methods],
                     'original_path': path,
                     'ignore_paths': ignore_paths,
                 }
@@ -138,7 +145,7 @@ class AuthPolicy:
             :param rule: 当前正在检查的规则
             :yield: 依赖树中匹配的认证规则
             """
-            if dependency.call in overrides:
+            if dependency.call is not None and dependency.call in overrides:
                 # 按替换函数的实际声明判断，普通依赖覆盖不会使公开接口变为必需登录。
                 dependency = get_dependant(
                     path=dependency.path or '',

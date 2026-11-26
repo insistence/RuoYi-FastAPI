@@ -1,5 +1,5 @@
 from subprocess import CompletedProcess
-from typing import TYPE_CHECKING, Protocol, TypeAlias, cast
+from typing import TypeAlias, TypedDict
 
 from pydantic import Field
 
@@ -8,28 +8,18 @@ from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.lifecycle.purge import PluginPurgePlan, PluginPurgePlanItem
 from plugins.core.manifest.menu_tree import PluginMenuTree
 from plugins.core.validation.dependencies import DependencyCheckResult, DependencyInstallPlanItem
+from plugins.core.validation.menus import PluginMenuConflictResult
 from plugins.core.validation.plugin_deps import (
     PluginDependencyCheckResult,
     PluginDependencyPlan,
     PluginDependencyPlanBlocker,
     PluginDependencyPlanItem,
 )
+from plugins.core.validation.structure import PluginStructureCheckResult
 from plugins.core.validation.versioning import PluginVersionComparator
 
 from .base import PluginPayloadModel
-
-if TYPE_CHECKING:
-    from plugins.core.validation.structure import PluginStructureCheckResult
-
-
-class SupportsOk(Protocol):
-    """
-    支持 ok 属性的检查结果协议。
-
-    :ivar ok: 操作或检查是否成功
-    """
-
-    ok: bool
+from .validation import PluginValidationPayloadMixin
 
 
 class PluginPlanBlockerPayload(PluginPayloadModel):
@@ -159,7 +149,36 @@ class VersionStatePayload(PluginPayloadModel):
     needs_upgrade: bool = Field(alias='needsUpgrade', description='是否需要升级已安装版本')
 
 
-UpgradeDryRunPayloadContext: TypeAlias = dict[str, object]
+class UpgradeDryRunPayloadContext(TypedDict):
+    """
+    升级预演所需的版本状态、动作和预检结果。
+
+    :ivar versionState: 升级前后的版本信息
+    :ivar dependencyResult: 软件包依赖检查结果
+    :ivar pluginDependencyResult: 插件间依赖检查结果
+    :ivar structureResult: 插件结构检查结果
+    :ivar menuConflictResult: 菜单冲突检查结果
+    :ivar manifestOk: 插件清单是否通过检查
+    :ivar actions: 预演动作
+    :ivar manifestIssues: 插件清单错误
+    :ivar manifestWarnings: 插件清单警告
+    :ivar pluginDependencyErrors: 插件间依赖错误
+    :ivar structureErrors: 插件结构错误
+    :ivar menuConflicts: 菜单冲突明细
+    """
+
+    versionState: dict[str, object]
+    dependencyResult: DependencyCheckResult
+    pluginDependencyResult: PluginDependencyCheckResult
+    structureResult: PluginStructureCheckResult
+    menuConflictResult: PluginMenuConflictResult
+    manifestOk: bool
+    actions: list[dict[str, object]]
+    manifestIssues: list[dict[str, object]]
+    manifestWarnings: list[dict[str, object]]
+    pluginDependencyErrors: list[dict[str, object]]
+    structureErrors: list[dict[str, object]]
+    menuConflicts: list[dict[str, object]]
 
 
 class UpgradeDryRunPayload(PluginPayloadModel):
@@ -202,7 +221,7 @@ class PluginPlanPayloadMixin:
     """插件依赖拓扑、执行动作和物理清理计划负载构建能力。"""
 
     @staticmethod
-    def build_plugin_plan_blocker(item: PluginDependencyPlanBlocker) -> PluginPlanBlockerPayload:
+    def build_plugin_plan_blocker(item: PluginDependencyPlanBlocker) -> dict[str, object]:
         """
         构建插件批量操作计划阻塞项负载。
 
@@ -217,7 +236,7 @@ class PluginPlanPayloadMixin:
         ).to_payload()
 
     @classmethod
-    def build_plugin_plan_item(cls, item: PluginDependencyPlanItem) -> PluginPlanItemPayload:
+    def build_plugin_plan_item(cls, item: PluginDependencyPlanItem) -> dict[str, object]:
         """
         构建插件批量操作计划项负载。
 
@@ -262,7 +281,7 @@ class PluginPlanPayloadMixin:
         cls,
         plan: PluginDependencyPlan,
         database_error: str | None = None,
-    ) -> PluginPlanResponsePayload:
+    ) -> dict[str, object]:
         """
         构建插件批量操作计划响应负载。
 
@@ -282,7 +301,7 @@ class PluginPlanPayloadMixin:
         ).to_payload()
 
     @staticmethod
-    def build_dependency_install_plan_item(item: DependencyInstallPlanItem) -> DependencyInstallPlanItemPayload:
+    def build_dependency_install_plan_item(item: DependencyInstallPlanItem) -> dict[str, object]:
         """
         构建依赖安装计划项负载。
 
@@ -304,7 +323,7 @@ class PluginPlanPayloadMixin:
     def build_dependency_install_result(
         item: DependencyInstallPlanItem,
         completed: CompletedProcess[str],
-    ) -> DependencyInstallResultPayload:
+    ) -> dict[str, object]:
         """
         构建依赖安装执行结果负载。
 
@@ -325,7 +344,7 @@ class PluginPlanPayloadMixin:
         ).to_payload()
 
     @staticmethod
-    def build_command_result(completed: CompletedProcess[str]) -> CommandResultPayload:
+    def build_command_result(completed: CompletedProcess[str]) -> dict[str, object]:
         """
         构建通用系统命令执行结果负载。
 
@@ -339,7 +358,7 @@ class PluginPlanPayloadMixin:
         ).to_payload()
 
     @staticmethod
-    def build_purge_plan_item(item: PluginPurgePlanItem) -> PurgePlanItemPayload:
+    def build_purge_plan_item(item: PluginPurgePlanItem) -> dict[str, object]:
         """
         构建插件物理清理计划项负载。
 
@@ -356,7 +375,7 @@ class PluginPlanPayloadMixin:
         ).to_payload()
 
     @classmethod
-    def build_purge_plan(cls, plan: PluginPurgePlan) -> PurgePlanPayload:
+    def build_purge_plan(cls, plan: PluginPurgePlan) -> dict[str, object]:
         """
         构建插件物理清理计划负载。
 
@@ -379,7 +398,7 @@ class PluginPlanPayloadMixin:
         plugin_dependency_ok: bool,
         structure_ok: bool,
         menu_conflict_ok: bool,
-    ) -> list[ActionPayload]:
+    ) -> list[dict[str, object]]:
         """
         构建插件安装动作计划。
 
@@ -448,7 +467,7 @@ class PluginPlanPayloadMixin:
         plugin_dependency_ok: bool,
         structure_ok: bool,
         menu_conflict_ok: bool,
-    ) -> list[ActionPayload]:
+    ) -> list[dict[str, object]]:
         """
         构建插件升级动作计划。
 
@@ -515,7 +534,7 @@ class PluginPlanPayloadMixin:
     def build_upgrade_version_state(
         discovered_plugin: DiscoveredPlugin,
         database_plugin: object | None,
-    ) -> VersionStatePayload:
+    ) -> dict[str, object]:
         """
         构建插件升级版本状态。
 
@@ -548,10 +567,10 @@ class PluginPlanPayloadMixin:
         :return: 插件升级 dry-run 负载
         """
         version_state = payload_context['versionState']
-        dependency_result = cast('DependencyCheckResult', payload_context['dependencyResult'])
-        plugin_dependency_result = cast('PluginDependencyCheckResult', payload_context['pluginDependencyResult'])
-        structure_result = cast('PluginStructureCheckResult', payload_context['structureResult'])
-        menu_conflict_result = cast('SupportsOk', payload_context['menuConflictResult'])
+        dependency_result = payload_context['dependencyResult']
+        plugin_dependency_result = payload_context['pluginDependencyResult']
+        structure_result = payload_context['structureResult']
+        menu_conflict_result = payload_context['menuConflictResult']
         return UpgradeDryRunPayload.model_validate(
             {
                 'ok': True,
@@ -574,15 +593,18 @@ class PluginPlanPayloadMixin:
                 'pluginDependencyErrors': payload_context['pluginDependencyErrors'],
                 'structureErrors': payload_context['structureErrors'],
                 'menuConflicts': payload_context['menuConflicts'],
-                'dependencies': [cls.build_dependency_item(item) for item in dependency_result.items],
+                'dependencies': [
+                    PluginValidationPayloadMixin.build_dependency_item(item) for item in dependency_result.items
+                ],
                 'pluginDependencies': [
-                    cls.build_plugin_dependency_item(item) for item in plugin_dependency_result.items
+                    PluginValidationPayloadMixin.build_plugin_dependency_item(item)
+                    for item in plugin_dependency_result.items
                 ],
             }
         ).to_payload()
 
     @staticmethod
-    def build_enabled_actions(enabled: bool, plugin_dependency_ok: bool = True) -> list[ActionPayload]:
+    def build_enabled_actions(enabled: bool, plugin_dependency_ok: bool = True) -> list[dict[str, object]]:
         """
         构建插件启停动作计划。
 
@@ -590,7 +612,7 @@ class PluginPlanPayloadMixin:
         :param plugin_dependency_ok: 插件间依赖检查是否通过
         :return: 插件启停动作计划
         """
-        actions = [
+        actions: list[dict[str, object]] = [
             {
                 'name': 'update_plugin_enabled',
                 'label': '更新插件启停状态',

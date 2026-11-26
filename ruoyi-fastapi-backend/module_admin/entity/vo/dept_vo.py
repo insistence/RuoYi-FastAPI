@@ -1,18 +1,18 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 from pydantic_validation_decorator import Network, NotBlank, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 
 
-class DeptModel(BaseModel):
+class DeptModel(CamelModel):
     """部门表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     dept_id: int | None = Field(default=None, description='部门id')
     parent_id: int | None = Field(default=None, description='父部门id')
@@ -101,10 +101,8 @@ class DeptQueryModel(DateRangeQueryMixin, DeptModel):
     end_time: str | None = Field(default=None, description='结束时间')
 
 
-class DeptTreeModel(BaseModel):
+class DeptTreeModel(CamelModel):
     """部门树模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     id: int = Field(description='部门id')
     label: str = Field(description='部门名称')
@@ -112,20 +110,16 @@ class DeptTreeModel(BaseModel):
     children: list['DeptTreeModel'] | None = Field(default=None, description='子部门树')
 
 
-class DeleteDeptModel(BaseModel):
+class DeleteDeptModel(CamelModel):
     """删除部门模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel)
-
-    dept_ids: str = Field(default=None, description='需要删除的部门id')
+    dept_ids: str | None = Field(default=None, description='需要删除的部门id')
     update_by: str | None = Field(default=None, description='更新者')
     update_time: str | None = Field(default=None, description='更新时间')
 
 
-class DeptSortModel(BaseModel):
+class DeptSortModel(CamelModel):
     """部门排序批量保存模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     dept_ids: str = Field(description='需要更新排序的部门id')
     order_nums: str = Field(description='部门显示顺序')

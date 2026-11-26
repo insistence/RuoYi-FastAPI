@@ -1,10 +1,10 @@
 import asyncio
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from types import MappingProxyType
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 import pytest_asyncio
@@ -25,6 +25,7 @@ from plugins.core.runtime.configuration import (
 from plugins.core.runtime.explicit import ExplicitPluginRuntime
 from plugins.core.runtime.metrics import PluginRuntimeMetrics
 from plugins.core.runtime.metrics_store import PluginMetricsReporter
+from plugins.core.runtime.route_guard import PluginRouteStateGateway
 from plugins.core.runtime.startup import PluginRuntimeStartupManager
 from plugins.core.sdk import PluginConfigSnapshot, PluginHostContext
 from tests.plugins.core.runtime.test_explicit import clear_modules, write_plugin  # noqa: F401
@@ -41,7 +42,7 @@ async def config_sessions(tmp_path: Path) -> AsyncIterator[async_sessionmaker[As
     """
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "config.sqlite"}')
     async with engine.begin() as db:
-        await db.run_sync(SysPluginConfig.__table__.create)
+        await db.run_sync(SysPluginConfig.get_table().create)
     try:
         yield async_sessionmaker(engine, expire_on_commit=False)
     finally:
@@ -64,8 +65,7 @@ def test_snapshot_is_independent_and_hides_values_in_repr() -> None:
     snapshot = PluginConfigSnapshot(values, 'a' * 64)
     values['private']['list'].append('later')
     assert snapshot.values['private']['list'] == ['secret-value']
-    with pytest.raises(TypeError):
-        snapshot.values['private'] = None
+    assert isinstance(snapshot.values, MappingProxyType)
     assert 'secret-value' not in repr(snapshot)
 
 
@@ -89,7 +89,9 @@ async def test_database_changes_dynamic_reads_and_restart_snapshots_remain_disti
     ]
     monkeypatch.setattr('plugins.core.runtime.startup.DataSourceRegistry.session', config_sessions)
     app = FastAPI()
-    runtime = ExplicitPluginRuntime(SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True)))
+    runtime = ExplicitPluginRuntime(
+        Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
+    )
     initial = await PluginRuntimeStartupManager.load_explicit_plugin_config(plugin)
     runtime.prepare(plugin, app, startup_write_enabled=False, config_values=initial)
     await runtime.activate(plugin.plugin_id, app)
@@ -123,7 +125,9 @@ async def test_database_changes_dynamic_reads_and_restart_snapshots_remain_disti
     finally:
         await runtime.shutdown()
     assert runtime.metrics.configurations[plugin.plugin_id].active is False
-    restarted = ExplicitPluginRuntime(SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True)))
+    restarted = ExplicitPluginRuntime(
+        Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
+    )
     restarted_app = FastAPI()
     restarted.prepare(
         plugin,
@@ -190,7 +194,7 @@ async def test_failed_or_cancelled_read_keeps_previous_observation(
     closed = []
 
     @asynccontextmanager
-    async def session() -> AsyncIterator[object]:
+    async def session() -> AsyncGenerator[object, None]:
         """
         为当前测试操作提供数据库会话。
 

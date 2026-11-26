@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from plugins.core.manifest.schema import PluginManifest
+from plugins.core.manifest.v2 import VersionedPluginManifest
 from plugins.core.utils import is_windows_reserved, validate_plugin_id_value
 
 DIGEST_PATTERN = re.compile(r'^[a-f0-9]{64}$')
@@ -384,7 +384,7 @@ class VerifiedArtifact:
     files: tuple[ArtifactFile, ...]
     metadata: ArtifactMetadata
     signature: ArtifactSignature
-    manifest: PluginManifest
+    manifest: VersionedPluginManifest
     artifact_path: Path
 
 
@@ -412,6 +412,6 @@ class StoredArtifact:
     files: tuple[ArtifactFile, ...]
     metadata: ArtifactMetadata
     signature: ArtifactSignature
-    manifest: PluginManifest
+    manifest: VersionedPluginManifest
     root_path: Path
     plugin_path: Path

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import Literal, ParamSpec, TypeVar
 
-from fastapi import Request
+from fastapi import Request, Response
 from redis import asyncio as aioredis
 
 from common.context import RequestContext
@@ -340,7 +340,7 @@ class ApiRateLimit:
         self.methods = ApiAnnotationUtil.normalize_http_methods(resolved_methods)
         self.message = resolved_message
 
-    def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+    def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R | Response]]:
         """
         为目标异步接口函数增加接口限流能力。
 
@@ -349,7 +349,7 @@ class ApiRateLimit:
         """
 
         @wraps(func)
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | Response:
             """
             校验请求的限流条件后执行被装饰的接口。
 
@@ -390,7 +390,7 @@ class ApiRateLimit:
             headers = self._build_rate_limit_headers(rate_limit_result)
             if not rate_limit_result['allowed']:
                 self._log_rate_limit_hit(request, rate_limit_result)
-                return ResponseUtil.too_many_requests(msg=self.message, headers=headers)  # type: ignore[return-value]
+                return ResponseUtil.too_many_requests(msg=self.message, headers=headers)
 
             ApiResponseHeaderUtil.merge_headers(request, headers)
             result = await func(*args, **kwargs)
@@ -617,8 +617,8 @@ class ApiRateLimit:
         :return: 路由模板路径
         """
         route = request.scope.get('route')
-        route_path = getattr(route, 'path', None)
-        return route_path or request.url.path
+        route_path: object = getattr(route, 'path', None)
+        return route_path if isinstance(route_path, str) and route_path else request.url.path
 
     def _get_scope_value(self, request: Request) -> str | None:
         """

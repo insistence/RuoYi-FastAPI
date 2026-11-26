@@ -1,6 +1,5 @@
 import asyncio
 from pathlib import Path
-from typing import cast
 
 from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
@@ -69,10 +68,7 @@ class PluginDependencyUseCase:
         :param dry_run: 是否预演
         :return: 阻断负载，不阻断时返回 None
         """
-        return cast(
-            'PluginRuntimeBlockedPayloadDict | None',
-            self.context.build_operation_blocked_payload(discovered_plugin, operation, dry_run=dry_run),
-        )
+        return self.context.build_operation_blocked_payload(discovered_plugin, operation, dry_run=dry_run)
 
     def _with_plugin_capability(
         self,
@@ -86,7 +82,7 @@ class PluginDependencyUseCase:
         :param discovered_plugin: 已发现插件
         :return: 附加能力后的响应负载
         """
-        return cast('dict[str, object]', self.context.with_plugin_capability(payload, discovered_plugin))
+        return self.context.with_plugin_capability(payload, discovered_plugin)
 
     @staticmethod
     def _with_dependency_install_metadata(
@@ -182,7 +178,7 @@ class PluginDependencyUseCase:
                 confirmed=confirmed,
                 output_callback=output_callback,
             )
-            cast('dict[str, object]', payload).pop('capability', None)
+            payload.pop('capability', None)
             return payload
         except Exception as exc:
             return PluginRuntimePayloadBuilder.build_exception_payload(
@@ -264,11 +260,8 @@ class PluginDependencyUseCase:
                 install_plan_items,
                 policy_decision,
             )
-            payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)
-            return cast(
-                'PluginDependencyInstallResponse',
-                self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-            )
+            payload = self._with_dependency_install_metadata(payload, confirmed=confirmed)
+            return self._with_plugin_capability(payload, discovered_plugin)
         if not install_plan.has_actions:
             payload = PluginDependencyInstallPayloadBuilder.build_satisfied_payload(
                 plugin_id,
@@ -276,11 +269,8 @@ class PluginDependencyUseCase:
                 install_plan_items,
                 policy_decision,
             )
-            payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)
-            return cast(
-                'PluginDependencyInstallResponse',
-                self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-            )
+            payload = self._with_dependency_install_metadata(payload, confirmed=confirmed)
+            return self._with_plugin_capability(payload, discovered_plugin)
         if not policy_decision.allowed:
             payload = PluginDependencyInstallPayloadBuilder.build_payload(
                 plugin_id=plugin_id,
@@ -291,11 +281,8 @@ class PluginDependencyUseCase:
                 message=I18nMessage('插件依赖安装被策略阻断', msg_key='plugin.runtime.dependencies.installBlocked'),
                 policy_decision=policy_decision,
             )
-            payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)
-            return cast(
-                'PluginDependencyInstallResponse',
-                self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-            )
+            payload = self._with_dependency_install_metadata(payload, confirmed=confirmed)
+            return self._with_plugin_capability(payload, discovered_plugin)
 
         install_results = []
         total = len(install_plan_items)
@@ -322,11 +309,8 @@ class PluginDependencyUseCase:
             install_results,
             policy_decision,
         )
-        payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)
-        return cast(
-            'PluginDependencyInstallResponse',
-            self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-        )
+        payload = self._with_dependency_install_metadata(payload, confirmed=confirmed)
+        return self._with_plugin_capability(payload, discovered_plugin)
 
     async def install_plugin_dependencies_from_result_async(
         self,
@@ -371,11 +355,8 @@ class PluginDependencyUseCase:
                 install_plan_items,
                 policy_decision,
             )
-            payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)
-            return cast(
-                'PluginDependencyInstallResponse',
-                self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-            )
+            payload = self._with_dependency_install_metadata(payload, confirmed=confirmed)
+            return self._with_plugin_capability(payload, discovered_plugin)
         if not install_plan.has_actions:
             payload = PluginDependencyInstallPayloadBuilder.build_satisfied_payload(
                 plugin_id,
@@ -383,11 +364,8 @@ class PluginDependencyUseCase:
                 install_plan_items,
                 policy_decision,
             )
-            payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)
-            return cast(
-                'PluginDependencyInstallResponse',
-                self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-            )
+            payload = self._with_dependency_install_metadata(payload, confirmed=confirmed)
+            return self._with_plugin_capability(payload, discovered_plugin)
         if not policy_decision.allowed:
             payload = PluginDependencyInstallPayloadBuilder.build_payload(
                 plugin_id=plugin_id,
@@ -398,11 +376,8 @@ class PluginDependencyUseCase:
                 message=I18nMessage('插件依赖安装被策略阻断', msg_key='plugin.runtime.dependencies.installBlocked'),
                 policy_decision=policy_decision,
             )
-            payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)
-            return cast(
-                'PluginDependencyInstallResponse',
-                self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-            )
+            payload = self._with_dependency_install_metadata(payload, confirmed=confirmed)
+            return self._with_plugin_capability(payload, discovered_plugin)
 
         install_results = []
         total = len(install_plan_items)
@@ -430,11 +405,8 @@ class PluginDependencyUseCase:
             install_results,
             policy_decision,
         )
-        payload = self._with_dependency_install_metadata(cast('dict[str, object]', payload), confirmed=confirmed)
-        return cast(
-            'PluginDependencyInstallResponse',
-            self._with_plugin_capability(cast('dict[str, object]', payload), discovered_plugin),
-        )
+        payload = self._with_dependency_install_metadata(payload, confirmed=confirmed)
+        return self._with_plugin_capability(payload, discovered_plugin)
 
     @staticmethod
     def _emit_install_status(

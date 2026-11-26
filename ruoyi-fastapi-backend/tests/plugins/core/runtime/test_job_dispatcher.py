@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import yaml
@@ -22,10 +22,12 @@ from plugins.core.runtime.entrypoint import PluginEntrypointLoader
 from plugins.core.runtime.explicit import ExplicitPluginRuntime, LoadedExplicitPlugin
 from plugins.core.runtime.job_dispatcher import (
     DISPATCH_TARGET,
+    PluginJobBinding,
     bind_plugin_jobs,
     dispatch_plugin_job,
     unbind_plugin_jobs,
 )
+from plugins.core.runtime.route_guard import PluginRouteStateGateway
 from plugins.core.sdk import PluginHostContext, PluginTaskContext
 from plugins.core.validation.structure import PluginStructureChecker
 
@@ -87,7 +89,7 @@ def setup_plugin(tmp_path: Path) -> Iterator[SimpleNamespace]:
             sessions.append('close')
 
     host = PluginHostContext('dispatch_test', directory, services={'test.task': service}, session_factory=session)
-    gateway = SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True))
+    gateway = Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
     runtime = ExplicitPluginRuntime(gateway)
     runtime.metrics.register('dispatch_test', plugin.manifest.version, None, None)
     definition = PluginEntrypointLoader(plugin).load(host)
@@ -350,7 +352,7 @@ async def test_shutdown_keeps_pending_job_diagnostics_until_callback_exits(
                 await release.wait()
         return True
 
-    async def bounded_unbind(binding: object) -> None:
+    async def bounded_unbind(binding: PluginJobBinding) -> None:
         """
         以较短的宽限期解除插件任务绑定。
 

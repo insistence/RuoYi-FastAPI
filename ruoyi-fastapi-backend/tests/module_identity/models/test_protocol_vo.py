@@ -102,12 +102,12 @@ def test_token_request_limits_untrusted_form_string_lengths() -> None:
 def test_audit_query_supports_owner_and_time_filters() -> None:
     """审计查询支持按所有者和时间过滤。"""
     query = AuditPageQueryModel(
-        clientId='external-client',
-        userId=_AUDIT_USER_ID,
-        startTime='2026-01-01T00:00:00Z',
-        endTime='2026-01-02T00:00:00Z',
+        client_id='external-client',
+        user_id=_AUDIT_USER_ID,
+        start_time='2026-01-01T00:00:00Z',
+        end_time='2026-01-02T00:00:00Z',
     )
     assert query.client_id == 'external-client'
     assert query.user_id == _AUDIT_USER_ID
     with pytest.raises(ValidationError):
-        AuditPageQueryModel(startTime='2026-01-02T00:00:00Z', endTime='2026-01-01T00:00:00Z')
+        AuditPageQueryModel(start_time='2026-01-02T00:00:00Z', end_time='2026-01-01T00:00:00Z')

@@ -1,4 +1,7 @@
+from collections.abc import Sequence
+from math import trunc
 from numbers import Real
+from typing import SupportsInt
 
 from exceptions.exception import ServiceException
 
@@ -27,7 +30,7 @@ class UserImportUtil:
     }
 
     @classmethod
-    def normalize_headers(cls, headers: list[object]) -> list[str]:
+    def normalize_headers(cls, headers: Sequence[object]) -> list[str]:
         """
         独立于界面语言识别已发布模板，拒绝歧义或缺失的必需列。
 
@@ -77,7 +80,7 @@ class UserImportUtil:
         :raises ServiceException: 导入字段的显示名称或枚举码值无效
         """
         if isinstance(value, Real) and not isinstance(value, bool) and float(value).is_integer():
-            value = int(value)
+            value = int(value) if isinstance(value, SupportsInt) else trunc(value)
         normalized = str(value).strip().casefold()
         for code, aliases in cls.VALUE_ALIASES[field].items():
             if normalized in {code, *(alias.casefold() for alias in aliases)}:

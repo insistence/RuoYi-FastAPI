@@ -2,6 +2,7 @@ import asyncio
 import math
 import pickle
 import threading
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, timedelta
 from unittest.mock import Mock, patch
@@ -14,6 +15,7 @@ from apscheduler.events import (
     EVENT_JOB_MISSED,
     EVENT_JOB_SUBMITTED,
     JobSubmissionEvent,
+    SchedulerEvent,
 )
 from apscheduler.executors.base import MaxInstancesReachedError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -70,8 +72,8 @@ def test_failure_and_misfire_have_distinct_execution_metadata() -> None:
         assert missed.start_time is missed.end_time is missed.run_duration_ms is None
         assert failed.code == EVENT_JOB_ERROR
         assert isinstance(failed.exception, ValueError)
-        assert failed.run_duration_ms >= 0
-        assert 'job.func' in failed.traceback
+        assert failed.run_duration_ms is not None and failed.run_duration_ms >= 0
+        assert failed.traceback is not None and 'job.func' in failed.traceback
         assert missed.execution_id != failed.execution_id
     finally:
         scheduler.shutdown()
@@ -88,7 +90,7 @@ async def test_executors_preserve_return_value_and_log_deleted_one_shot(kind: st
 
     def receive(event: TimedJobExecutionEvent) -> None:
         """
-        为下游 ASGI 应用提供待接收的测试消息。
+        记录调度器提交和完成任务的通知。
 
         :param event: 包含任务快照、真实起止时刻和耗时的执行事件
         """
@@ -151,9 +153,9 @@ async def test_thread_queue_wait_does_not_become_execution_start() -> None:
     submitted = asyncio.Event()
     scheduler = AsyncIOScheduler(executors={'default': TimedAsyncIOExecutor()})
 
-    def receive(event: object) -> None:
+    def receive(event: SchedulerEvent) -> None:
         """
-        为下游 ASGI 应用提供待接收的测试消息。
+        记录调度器提交和完成任务的通知。
 
         :param event: 待处理的事件
         """
@@ -167,7 +169,7 @@ async def test_thread_queue_wait_does_not_become_execution_start() -> None:
     scheduler.add_job(pow, args=[2, 3])
     original_run_in_executor = loop.run_in_executor
 
-    def use_single_worker(executor: object, function: object, *args) -> asyncio.Future:
+    def use_single_worker(executor: object, function: Callable, *args) -> asyncio.Future:
         """
         将执行任务提交给指定的工作线程池。
 
@@ -213,7 +215,7 @@ async def test_scheduler_emits_one_standard_max_instances_event_and_preserves_re
 
     def receive(event: JobSubmissionEvent) -> None:
         """
-        为下游 ASGI 应用提供待接收的测试消息。
+        记录调度器提交和完成任务的通知。
 
         :param event: 待处理的事件
         """

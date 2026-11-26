@@ -6,7 +6,7 @@ from typing import Literal
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import MetaData, create_engine, text
+from sqlalchemy import Engine, MetaData, create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session
 
@@ -47,8 +47,8 @@ async def sql_engine(
     runtime.available = True
     monkeypatch.setattr('config.scheduler.resources.DataSourceRegistry', registry)
     metadata = MetaData()
-    SysJobExecution.__table__.to_metadata(metadata)
-    SysJobSync.__table__.to_metadata(metadata)
+    SysJobExecution.get_table().to_metadata(metadata)
+    SysJobSync.get_table().to_metadata(metadata)
     async with engine.begin() as connection:
         await connection.run_sync(metadata.create_all)
     try:
@@ -98,6 +98,7 @@ async def test_business_task_spawned_during_internal_session_keeps_sql_logging(
     caplog.clear()
     capsys.readouterr()
     async with SchedulerManager._resources.session() as db:
+        assert isinstance(db.bind, AsyncEngine)
         assert db.bind.pool is sql_engine.pool
         assert await db.scalar(text("SELECT 'internal_sql_hidden'")) == 'internal_sql_hidden'
         await asyncio.create_task(business_query())
@@ -127,6 +128,7 @@ async def test_failed_or_cancelled_internal_session_keeps_errors_and_subsequent_
     with pytest.raises(exception_type):
         async with SchedulerManager._resources.session() as db:
             await db.execute(text("SELECT 'failed_internal_sql_hidden'"))
+            assert isinstance(db.bind, AsyncEngine)
             token = db.bind.get_execution_options()['logging_token']
             engine_logger = logging.getLogger(f'sqlalchemy.engine.Engine.{sql_engine.sync_engine.logging_name}')
             engine_logger.warning('[%s] internal_warning_visible', token)
@@ -158,7 +160,7 @@ def test_execution_lease_sql_is_quiet_without_muting_shared_engine(
     engine_logger = logging.getLogger(logger_name)
     original_handlers = engine_logger.handlers[:]
     engine = create_engine(f'sqlite:///{tmp_path / "lease.sqlite"}', logging_name=logging_name)
-    SysJobExecution.__table__.create(engine)
+    SysJobExecution.get_table().create(engine)
     engine.echo = echo
     monkeypatch.setattr(DataSourceRegistry, 'get_sync_engine', lambda _name: engine)
     caplog.clear()
@@ -169,6 +171,7 @@ def test_execution_lease_sql_is_quiet_without_muting_shared_engine(
         assert caplog.records == []
         assert capsys.readouterr().out == ''
         with JobExecutionStore.session() as db:
+            assert isinstance(db.bind, Engine)
             assert db.bind.pool is engine.pool
         with Session(engine) as db:
             db.execute(text("SELECT 'sync_business_sql_visible'"))

@@ -29,12 +29,9 @@
 from typing import ClassVar
 {% endif %}
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 {% if vo_field_required.has_required or sub_vo_field_required.has_required %}
 from pydantic_validation_decorator import NotBlank
-
-from i18n.message import I18nMessage
 {% endif %}
 
 {% if vo_field_daterange.has_daterange %}
@@ -45,13 +42,17 @@ from common.mixin import GeneratedTimeRangeQueryMixin
 {{ vo_import }}
 {% endif %}
 {% endfor %}
+from common.vo import CamelModel
+{% if vo_field_required.has_required or sub_vo_field_required.has_required %}
+from i18n.message import I18nMessage
+{% endif %}
 
 
 {% if table.sub %}
-class {{ BusinessName }}BaseModel(BaseModel):
+class {{ BusinessName }}BaseModel(CamelModel):
     """{{ functionName }}表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     {% for column in columns %}
     {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description={{ column.column_comment | model_field_label | tojson }})
@@ -91,10 +92,10 @@ class {{ BusinessName }}BaseModel(BaseModel):
 
 
 {% endif %}
-class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% else %}BaseModel{% endif %}):
+class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% else %}CamelModel{% endif %}):
     """{{ functionName }}表对应pydantic模型。"""
     {% if not table.sub %}
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     {% for column in columns %}
     {{ column.column_name }}: {{ column.vo_type }} | None = Field(default=None, description={{ column.column_comment | model_field_label | tojson }})
@@ -140,10 +141,10 @@ class {{ BusinessName }}Model({% if table.sub %}{{ BusinessName }}BaseModel{% el
 
 
 {% if table.sub %}
-class {{ subTable.business_name | capitalize }}Model(BaseModel):
+class {{ subTable.business_name | capitalize }}Model(CamelModel):
     """{{ subTable.function_name }}表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     {% for sub_column in subTable.columns %}
     {{ sub_column.column_name }}: {{ sub_column.vo_type }} | None = Field(default=None, description={{ sub_column.column_comment | model_field_label | tojson }})
@@ -212,9 +213,7 @@ class {{ BusinessName }}PageQueryModel({{ BusinessName }}QueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class Delete{{ BusinessName }}Model(BaseModel):
+class Delete{{ BusinessName }}Model(CamelModel):
     """删除{{ functionName }}模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     {{ pk_field }}s: str = Field(description={{ ('需要删除的' ~ pk_field_comment) | tojson }})

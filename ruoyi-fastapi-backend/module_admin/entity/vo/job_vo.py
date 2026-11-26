@@ -1,23 +1,26 @@
-from typing import Any, Literal
+from typing import Any, Generic, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, JsonValue, field_validator, model_validator
 from pydantic_validation_decorator import NotBlank, Size
+from typing_extensions import TypeVar
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from config.env import AppConfig
 from i18n.message import I18nMessage
 from utils.cron_util import MyCronTrigger
 from utils.time_util import TimezoneUtil
 
+_JobId = TypeVar('_JobId', bound=int | None, default=int | None)
 
-class JobModel(BaseModel):
+
+class JobModel(CamelModel, Generic[_JobId]):
     """定时任务调度表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
-    job_id: int | None = Field(default=None, gt=0, description='任务ID')
+    job_id: _JobId = Field(default=None, validate_default=True, gt=0, description='任务ID')
     job_name: str | None = Field(default=None, max_length=64, description='任务名称（同一业务分组内唯一）')
     job_group: str = Field(default='default', min_length=1, max_length=64, description='业务分组')
     job_store: Literal['default', 'sqlalchemy', 'redis'] = Field(default='default', description='调度存储')
@@ -143,10 +146,8 @@ class JobModel(BaseModel):
         self.get_cron_expression()
 
 
-class JobPreviewRequest(BaseModel):
+class JobPreviewRequest(CamelModel):
     """Cron执行时刻预览请求模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     cron_expression: str = Field(min_length=1, max_length=255, description='Cron 表达式')
     time_zone: str = Field(default_factory=lambda: AppConfig.app_timezone, description='任务 IANA 时区')
@@ -177,20 +178,18 @@ class JobPreviewRequest(BaseModel):
         return value.strip()
 
 
-class JobPreviewResult(BaseModel):
+class JobPreviewResult(CamelModel):
     """Cron执行时刻预览结果模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     time_zone: str = Field(description='任务IANA时区名称')
     start_time: ApiUtcDateTime = Field(description='本次预览的UTC起算时刻')
     next_run_times: list[ApiUtcDateTime] = Field(description='未来UTC执行时刻列表')
 
 
-class JobLogModel(BaseModel):
+class JobLogModel(CamelModel):
     """定时任务调度日志表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     job_log_id: int | None = Field(default=None, description='任务日志ID')
     job_id: int | None = Field(default=None, description='逻辑任务ID')
@@ -214,10 +213,8 @@ class JobLogModel(BaseModel):
     create_time: ApiUtcDateTime | None = Field(default=None, description='创建时间')
 
 
-class JobQueryModel(DateRangeQueryMixin, BaseModel):
+class JobQueryModel(DateRangeQueryMixin, CamelModel):
     """定时任务管理不分页查询模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     job_name: str | None = Field(default=None, description='任务名称')
     job_group: str | None = Field(default=None, description='业务分组')
@@ -233,17 +230,15 @@ class JobPageQueryModel(JobQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class EditJobModel(JobModel):
+class EditJobModel(JobModel[int]):
     """编辑定时任务模型。"""
 
     job_id: int = Field(gt=0, description='任务ID')
     type: str | None = Field(default=None, description='操作类型')
 
 
-class JobRunModel(BaseModel):
+class JobRunModel(CamelModel):
     """手动执行请求，仅按稳定任务ID读取已保存配置。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     job_id: int = Field(gt=0, description='任务ID')
 
@@ -254,18 +249,14 @@ class ChangeJobStatusModel(JobRunModel):
     status: Literal['0', '1'] = Field(description='状态（0正常 1暂停）')
 
 
-class DeleteJobModel(BaseModel):
+class DeleteJobModel(CamelModel):
     """删除定时任务模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     job_ids: str = Field(description='需要删除的定时任务ID')
 
 
-class JobLogQueryModel(DateRangeQueryMixin, BaseModel):
+class JobLogQueryModel(DateRangeQueryMixin, CamelModel):
     """定时任务日志不分页查询模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     job_id: int | None = Field(default=None, gt=0, description='逻辑任务ID')
     execution_id: str | None = Field(default=None, pattern='^[0-9a-f]{32}$', description='执行ID')
@@ -283,9 +274,7 @@ class JobLogPageQueryModel(JobLogQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteJobLogModel(BaseModel):
+class DeleteJobLogModel(CamelModel):
     """删除定时任务日志模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     job_log_ids: str = Field(description='需要删除的定时任务日志ID')

@@ -143,16 +143,16 @@ def _rate_limit_error(error: RateLimitExceeded | RateLimitUnavailable) -> JSONRe
     return JSONResponse(content={'error': 'temporarily_unavailable'}, status_code=503, headers=_NO_STORE)
 
 
-async def _record_independent_audit(db: AsyncSession, event_type: str, **fields: object) -> None:
+async def _record_independent_audit(db: AsyncSession, event_type: str, *, failure_code: str) -> None:
     """
     尝试记录协议失败审计，审计异常不改变标准错误响应。
 
     :param db: 异步数据库会话
     :param event_type: 审计事件类型
-    :param fields: 审计字段
+    :param failure_code: 写入审计日志的协议错误码
     """
     try:
-        await AuditService.record_independent(db, event_type, 'failure', **fields)
+        await AuditService.record_independent(db, event_type, 'failure', failure_code=failure_code)
     except Exception:
         return
 

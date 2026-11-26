@@ -8,7 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from cli.context import CliContext
+from cli.context import CliContext, OutputOption
 from cli.core import DEFAULT_CORE_SERVICES, CliContextFactory, CliExecutionService
 from cli.exit_codes import ARGUMENT_ERROR
 from cli.runtime.base import RUNTIME_OPERATOR
@@ -75,7 +75,7 @@ class PluginArtifactCommandController:
         self,
         operation: str,
         env: str,
-        output: str,
+        output: OutputOption,
         *,
         options: dict[str, Any],
         allow_prod: bool = False,
@@ -165,7 +165,7 @@ class PluginArtifactCommandController:
     def _context(
         self,
         env: str,
-        output: str,
+        output: OutputOption,
         *,
         command_name: str | None = None,
         allow_prod: bool = False,
@@ -258,7 +258,7 @@ class PluginArtifactCommandController:
         source: Path,
         destination: Path,
         env: str,
-        output: str,
+        output: OutputOption,
         *,
         key_file: Path,
         key_id: str,
@@ -291,7 +291,7 @@ class PluginArtifactCommandController:
 
         self._execute(ctx, build)
 
-    def verify_artifact(self, path: Path, env: str, output: str) -> None:
+    def verify_artifact(self, path: Path, env: str, output: OutputOption) -> None:
         """
         校验制品签名、完整摘要与发布者授权范围。
 
@@ -314,7 +314,9 @@ class PluginArtifactCommandController:
 
         self._execute(ctx, verify)
 
-    def import_artifact(self, path: Path, env: str, output: str, *, allow_prod: bool, yes: bool, dry_run: bool) -> None:
+    def import_artifact(
+        self, path: Path, env: str, output: OutputOption, *, allow_prod: bool, yes: bool, dry_run: bool
+    ) -> None:
         """
         导入已验证制品及其索引，预演时只执行检查。
 
@@ -335,7 +337,7 @@ class PluginArtifactCommandController:
             ),
         )
 
-    def list_artifacts(self, env: str, output: str, *, plugin_id: str | None = None) -> None:
+    def list_artifacts(self, env: str, output: OutputOption, *, plugin_id: str | None = None) -> None:
         """
         查询已导入制品，可按插件 ID 筛选。
 
@@ -351,7 +353,7 @@ class PluginArtifactCommandController:
             ),
         )
 
-    def plan_release(self, plugin_id: str, digest: str, env: str, output: str) -> None:
+    def plan_release(self, plugin_id: str, digest: str, env: str, output: OutputOption) -> None:
         """
         静态检查目标制品并输出维护计划。
 
@@ -373,7 +375,7 @@ class PluginArtifactCommandController:
         plugin_id: str,
         digest: str,
         env: str,
-        output: str,
+        output: OutputOption,
         *,
         maintenance: bool,
         allow_prod: bool,
@@ -409,7 +411,7 @@ class PluginArtifactCommandController:
         plugin_id: str,
         digest: str,
         env: str,
-        output: str,
+        output: OutputOption,
         *,
         expected_generation: str,
         expected_workers: int,
@@ -445,7 +447,7 @@ class PluginArtifactCommandController:
             ),
         )
 
-    def release_status(self, env: str, output: str, *, plugin_id: str | None = None) -> None:
+    def release_status(self, env: str, output: OutputOption, *, plugin_id: str | None = None) -> None:
         """
         查询目标制品、数据准备状态和 worker 加载结果。
 
@@ -505,7 +507,7 @@ class PluginArtifactCommandController:
         plugin_id: str,
         digest: str,
         env: str,
-        output: str,
+        output: OutputOption,
         *,
         expected_generation: str,
         expected_workers: int,
@@ -575,7 +577,7 @@ class PluginArtifactCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputOption,
         *,
         expected_generation: str,
         schema_compatible: bool,
@@ -613,7 +615,7 @@ class PluginArtifactCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputOption,
         *,
         enabled: bool,
         expected_generation: str,

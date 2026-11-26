@@ -8,9 +8,12 @@ import pytest
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.routing import APIRoute
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from common.annotation.log_annotation import Log
 from common.annotation.rate_limit_annotation import ApiRateLimit
 from common.context import RequestContext
+from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
 from module_admin.service.log_service import LogQueueService
 from module_identity.controller.oauth_session_controller import (
     get_oauth_grant,
@@ -22,40 +25,20 @@ from module_identity.controller.oauth_session_controller import (
 from module_identity.dao.oauth_access_policy_dao import OAuthAccessPolicyDao
 from module_identity.dao.oauth_client_dao import OAuthClientDao
 from module_identity.dao.oauth_grant_dao import OAuthGrantDao
+from module_identity.entity.vo.oauth_session_vo import SessionRevokeModel
 from module_identity.service.audit_service import AuditService
 from module_identity.service.oauth_session_management_service import OAuthSessionManagementService
 from module_identity.service.session_service import SsoSessionService
+from tests.module_identity.support.sessions import RecordingSession
 
 
-class _Session:
-    """
-    记录 Controller 事务边界。
-
-    :ivar commits: 测试中记录的提交次数
-    :ivar rollbacks: 测试中记录的回滚次数
-    """
-
-    def __init__(self) -> None:
-        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
-        self.commits = 0
-        self.rollbacks = 0
-
-    async def commit(self) -> None:
-        """累加 ``commits`` 供后续断言检查。"""
-        self.commits += 1
-
-    async def rollback(self) -> None:
-        """累加 ``rollbacks`` 供后续断言检查。"""
-        self.rollbacks += 1
-
-
-def _user() -> SimpleNamespace:
+def _user() -> CurrentUserModel:
     """
     构造最小管理用户。
 
     :return: 最小管理用户
     """
-    return SimpleNamespace(user=SimpleNamespace(user_name='admin', user_id=1, dept=None))
+    return CurrentUserModel(permissions=[], roles=[], user=UserInfoModel(user_id=1, user_name='admin'))
 
 
 def _request() -> Request:
@@ -79,7 +62,7 @@ def _request() -> Request:
     )
 
 
-def _route_map(router: object) -> dict[tuple[str, str], APIRoute]:
+def _route_map(router: APIRouter) -> dict[tuple[str, str], APIRoute]:
     """
     索引路由路径、方法。
 
@@ -90,7 +73,7 @@ def _route_map(router: object) -> dict[tuple[str, str], APIRoute]:
         (route.path, method): route
         for route in router.routes
         if isinstance(route, APIRoute)
-        for method in route.methods
+        for method in route.methods or ()
     }
 
 
@@ -124,7 +107,7 @@ async def test_batch_revoke_is_atomic_and_reason_does_not_leak(
     oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
 ) -> None:
     """批量撤销失败时回滚且不回显内部敏感字段。"""
-    db = _Session()
+    db = RecordingSession()
 
     async def audit(*args: object, **kwargs: object) -> None:
         """
@@ -190,9 +173,7 @@ async def test_batch_revoke_is_atomic_and_reason_does_not_leak(
     monkeypatch.setattr(OAuthGrantDao, 'revoke_for_user_client', AsyncMock(return_value=['grant-1']))
     token = RequestContext.set_current_user(_user())
     try:
-        response = await revoke_oauth_grants.__wrapped__(
-            _request(), 'grant-1', SimpleNamespace(reason='撤销'), db, _user()
-        )
+        response = await revoke_oauth_grants(_request(), 'grant-1', SessionRevokeModel(reason='撤销'), db, _user())
     finally:
         RequestContext.reset_current_user(token)
     assert b'true' in response.body
@@ -204,7 +185,11 @@ async def test_session_controller_injects_redis_without_passing_request_to_servi
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Session 管理 Controller 向 Service 传入精确 Redis 依赖，而非 FastAPI Request。"""
-    db = _Session()
+    monkeypatch.setattr(
+        ApiRateLimit, '_acquire_rate_limit', AsyncMock(return_value={'allowed': True, 'remaining': 1, 'reset_at': 0})
+    )
+    monkeypatch.setattr(Log, '_get_oper_location', AsyncMock(return_value='测试'))
+    db = RecordingSession()
     request = _request()
     captured: dict[str, object] = {}
 
@@ -234,12 +219,11 @@ async def test_session_controller_injects_redis_without_passing_request_to_servi
     monkeypatch.setattr(LogQueueService, 'enqueue_operation_log', enqueue_operation_log)
     token = RequestContext.set_current_user(_user())
     try:
-        response = await revoke_oauth_sessions.__wrapped__(
-            request, 'sid-1', SimpleNamespace(reason='管理员操作'), db, _user()
-        )
+        response = await revoke_oauth_sessions(request, 'sid-1', SessionRevokeModel(reason='管理员操作'), db, _user())
     finally:
         RequestContext.reset_current_user(token)
     assert b'true' in response.body
+    assert isinstance(captured['args'], tuple)
     assert captured['args'][1] is request.app.state.redis
     assert not isinstance(captured['args'][1], Request)
 
@@ -293,8 +277,8 @@ async def test_grant_detail_never_returns_refresh_hash(monkeypatch: pytest.Monke
         return 'client-2'
 
     monkeypatch.setattr(OAuthClientDao, 'id_for_pk', client_id)
-    db = _Session()
-    db.execute = execute
+    db = AsyncMock(spec=AsyncSession)
+    db.execute.side_effect = execute
     response = await get_oauth_grant('g1', db)
     assert b'refresh_token_hash' not in response.body
 
@@ -303,7 +287,7 @@ async def test_grant_detail_never_returns_refresh_hash(monkeypatch: pytest.Monke
 @pytest.mark.parametrize('grant_ids', ['grant-1', 'grant-1,grant-2'])
 async def test_grant_revoke_runs_rate_limit_and_operation_log(monkeypatch: pytest.MonkeyPatch, grant_ids: str) -> None:
     """HTTP 撤销请求经过完整装饰器链并记录实际请求和撤销结果。"""
-    db = _Session()
+    db = RecordingSession()
     user = _user()
     path = f'/system/oauth/grant/{grant_ids}'
     route = _route_map(oauth_grant_controller)[('/system/oauth/grant/{grant_ids}', 'DELETE')]
@@ -311,6 +295,8 @@ async def test_grant_revoke_runs_rate_limit_and_operation_log(monkeypatch: pytes
     app.state.redis = SimpleNamespace()
     app.include_router(oauth_grant_controller)
     for dependency in route.dependant.dependencies:
+        if dependency.call is None:
+            continue
         if dependency.name == 'query_db':
             app.dependency_overrides[dependency.call] = lambda: db
         elif dependency.name == 'current_user':
@@ -356,13 +342,15 @@ async def test_grant_revoke_runs_rate_limit_and_operation_log(monkeypatch: pytes
 @pytest.mark.parametrize('blocked', [True, False])
 async def test_access_policy_runs_rate_limit_and_operation_log(monkeypatch: pytest.MonkeyPatch, blocked: bool) -> None:
     """禁止及解除访问通过真实 HTTP 装饰器链，准确传递用户、应用和原因。"""
-    db, user = _Session(), _user()
+    db, user = RecordingSession(), _user()
     path = '/system/oauth/grant/user/7/client/business-app/access'
     route = _route_map(oauth_grant_controller)[('/system/oauth/grant/user/{user_id}/client/{client_id}/access', 'PUT')]
     app = FastAPI()
     app.state.redis = SimpleNamespace()
     app.include_router(oauth_grant_controller)
     for dependency in route.dependant.dependencies:
+        if dependency.call is None:
+            continue
         if dependency.name == 'query_db':
             app.dependency_overrides[dependency.call] = lambda: db
         elif dependency.name == 'current_user':

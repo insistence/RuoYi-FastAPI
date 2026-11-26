@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
-from cli.tui.adapters.base import BaseDetailAdapter
+from cli.tui.adapters.base import BaseDetailAdapter, get_dict_field, get_list_field
 from cli.tui.adapters.models import (
     TUI_ADAPTER_MODEL_RENDERER,
     DetailPageSnapshot,
@@ -110,7 +110,7 @@ class AppSectionBuilder:
         if not isinstance(payload, dict):
             return 'bash'
         active_shell = str(payload.get('activeShell') or '').strip().lower()
-        shells = payload.get('shells') if isinstance(payload.get('shells'), dict) else {}
+        shells = get_dict_field(payload, 'shells')
         if active_shell and isinstance(shells.get(active_shell), dict) and shells[active_shell].get('supported', False):
             return active_shell
         for shell_name in ('bash', 'zsh', 'fish', 'powershell'):
@@ -127,8 +127,7 @@ class AppSectionBuilder:
         :param payload: ``app env`` JSON 负载
         :return: 分区快照
         """
-        runtime = payload.get('runtime') if isinstance(payload, dict) else None
-        if not isinstance(runtime, dict):
+        if not isinstance(payload, dict) or not isinstance(runtime := payload.get('runtime'), dict):
             return DetailSectionSnapshot(
                 title='环境解析',
                 status='fail',
@@ -161,8 +160,7 @@ class AppSectionBuilder:
         :param payload: ``app config`` JSON 负载
         :return: 分区快照
         """
-        config = payload.get('config') if isinstance(payload, dict) else None
-        if not isinstance(config, dict):
+        if not isinstance(payload, dict) or not isinstance(config := payload.get('config'), dict):
             return DetailSectionSnapshot(
                 title='应用配置',
                 status='fail',
@@ -196,8 +194,7 @@ class AppSectionBuilder:
         :param payload: ``app config`` JSON 负载
         :return: 分区快照
         """
-        config = payload.get('config') if isinstance(payload, dict) else None
-        if not isinstance(config, dict):
+        if not isinstance(payload, dict) or not isinstance(config := payload.get('config'), dict):
             return DetailSectionSnapshot(
                 title='依赖配置',
                 status='fail',
@@ -236,8 +233,8 @@ class AppSectionBuilder:
             )
 
         count = payload.get('count', 0)
-        routes = payload.get('routes') if isinstance(payload.get('routes'), list) else []
-        grouped_routes = payload.get('groupedRoutes') if isinstance(payload.get('groupedRoutes'), dict) else {}
+        routes = get_list_field(payload, 'routes')
+        grouped_routes = get_dict_field(payload, 'groupedRoutes')
         group_items = sorted(
             ((str(tag), len(items) if isinstance(items, list) else 0) for tag, items in grouped_routes.items()),
             key=lambda item: (-item[1], item[0]),
@@ -303,10 +300,10 @@ class AppSectionBuilder:
                 ),
             )
 
-        shells = payload.get('shells') if isinstance(payload.get('shells'), dict) else {}
+        shells = get_dict_field(payload, 'shells')
         active_shell = str(payload.get('activeShell') or '-')
-        env_choices = payload.get('envChoices') if isinstance(payload.get('envChoices'), list) else []
-        active_shell_payload = shells.get(active_shell) if isinstance(shells.get(active_shell), dict) else None
+        env_choices = get_list_field(payload, 'envChoices')
+        active_shell_payload = shells.get(active_shell)
         target_file = active_shell_payload.get('targetFile', '-') if isinstance(active_shell_payload, dict) else '-'
         source_command = (
             active_shell_payload.get('sourceCommand', '-') if isinstance(active_shell_payload, dict) else '-'
@@ -417,9 +414,9 @@ class AppSectionBuilder:
                 ),
             )
 
-        database = payload.get('database') if isinstance(payload.get('database'), dict) else {}
-        redis = payload.get('redis') if isinstance(payload.get('redis'), dict) else {}
-        crypto = payload.get('crypto') if isinstance(payload.get('crypto'), dict) else {}
+        database = get_dict_field(payload, 'database')
+        redis = get_dict_field(payload, 'redis')
+        crypto = get_dict_field(payload, 'crypto')
         return DetailSectionSnapshot(
             title='启动前检查',
             status='ok' if payload.get('ok', False) else 'fail',
@@ -493,16 +490,8 @@ class AppSectionBuilder:
         routes_ok = bool(isinstance(routes_payload, dict) and routes_payload.get('ok', False))
         completion_ok = bool(isinstance(completion_payload, dict) and completion_payload.get('ok', False))
         route_count = routes_payload.get('count', 0) if isinstance(routes_payload, dict) else 0
-        runtime = (
-            env_payload.get('runtime')
-            if isinstance(env_payload, dict) and isinstance(env_payload.get('runtime'), dict)
-            else {}
-        )
-        config = (
-            config_payload.get('config')
-            if isinstance(config_payload, dict) and isinstance(config_payload.get('config'), dict)
-            else {}
-        )
+        runtime = get_dict_field(env_payload, 'runtime')
+        config = get_dict_field(config_payload, 'config')
 
         status = 'ok'
         conclusion = '应用基线正常，可继续查看环境映射、配置摘要与路由状态'

@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import ColumnElement, bindparam, func, select, update
+from sqlalchemy import ColumnElement, bindparam, func, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.util import immutabledict
 
@@ -26,7 +26,7 @@ class DeptDao:
         return dept_info
 
     @classmethod
-    async def get_dept_detail_by_id(cls, db: AsyncSession, dept_id: int) -> SysDept | None:
+    async def get_dept_detail_by_id(cls, db: AsyncSession, dept_id: int | None) -> SysDept | None:
         """
         根据部门id获取部门详细信息。
 
@@ -34,6 +34,8 @@ class DeptDao:
         :param dept_id: 部门id
         :return: 部门信息对象
         """
+        if dept_id is None:
+            return None
         dept_info = (
             (await db.execute(select(SysDept).where(SysDept.dept_id == dept_id, SysDept.del_flag == '0')))
             .scalars()
@@ -55,8 +57,8 @@ class DeptDao:
             (
                 await db.execute(
                     select(SysDept).where(
-                        SysDept.parent_id == dept.parent_id if dept.parent_id else True,
-                        SysDept.dept_name == dept.dept_name if dept.dept_name else True,
+                        SysDept.parent_id == dept.parent_id if dept.parent_id else true(),
+                        SysDept.dept_name == dept.dept_name if dept.dept_name else true(),
                         SysDept.del_flag == '0',
                     )
                 )
@@ -136,7 +138,7 @@ class DeptDao:
                     .where(
                         SysDept.status == '0',
                         SysDept.del_flag == '0',
-                        SysDept.dept_name.like(f'%{dept_info.dept_name}%') if dept_info.dept_name else True,
+                        SysDept.dept_name.like(f'%{dept_info.dept_name}%') if dept_info.dept_name else true(),
                         data_scope_sql,
                     )
                     .order_by(SysDept.order_num)
@@ -167,9 +169,9 @@ class DeptDao:
                     select(SysDept)
                     .where(
                         SysDept.del_flag == '0',
-                        SysDept.dept_id == page_object.dept_id if page_object.dept_id is not None else True,
-                        SysDept.status == page_object.status if page_object.status else True,
-                        SysDept.dept_name.like(f'%{page_object.dept_name}%') if page_object.dept_name else True,
+                        SysDept.dept_id == page_object.dept_id if page_object.dept_id is not None else true(),
+                        SysDept.status == page_object.status if page_object.status else true(),
+                        SysDept.dept_name.like(f'%{page_object.dept_name}%') if page_object.dept_name else true(),
                         data_scope_sql,
                     )
                     .order_by(SysDept.order_num)
@@ -240,7 +242,8 @@ class DeptDao:
         :param dept_sort_list: 部门id与显示顺序列表
         """
         await db.execute(
-            update(SysDept.__table__)
+            SysDept.get_table()
+            .update()
             .where(SysDept.dept_id == bindparam('_dept_id'))
             .values(order_num=bindparam('_order_num')),
             [{'_dept_id': item['dept_id'], '_order_num': item['order_num']} for item in dept_sort_list],
@@ -269,7 +272,7 @@ class DeptDao:
         )
 
     @classmethod
-    async def count_normal_children_dept_dao(cls, db: AsyncSession, dept_id: int) -> int | None:
+    async def count_normal_children_dept_dao(cls, db: AsyncSession, dept_id: int) -> int:
         """
         根据部门id查询查询所有子部门（正常状态）的数量。
 
@@ -283,12 +286,12 @@ class DeptDao:
                 .select_from(SysDept)
                 .where(SysDept.status == '0', SysDept.del_flag == '0', func.find_in_set(dept_id, SysDept.ancestors))
             )
-        ).scalar()
+        ).scalar_one()
 
         return normal_children_dept_count
 
     @classmethod
-    async def count_children_dept_dao(cls, db: AsyncSession, dept_id: int) -> int | None:
+    async def count_children_dept_dao(cls, db: AsyncSession, dept_id: int) -> int:
         """
         根据部门id查询查询所有子部门（所有状态）的数量。
 
@@ -303,12 +306,12 @@ class DeptDao:
                 .where(SysDept.del_flag == '0', SysDept.parent_id == dept_id)
                 .limit(1)
             )
-        ).scalar()
+        ).scalar_one()
 
         return children_dept_count
 
     @classmethod
-    async def count_dept_user_dao(cls, db: AsyncSession, dept_id: int) -> int | None:
+    async def count_dept_user_dao(cls, db: AsyncSession, dept_id: int) -> int:
         """
         根据部门id查询查询部门下的用户数量。
 
@@ -320,6 +323,6 @@ class DeptDao:
             await db.execute(
                 select(func.count('*')).select_from(SysUser).where(SysUser.dept_id == dept_id, SysUser.del_flag == '0')
             )
-        ).scalar()
+        ).scalar_one()
 
         return dept_user_count

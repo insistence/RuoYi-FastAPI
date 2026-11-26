@@ -1,8 +1,9 @@
+from datetime import datetime
+
 from sqlalchemy import (
     CHAR,
     JSON,
     BigInteger,
-    Column,
     ForeignKey,
     Index,
     Integer,
@@ -10,7 +11,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from common.types import DbUtcDateTime
 from config.database import Base
@@ -28,42 +29,56 @@ class SysOAuthClient(Base):
         {'comment': 'OAuth Client'},
     )
 
-    client_pk = Column(
+    client_pk: Mapped[int] = mapped_column(
         BigInteger().with_variant(Integer, 'sqlite'),
         primary_key=True,
         nullable=False,
         autoincrement=True,
         comment='内部主键',
     )
-    client_id = Column(String(64), nullable=False, comment='客户端标识')
-    client_name = Column(String(100), nullable=False, comment='客户端名称')
-    client_type = Column(String(20), nullable=False, comment='Client 类型')
-    token_endpoint_auth_method = Column(String(32), nullable=False, comment='Token 端点认证方式')
-    grant_types = Column(JSON, nullable=False, comment='Grant Type 列表')
-    response_types = Column(JSON, nullable=False, comment='Response Type 列表')
-    subject_type = Column(String(16), nullable=False, server_default='public', comment='Subject 类型')
-    require_pkce = Column(SmallInteger, nullable=False, server_default='1', comment='是否要求 PKCE')
-    require_consent = Column(SmallInteger, nullable=False, server_default='1', comment='是否要求同意')
-    trusted_client = Column(SmallInteger, nullable=False, server_default='0', comment='是否受信任 Client')
-    policy_version = Column(BigInteger, nullable=False, server_default='1', comment='安全策略版本')
-    id_token_signed_response_alg = Column(String(16), nullable=False, server_default='RS256', comment='ID Token 算法')
-    access_token_ttl_seconds = Column(Integer, nullable=True, comment='Access Token 有效期')
-    refresh_token_idle_seconds = Column(Integer, nullable=True, comment='Refresh Token 闲置有效期')
-    refresh_token_absolute_seconds = Column(Integer, nullable=True, comment='Refresh Token 绝对有效期')
-    logo_uri = Column(String(500), nullable=True, comment='标志图片地址')
-    policy_uri = Column(String(500), nullable=True, comment='隐私政策 URI')
-    tos_uri = Column(String(500), nullable=True, comment='服务条款 URI')
-    backchannel_logout_session_required = Column(
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False, comment='客户端标识')
+    client_name: Mapped[str] = mapped_column(String(100), nullable=False, comment='客户端名称')
+    client_type: Mapped[str] = mapped_column(String(20), nullable=False, comment='Client 类型')
+    token_endpoint_auth_method: Mapped[str] = mapped_column(String(32), nullable=False, comment='Token 端点认证方式')
+    grant_types: Mapped[list[str]] = mapped_column(JSON, nullable=False, comment='Grant Type 列表')
+    response_types: Mapped[list[str]] = mapped_column(JSON, nullable=False, comment='Response Type 列表')
+    subject_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default='public', comment='Subject 类型'
+    )
+    require_pkce: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default='1', comment='是否要求 PKCE')
+    require_consent: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, server_default='1', comment='是否要求同意'
+    )
+    trusted_client: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, server_default='0', comment='是否受信任 Client'
+    )
+    policy_version: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default='1', comment='安全策略版本')
+    id_token_signed_response_alg: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default='RS256', comment='ID Token 算法'
+    )
+    access_token_ttl_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True, comment='Access Token 有效期')
+    refresh_token_idle_seconds: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment='Refresh Token 闲置有效期'
+    )
+    refresh_token_absolute_seconds: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment='Refresh Token 绝对有效期'
+    )
+    logo_uri: Mapped[str | None] = mapped_column(String(500), nullable=True, comment='标志图片地址')
+    policy_uri: Mapped[str | None] = mapped_column(String(500), nullable=True, comment='隐私政策 URI')
+    tos_uri: Mapped[str | None] = mapped_column(String(500), nullable=True, comment='服务条款 URI')
+    backchannel_logout_session_required: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, server_default='1', comment='是否要求 Back-Channel Session'
     )
-    status = Column(CHAR(1), nullable=False, server_default='0', comment='状态（0正常 1停用）')
-    create_by = Column(String(64), nullable=False, server_default='', comment='创建者')
-    create_time = Column(DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='创建时间')
-    update_by = Column(String(64), nullable=False, server_default='', default='', comment='更新者')
-    update_time = Column(
+    status: Mapped[str] = mapped_column(CHAR(1), nullable=False, server_default='0', comment='状态（0正常 1停用）')
+    create_by: Mapped[str] = mapped_column(String(64), nullable=False, server_default='', comment='创建者')
+    create_time: Mapped[datetime] = mapped_column(
+        DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='创建时间'
+    )
+    update_by: Mapped[str] = mapped_column(String(64), nullable=False, server_default='', default='', comment='更新者')
+    update_time: Mapped[datetime] = mapped_column(
         DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, onupdate=TimezoneUtil.utc_now, comment='更新时间'
     )
-    remark = Column(String(500), nullable=True, comment='备注')
+    remark: Mapped[str | None] = mapped_column(String(500), nullable=True, comment='备注')
 
 
 class SysOAuthClientSecret(Base):
@@ -75,23 +90,27 @@ class SysOAuthClientSecret(Base):
         {'comment': 'OAuth Client Secret'},
     )
 
-    secret_id = Column(String(36), primary_key=True, nullable=False, comment='密钥标识')
-    client_pk = Column(
+    secret_id: Mapped[str] = mapped_column(String(36), primary_key=True, nullable=False, comment='密钥标识')
+    client_pk: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey('sys_oauth_client.client_pk', name='fk_oauth_client_secret_client', ondelete='RESTRICT'),
         nullable=False,
         comment='Client 主键',
     )
-    secret_hash = Column(String(100), nullable=False, comment='Secret 强哈希')
-    secret_hint = Column(String(12), nullable=False, comment='Secret 提示')
-    status = Column(String(16), nullable=False, server_default='active', comment='Secret 状态')
-    not_before = Column(DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='生效时间')
-    expires_at = Column(DbUtcDateTime(), nullable=True, comment='过期时间')
-    last_used_at = Column(DbUtcDateTime(), nullable=True, comment='最近使用时间')
-    create_by = Column(String(64), nullable=False, comment='创建者')
-    create_time = Column(DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='创建时间')
-    revoked_by = Column(String(64), nullable=True, comment='撤销者')
-    revoked_at = Column(DbUtcDateTime(), nullable=True, comment='撤销时间')
+    secret_hash: Mapped[str] = mapped_column(String(100), nullable=False, comment='Secret 强哈希')
+    secret_hint: Mapped[str] = mapped_column(String(12), nullable=False, comment='Secret 提示')
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default='active', comment='Secret 状态')
+    not_before: Mapped[datetime] = mapped_column(
+        DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='生效时间'
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(DbUtcDateTime(), nullable=True, comment='过期时间')
+    last_used_at: Mapped[datetime | None] = mapped_column(DbUtcDateTime(), nullable=True, comment='最近使用时间')
+    create_by: Mapped[str] = mapped_column(String(64), nullable=False, comment='创建者')
+    create_time: Mapped[datetime] = mapped_column(
+        DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='创建时间'
+    )
+    revoked_by: Mapped[str | None] = mapped_column(String(64), nullable=True, comment='撤销者')
+    revoked_at: Mapped[datetime | None] = mapped_column(DbUtcDateTime(), nullable=True, comment='撤销时间')
 
 
 class SysOAuthClientUri(Base):
@@ -104,25 +123,27 @@ class SysOAuthClientUri(Base):
         {'comment': 'OAuth Client URI'},
     )
 
-    uri_id = Column(
+    uri_id: Mapped[int] = mapped_column(
         BigInteger().with_variant(Integer, 'sqlite'),
         primary_key=True,
         nullable=False,
         autoincrement=True,
         comment='URI 主键',
     )
-    client_pk = Column(
+    client_pk: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey('sys_oauth_client.client_pk', name='fk_oauth_client_uri_client', ondelete='RESTRICT'),
         nullable=False,
         comment='Client 主键',
     )
-    uri_type = Column(String(32), nullable=False, comment='URI 类型')
-    uri = Column(String(1000), nullable=False, comment='精确 URI')
-    uri_hash = Column(CHAR(64), nullable=False, comment='URI SHA-256 摘要')
-    is_default = Column(SmallInteger, nullable=False, server_default='0', comment='是否默认 URI')
-    status = Column(CHAR(1), nullable=False, server_default='0', comment='状态（0正常 1停用）')
-    create_time = Column(DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='创建时间')
+    uri_type: Mapped[str] = mapped_column(String(32), nullable=False, comment='URI 类型')
+    uri: Mapped[str] = mapped_column(String(1000), nullable=False, comment='精确 URI')
+    uri_hash: Mapped[str] = mapped_column(CHAR(64), nullable=False, comment='URI SHA-256 摘要')
+    is_default: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default='0', comment='是否默认 URI')
+    status: Mapped[str] = mapped_column(CHAR(1), nullable=False, server_default='0', comment='状态（0正常 1停用）')
+    create_time: Mapped[datetime] = mapped_column(
+        DbUtcDateTime(), nullable=False, default=TimezoneUtil.utc_now, comment='创建时间'
+    )
 
     @validates('uri')
     def derive_uri_hash(self, key: str, value: str) -> str:

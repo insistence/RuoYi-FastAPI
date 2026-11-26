@@ -5,7 +5,7 @@ import os
 import shutil
 import socket
 import subprocess
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -212,7 +212,7 @@ def prepare_network_host(fixture: SimpleNamespace) -> None:
 
 
 @asynccontextmanager
-async def network_servers(fixture: SimpleNamespace, directory: Path, output: Path) -> AsyncIterator[str]:
+async def network_servers(fixture: SimpleNamespace, directory: Path, output: Path) -> AsyncGenerator[str, None]:
     """
     启动真实 Uvicorn socket 与对应前端框架的 TLS 代理，并在失败时一并回收。
 

@@ -3,6 +3,7 @@ import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import ModuleType
 from typing import Annotated, Literal
 
 import typer
@@ -97,7 +98,7 @@ class CliExtensionRegistration:
     """
 
     module_path: str
-    attach: Callable[[typer.Typer, object], None]
+    attach: Callable[[typer.Typer, ModuleType], None]
 
 
 @dataclass(frozen=True)
@@ -148,7 +149,7 @@ class CliExtensionMountSupport:
     """
 
     @staticmethod
-    def attach_completion(cli: typer.Typer, module: object) -> None:
+    def attach_completion(cli: typer.Typer, module: ModuleType) -> None:
         """
         挂载 completion 扩展入口。
 
@@ -158,7 +159,7 @@ class CliExtensionMountSupport:
         cli.add_typer(module.COMPLETION_COMMAND_BUILDER.build(cli), name='completion')
 
     @staticmethod
-    def attach_wizard(cli: typer.Typer, module: object) -> None:
+    def attach_wizard(cli: typer.Typer, module: ModuleType) -> None:
         """
         挂载 wizard 扩展入口。
 
@@ -168,7 +169,7 @@ class CliExtensionMountSupport:
         cli.add_typer(module.WIZARD_COMMAND_BUILDER.build(), name='wizard')
 
     @staticmethod
-    def attach_tui(cli: typer.Typer, module: object) -> None:
+    def attach_tui(cli: typer.Typer, module: ModuleType) -> None:
         """
         挂载 TUI 扩展入口。
 
@@ -278,7 +279,7 @@ class CliModuleLoader:
     """
 
     @staticmethod
-    def load(module_path: str) -> object:
+    def load(module_path: str) -> ModuleType:
         """
         按模块路径加载模块对象。
 

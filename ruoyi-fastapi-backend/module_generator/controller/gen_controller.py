@@ -154,7 +154,7 @@ async def delete_gen_table(
     table_ids: Annotated[str, Path(description='需要删除的代码生成业务表ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_gen_table = DeleteGenTableModel(tableIds=table_ids)
+    delete_gen_table = DeleteGenTableModel(table_ids=table_ids)
     delete_gen_table_result = await GenTableService.delete_gen_table_services(query_db, delete_gen_table)
     logger.info(delete_gen_table_result.message)
 

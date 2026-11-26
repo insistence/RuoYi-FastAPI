@@ -1,28 +1,28 @@
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 from types import SimpleNamespace
-from typing import Self
+from typing import Literal, Self
 from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
 from sqlalchemy import URL
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from common.aspect.db_session import DBSessionDependency, get_db_session_provider
 from config import database
+from config.env import DataBaseSettings, DataSourceSettings
 from exceptions.exception import DataSourceInitializationException, DataSourceUnavailableException
 
 EXPECTED_CONNECT_TIMEOUT = 7
 
 
-def _source(*, required: bool = True) -> SimpleNamespace:
+def _source(*, required: bool = True) -> DataSourceSettings:
     """
-    创建测试使用的 ``SimpleNamespace`` 实例。
+    构造使用测试连接参数的数据源配置。
 
-    :param required: 是否必须提供该字段
-    :return: 测试使用的 ``SimpleNamespace`` 实例
+    :param required: 该数据源是否必须在启动时可用
+    :return: 注册表使用的数据源配置
     """
-    return SimpleNamespace(
+    return DataSourceSettings(
         db_type='mysql',
         db_host='db.example',
         db_port=3306,
@@ -39,6 +39,16 @@ def _source(*, required: bool = True) -> SimpleNamespace:
     )
 
 
+def _settings(**sources: DataSourceSettings) -> DataBaseSettings:
+    """
+    配置注册表测试使用的默认数据源和附加数据源。
+
+    :param sources: 按名称提供的各数据源配置
+    :return: 以 primary 为默认源的数据库配置
+    """
+    return DataBaseSettings(_env_file=None, db_default_source='primary', db_sources=sources)
+
+
 def test_database_urls_use_structured_url_and_hide_password() -> None:
     """以结构化 URL 表示数据库地址并隐藏密码。"""
     config = _source()
@@ -52,6 +62,13 @@ def test_database_urls_use_structured_url_and_hide_password() -> None:
     assert 'p@ss' not in repr(async_url)
 
 
+def test_error_details_without_driver_exception() -> None:
+    """驱动原始异常缺失时，错误摘要仍能报告异常类型。"""
+    error = OperationalError('SELECT 1', {}, OSError('connection lost'))
+    error.orig = None
+    assert database._error_details(error) == ('OperationalError', None)
+
+
 @pytest.mark.parametrize(
     ('db_type', 'db_port', 'async_timeout_key', 'sync_timeout_key'),
     [
@@ -61,7 +78,7 @@ def test_database_urls_use_structured_url_and_hide_password() -> None:
 )
 def test_engine_factories_use_driver_specific_connect_timeout(
     monkeypatch: pytest.MonkeyPatch,
-    db_type: str,
+    db_type: Literal['mysql', 'postgresql'],
     db_port: int,
     async_timeout_key: str,
     sync_timeout_key: str,
@@ -103,6 +120,8 @@ def test_engine_factories_use_driver_specific_connect_timeout(
     assert database.create_sync_db_engine(config=config) is sync_engine
     async_connect_args = captured_options['async']['connect_args']
     sync_connect_args = captured_options['sync']['connect_args']
+    assert isinstance(async_connect_args, dict)
+    assert isinstance(sync_connect_args, dict)
     assert async_connect_args[async_timeout_key] == EXPECTED_CONNECT_TIMEOUT
     assert sync_connect_args[sync_timeout_key] == EXPECTED_CONNECT_TIMEOUT
     if db_type == 'mysql':
@@ -202,9 +221,7 @@ async def test_health_check_rejects_non_utc_database_session(monkeypatch: pytest
     engine.should_fail = False
     engine.session_timezone = 'SYSTEM'
     monkeypatch.setattr(database, 'create_async_db_engine', lambda config: engine)
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(db_default_source='primary', db_sources={'primary': _source()})
-    )
+    registry = database._DataSourceRegistry(_settings(primary=_source()))
 
     with pytest.raises(DataSourceInitializationException) as exc_info:
         await registry.initialize(log_enabled=False)
@@ -224,12 +241,7 @@ async def test_initialize_can_suppress_worker_startup_logs(monkeypatch: pytest.M
         'create_async_db_engine',
         lambda config: primary_engine if config.db_required else optional_engine,
     )
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(
-            db_default_source='primary',
-            db_sources={'primary': _source(), 'reporting': _source(required=False)},
-        )
-    )
+    registry = database._DataSourceRegistry(_settings(primary=_source(), reporting=_source(required=False)))
     source_logger = MagicMock()
     monkeypatch.setattr(database, 'logger', source_logger)
 
@@ -253,9 +265,7 @@ async def test_initialize_logs_source_name(monkeypatch: pytest.MonkeyPatch) -> N
     engine = _Engine()
     engine.should_fail = False
     monkeypatch.setattr(database, 'create_async_db_engine', lambda config: engine)
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(db_default_source='primary', db_sources={'primary': _source()})
-    )
+    registry = database._DataSourceRegistry(_settings(primary=_source()))
     source_logger = MagicMock()
     monkeypatch.setattr(database, 'logger', source_logger)
 
@@ -279,10 +289,7 @@ async def test_optional_source_recovers_after_cooldown(monkeypatch: pytest.Monke
         'create_async_db_engine',
         lambda config: primary_engine if config.db_required else optional_engine,
     )
-    settings = SimpleNamespace(
-        db_default_source='primary',
-        db_sources={'primary': _source(), 'reporting': _source(required=False)},
-    )
+    settings = _settings(primary=_source(), reporting=_source(required=False))
     registry = database._DataSourceRegistry(settings)
 
     await registry.initialize()
@@ -307,7 +314,7 @@ async def test_optional_engine_creation_failure_degrades_and_recovers(monkeypatc
     optional_engine.should_fail = False
     optional_creation_fails = True
 
-    def create_engine(config: SimpleNamespace) -> _Engine:
+    def create_engine(config: DataSourceSettings) -> _Engine:
         """
         根据测试数据源配置创建引擎替身。
 
@@ -321,12 +328,7 @@ async def test_optional_engine_creation_failure_degrades_and_recovers(monkeypatc
         return optional_engine if config is optional_config else primary_engine
 
     monkeypatch.setattr(database, 'create_async_db_engine', create_engine)
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(
-            db_default_source='primary',
-            db_sources={'primary': primary_config, 'reporting': optional_config},
-        )
-    )
+    registry = database._DataSourceRegistry(_settings(primary=primary_config, reporting=optional_config))
 
     await registry.initialize()
     runtime = registry._runtimes['reporting']
@@ -351,7 +353,7 @@ async def test_required_engine_creation_failure_disposes_other_sources(monkeypat
     optional_engine = _Engine()
     optional_engine.should_fail = False
 
-    def create_engine(config: SimpleNamespace) -> _Engine:
+    def create_engine(config: DataSourceSettings) -> _Engine:
         """
         根据测试数据源配置创建引擎替身。
 
@@ -364,12 +366,7 @@ async def test_required_engine_creation_failure_disposes_other_sources(monkeypat
         return optional_engine
 
     monkeypatch.setattr(database, 'create_async_db_engine', create_engine)
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(
-            db_default_source='primary',
-            db_sources={'primary': primary_config, 'reporting': optional_config},
-        )
-    )
+    registry = database._DataSourceRegistry(_settings(primary=primary_config, reporting=optional_config))
 
     with pytest.raises(DataSourceInitializationException):
         await registry.initialize()
@@ -389,12 +386,7 @@ async def test_initialize_logs_all_sources_and_safe_failure_details(monkeypatch:
         'create_async_db_engine',
         lambda config: primary_engine if config.db_required else reporting_engine,
     )
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(
-            db_default_source='primary',
-            db_sources={'primary': _source(), 'reporting': _source(required=False)},
-        )
-    )
+    registry = database._DataSourceRegistry(_settings(primary=_source(), reporting=_source(required=False)))
     source_logger = MagicMock()
     monkeypatch.setattr(database, 'logger', source_logger)
 
@@ -428,29 +420,14 @@ async def test_invalidated_operational_error_marks_source_down_then_recovers(mon
     engine = _Engine()
     engine.should_fail = False
     monkeypatch.setattr(database, 'create_async_db_engine', lambda config: engine)
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(db_default_source='primary', db_sources={'primary': _source()})
-    )
+    registry = database._DataSourceRegistry(_settings(primary=_source()))
     await registry.initialize()
     runtime = registry._runtimes['primary']
-    session_closed = False
-
-    @asynccontextmanager
-    async def session_factory() -> AsyncGenerator[object, None]:
-        """
-        提供测试会话并跟踪关闭状态。
-
-        :yield: 测试会话并跟踪关闭状态
-        """
-        nonlocal session_closed
-        try:
-            yield object()
-        finally:
-            session_closed = True
-
-    runtime.async_session_factory = session_factory
+    runtime.async_session_factory = async_sessionmaker()
+    failed_session = None
     with pytest.raises(DataSourceUnavailableException):
-        async with registry.session():
+        async with registry.session() as failed_session:
+            await failed_session.begin()
             raise OperationalError(
                 'SELECT 1',
                 {},
@@ -458,7 +435,8 @@ async def test_invalidated_operational_error_marks_source_down_then_recovers(mon
                 connection_invalidated=True,
             )
 
-    assert session_closed
+    assert failed_session is not None
+    assert not failed_session.in_transaction()
     assert not runtime.available
     with pytest.raises(DataSourceUnavailableException):
         async with registry.session():
@@ -477,22 +455,11 @@ async def test_non_invalidated_operational_error_does_not_mark_source_down(monke
     engine = _Engine()
     engine.should_fail = False
     monkeypatch.setattr(database, 'create_async_db_engine', lambda config: engine)
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(db_default_source='primary', db_sources={'primary': _source()})
-    )
+    registry = database._DataSourceRegistry(_settings(primary=_source()))
     await registry.initialize()
     runtime = registry._runtimes['primary']
 
-    @asynccontextmanager
-    async def session_factory() -> AsyncGenerator[object, None]:
-        """
-        提供测试会话并跟踪关闭状态。
-
-        :yield: 测试会话并跟踪关闭状态
-        """
-        yield object()
-
-    runtime.async_session_factory = session_factory
+    runtime.async_session_factory = async_sessionmaker()
 
     with pytest.raises(OperationalError):
         async with registry.session():
@@ -512,12 +479,7 @@ async def test_multiple_sources_have_independent_engines_and_factories(monkeypat
     for engine in engines.values():
         engine.should_fail = False
     monkeypatch.setattr(database, 'create_async_db_engine', lambda config: engines[id(config)])
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(
-            db_default_source='primary',
-            db_sources={'primary': primary_config, 'reporting': reporting_config},
-        )
-    )
+    registry = database._DataSourceRegistry(_settings(primary=primary_config, reporting=reporting_config))
 
     await registry.initialize()
 
@@ -537,9 +499,7 @@ async def test_dispose_all_releases_sync_and_async_engines(monkeypatch: pytest.M
     sync_engine = MagicMock()
     monkeypatch.setattr(database, 'create_async_db_engine', lambda config: engine)
     monkeypatch.setattr(database, 'create_sync_db_engine', lambda config: sync_engine)
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(db_default_source='primary', db_sources={'primary': _source()})
-    )
+    registry = database._DataSourceRegistry(_settings(primary=_source()))
     await registry.initialize()
     assert registry.get_sync_engine() is sync_engine
 
@@ -553,12 +513,7 @@ async def test_dispose_all_releases_sync_and_async_engines(monkeypatch: pytest.M
 @pytest.mark.asyncio
 async def test_dispose_all_attempts_every_engine_when_disposal_fails(monkeypatch: pytest.MonkeyPatch) -> None:
     """某个引擎释放失败后仍尝试释放其他引擎。"""
-    registry = database._DataSourceRegistry(
-        SimpleNamespace(
-            db_default_source='primary',
-            db_sources={'primary': _source(), 'reporting': _source(required=False)},
-        )
-    )
+    registry = database._DataSourceRegistry(_settings(primary=_source(), reporting=_source(required=False)))
     primary = registry._runtime('primary')
     reporting = registry._runtime('reporting')
     primary.sync_engine = MagicMock()

@@ -41,6 +41,6 @@ async def get_captcha_image(request: Request) -> Response:
 
     return ResponseUtil.success(
         model_content=CaptchaCode(
-            captchaEnabled=captcha_enabled, registerEnabled=register_enabled, img=image, uuid=session_id
+            captcha_enabled=captcha_enabled, register_enabled=register_enabled, img=image, uuid=session_id
         )
     )

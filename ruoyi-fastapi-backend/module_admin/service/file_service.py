@@ -3,7 +3,7 @@ import mimetypes
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, overload
 
 from fastapi import Request
 from sqlalchemy import ColumnElement
@@ -901,7 +901,7 @@ class FileLifecycleService:
         request: Request | None,
         current_user: CurrentUserModel,
         file_audit_snapshots: list[FileAuditSnapshot],
-        result: str,
+        result: Literal['completed', 'failed'],
         error_message: str = '',
     ) -> None:
         """
@@ -953,6 +953,26 @@ class FileLifecycleService:
 
 class FileQueryService:
     """查询文件列表、详情及管理统计。"""
+
+    @classmethod
+    @overload
+    async def get_file_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: FileInfoPageQueryModel,
+        file_data_scope_sql: ColumnElement,
+        is_page: Literal[True] = True,
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_file_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: FileInfoPageQueryModel,
+        file_data_scope_sql: ColumnElement,
+        is_page: Literal[False],
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_file_list_services(
@@ -1018,6 +1038,28 @@ class FileQueryService:
         file_info['reference_count'] = reference_count_map.get(file_id, 0)
         file_info['storage_status'] = await asyncio.to_thread(FileUtil.get_storage_status, file_info)
         return FileInfoDisplayModel.model_validate(file_info, by_name=True)
+
+    @classmethod
+    @overload
+    async def get_file_access_log_list_services(
+        cls,
+        query_db: AsyncSession,
+        file_id: str,
+        query_object: FileAccessLogPageQueryModel,
+        file_data_scope_sql: ColumnElement,
+        is_page: Literal[True] = True,
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_file_access_log_list_services(
+        cls,
+        query_db: AsyncSession,
+        file_id: str,
+        query_object: FileAccessLogPageQueryModel,
+        file_data_scope_sql: ColumnElement,
+        is_page: Literal[False],
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_file_access_log_list_services(
@@ -1339,6 +1381,26 @@ class FileReconcileService:
         await cls.execute_reconcile_run_services(reconcile_run.run_id)
 
     @classmethod
+    @overload
+    async def get_reconcile_run_list_services(
+        cls,
+        query_db: AsyncSession,
+        current_user: CurrentUserModel,
+        query_object: FileReconcileRunPageQueryModel,
+        is_page: Literal[True] = True,
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_reconcile_run_list_services(
+        cls,
+        query_db: AsyncSession,
+        current_user: CurrentUserModel,
+        query_object: FileReconcileRunPageQueryModel,
+        is_page: Literal[False],
+    ) -> list[FileReconcileRunModel]: ...
+
+    @classmethod
     async def get_reconcile_run_list_services(
         cls,
         query_db: AsyncSession,
@@ -1369,6 +1431,26 @@ class FileReconcileService:
                 by_name=True,
             )
         return [FileReconcileRunModel.model_validate(row, by_name=True) for row in run_list]
+
+    @classmethod
+    @overload
+    async def get_reconcile_issue_list_services(
+        cls,
+        query_db: AsyncSession,
+        current_user: CurrentUserModel,
+        query_object: FileReconcileIssuePageQueryModel,
+        is_page: Literal[True] = True,
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_reconcile_issue_list_services(
+        cls,
+        query_db: AsyncSession,
+        current_user: CurrentUserModel,
+        query_object: FileReconcileIssuePageQueryModel,
+        is_page: Literal[False],
+    ) -> list[FileReconcileIssueModel]: ...
 
     @classmethod
     async def get_reconcile_issue_list_services(
@@ -1739,25 +1821,25 @@ class FileReconcileService:
         await FileInfoDao.add_file_info_dao(
             query_db,
             FileInfoModel(
-                fileId=file_id,
-                originalName=original_name,
-                storedName=stored_name,
-                storageKey=storage_key,
-                storageType='local',
-                accessType=access_type,
-                uploadUserId=user.user_id,
-                ownerUserId=user.user_id,
-                deptId=user.dept_id,
+                file_id=file_id,
+                original_name=original_name,
+                stored_name=stored_name,
+                storage_key=storage_key,
+                storage_type='local',
+                access_type=access_type,
+                upload_user_id=user.user_id,
+                owner_user_id=user.user_id,
+                dept_id=user.dept_id,
                 extension=extension,
-                contentType=mimetypes.guess_type(original_name)[0] or 'application/octet-stream',
-                fileSize=file_size,
-                fileHash=file_hash,
+                content_type=mimetypes.guess_type(original_name)[0] or 'application/octet-stream',
+                file_size=file_size,
+                file_hash=file_hash,
                 status='active',
-                createBy=user.user_name,
-                createTime=current_time,
-                updateBy=user.user_name,
-                updateTime=current_time,
-                delFlag='0',
+                create_by=user.user_name,
+                create_time=current_time,
+                update_by=user.user_name,
+                update_time=current_time,
+                del_flag='0',
             ),
         )
         issue.file_id = file_id

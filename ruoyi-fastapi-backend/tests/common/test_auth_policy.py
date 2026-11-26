@@ -1,5 +1,4 @@
 import ast
-import builtins
 import subprocess
 import sys
 from collections.abc import AsyncIterator
@@ -133,8 +132,10 @@ def test_authentication_import_order_preserves_dependency_identity(modules: tupl
         assert CurrentUserDependency().dependency == LoginService.get_current_user
         dependency = inspect.signature(PreAuth.__call__).parameters['current_user'].default
         assert dependency.dependency == LoginService.get_current_user
-        token = inspect.signature(LoginService.get_current_user).parameters['token'].default
-        assert token.dependency is oauth2_scheme
+        from fastapi.dependencies.utils import get_dependant
+
+        dependencies = get_dependant(path='/private', call=LoginService.get_current_user).dependencies
+        assert next(item.call for item in dependencies if item.name == 'token') is oauth2_scheme
         """,
         *modules,
     )
@@ -177,7 +178,7 @@ async def test_registered_authentication_runs_without_importing_pre_auth_again(m
         yield object()
 
     user = CurrentUserModel(
-        permissions=['demo:read'], roles=['reader'], user=UserInfoModel(userId=2, userName='reader')
+        permissions=['demo:read'], roles=['reader'], user=UserInfoModel(user_id=2, user_name='reader')
     )
     resolver = AsyncMock(return_value=user)
     monkeypatch.setattr(LoginService, '_resolve_current_user', resolver)
@@ -201,25 +202,9 @@ async def test_registered_authentication_runs_without_importing_pre_auth_again(m
     async def protected(current_user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict:
         return {'userId': current_user.user.user_id}
 
-    original_import = builtins.__import__
-
-    def import_without_pre_auth(name: str, *args: object, **kwargs: object) -> object:
-        """
-        模拟预认证模块不可导入时的依赖解析。
-
-        :param name: 用于查找或标识当前对象的名称
-        :param args: 传给被调用对象的位置参数
-        :param kwargs: 传给被调用对象的关键字参数
-        :raises AssertionError: 登录服务不应在执行时反向导入前置依赖
-        :return: 按原导入机制取得的模块
-        """
-        if name == 'common.aspect.pre_auth':
-            raise AssertionError('登录服务不应在执行时反向导入前置依赖')
-        return original_import(name, *args, **kwargs)
-
     try:
         with monkeypatch.context() as import_patch:
-            import_patch.setattr(builtins, '__import__', import_without_pre_auth)
+            import_patch.setitem(sys.modules, 'common.aspect.pre_auth', None)
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
                 public_response = await client.get('/public', headers={'Authorization': 'Bearer invalid'})
                 assert public_response.json() == {'public': True}
@@ -296,7 +281,7 @@ async def test_dependency_override_preserves_function_scope(public: bool, monkey
     handle_exception(app)
     add_context_cleanup_middleware(app)
     app.dependency_overrides[get_db_session_provider(None)] = object
-    user = CurrentUserModel(permissions=[], roles=[], user=UserInfoModel(userId=2, userName='reader'))
+    user = CurrentUserModel(permissions=[], roles=[], user=UserInfoModel(user_id=2, user_name='reader'))
     resolver = AsyncMock(return_value=user)
     monkeypatch.setattr(LoginService, '_resolve_current_user', resolver)
     events = []

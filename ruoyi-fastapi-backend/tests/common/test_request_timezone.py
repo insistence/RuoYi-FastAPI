@@ -6,6 +6,8 @@ import httpx
 import pytest
 from fastapi import FastAPI, Request, status
 from openpyxl import load_workbook
+from sqlalchemy import Select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.annotation.cache_annotation import ApiCache
 from common.context import RequestContext
@@ -31,7 +33,7 @@ def timezone_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     app = FastAPI()
     add_context_cleanup_middleware(app)
 
-    async def capture_query(db: object, query: object, *args: object) -> dict:
+    async def capture_query(db: object, query: Select, *args: object) -> list[dict]:
         """
         提取 SQL 语句的绑定参数。
 
@@ -40,7 +42,7 @@ def timezone_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
         :param args: 传给被调用对象的位置参数
         :return: SQL 语句的绑定参数
         """
-        return query.compile().params
+        return [query.compile().params or {}]
 
     monkeypatch.setattr(PageUtil, 'paginate', capture_query)
 
@@ -49,13 +51,17 @@ def timezone_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     )
     async def date_range(request: Request, preference: str = 'auto') -> dict:
         RequestContext.set_current_user(
-            CurrentUserModel(permissions=[], roles=[], user=UserInfoModel(userId=1, timeZone=preference))
+            CurrentUserModel(
+                permissions=[], roles=[], user=UserInfoModel(user_id=1, user_name='reader', time_zone=preference)
+            )
         )
         # 交错执行多个请求，以暴露进程全局时区被覆盖的问题。
         await asyncio.sleep(0)
-        params = await ConfigDao.get_config_list(
-            None, ConfigPageQueryModel(beginTime='2026-03-08', endTime='2026-03-08')
+        rows = await ConfigDao.get_config_list(
+            AsyncSession(), ConfigPageQueryModel(begin_time='2026-03-08', end_time='2026-03-08'), is_page=False
         )
+        assert isinstance(rows, list)
+        (params,) = rows
         bounds = sorted(value for value in params.values() if isinstance(value, datetime))
         workbook = load_workbook(
             BytesIO(ExcelUtil.export_list2excel([{'at': datetime(2026, 3, 8, 7, 30, tzinfo=UTC)}], {'at': '时间'}))

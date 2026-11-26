@@ -157,7 +157,7 @@ async def delete_ai_model(
     for model_id in model_id_list:
         if not current_user.user.admin:
             await AiModelService.check_ai_model_data_scope_services(query_db, int(model_id), data_scope_sql)
-    delete_ai_model = DeleteAiModelModel(modelIds=model_ids)
+    delete_ai_model = DeleteAiModelModel(model_ids=model_ids)
     delete_ai_model_result = await AiModelService.delete_ai_model_services(query_db, delete_ai_model)
     logger.info(delete_ai_model_result.message)
 

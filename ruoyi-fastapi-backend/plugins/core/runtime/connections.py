@@ -106,7 +106,7 @@ class PluginConnectionManager:
         self.cancel_timeout = cancel_timeout
         self.closing = False
         self.connections: set[_PluginConnection] = set()
-        self._unfinished: set[asyncio.Task[Any]] = set()
+        self._unfinished: set[asyncio.Future[Any]] = set()
 
     def connection_counts(self) -> dict[str, int]:
         """
@@ -119,7 +119,7 @@ class PluginConnectionManager:
             'websocket': sum(connection.scope['type'] == 'websocket' for connection in self.connections),
         }
 
-    def pending_tasks(self) -> frozenset[asyncio.Task[Any]]:
+    def pending_tasks(self) -> frozenset[asyncio.Future[Any]]:
         """
         为宿主诊断提供尚未结束的取消超时任务快照，不改变任务或清理集合。
 
@@ -155,13 +155,17 @@ class PluginConnectionManager:
         connections = tuple(self.connections)
         for connection in connections:
             connection.stop(PLUGIN_SHUTDOWN)
-        owners = {connection.owner for connection in connections if connection.owner is not asyncio.current_task()}
+        owners = {
+            connection.owner
+            for connection in connections
+            if connection.owner is not None and connection.owner is not asyncio.current_task()
+        }
         if owners:
             _, pending = await asyncio.wait(owners, timeout=self.cancel_timeout * 2 + 1)
             if pending:
                 logger.warning('插件连接关闭等待超时：{} 个请求尚未退出', len(pending))
 
-    async def cancel_task(self, task: asyncio.Task[Any]) -> None:
+    async def cancel_task(self, task: asyncio.Future[Any]) -> None:
         """
         有界等待协作式取消，保留未退出任务并回收它们最终的异常。
 
@@ -178,7 +182,7 @@ class PluginConnectionManager:
             task.add_done_callback(self._finish_task)
             logger.warning('插件连接任务未响应取消；输出已隔离，等待任务自行退出')
 
-    def _finish_task(self, task: asyncio.Task[Any]) -> None:
+    def _finish_task(self, task: asyncio.Future[Any]) -> None:
         """
         释放迟到任务并读取异常，避免未处理任务异常告警。
 
@@ -388,7 +392,7 @@ class _PluginConnection:
                 self.scope, self.receive, self.send
             )
             return
-        sender = asyncio.create_task(self.send(message))
+        sender = asyncio.ensure_future(self.send(message))
         try:
             done, _ = await asyncio.wait({sender}, timeout=self.manager.cancel_timeout)
             if sender in done:

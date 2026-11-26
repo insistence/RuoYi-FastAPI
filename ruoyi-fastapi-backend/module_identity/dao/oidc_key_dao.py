@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.database import execute_rowcount
 from module_identity.entity.do.oidc_key_do import SysOidcSigningKey
 from utils.time_util import TimezoneUtil
 
@@ -183,13 +184,14 @@ class OidcKeyDao:
         :param now: 当前时间
         :return: 是否更新成功
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOidcSigningKey)
             .where(SysOidcSigningKey.kid == kid, SysOidcSigningKey.status.in_(['active', 'retiring']))
-            .values(status='retiring', signing_stop_at=now, remove_from_jwks_at=remove_from_jwks_at)
+            .values(status='retiring', signing_stop_at=now, remove_from_jwks_at=remove_from_jwks_at),
         )
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def delete_retired(cls, db: AsyncSession, kid: str) -> bool:
@@ -200,9 +202,9 @@ class OidcKeyDao:
         :param kid: Signing Key 标识
         :return: 是否删除成功
         """
-        result = await db.execute(delete(SysOidcSigningKey).where(SysOidcSigningKey.kid == kid))
+        affected = await execute_rowcount(db, delete(SysOidcSigningKey).where(SysOidcSigningKey.kid == kid))
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def lock_algorithm_for_update(cls, db: AsyncSession, alg: str = 'RS256') -> Sequence[SysOidcSigningKey]:
@@ -248,17 +250,18 @@ class OidcKeyDao:
             .where(SysOidcSigningKey.alg == alg, SysOidcSigningKey.status == 'active')
             .values(status='retiring', signing_stop_at=current)
         )
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOidcSigningKey)
             .where(
                 SysOidcSigningKey.kid == kid,
                 SysOidcSigningKey.alg == alg,
                 SysOidcSigningKey.status == 'pending',
             )
-            .values(status='active', signing_start_at=current)
+            .values(status='active', signing_start_at=current),
         )
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def mark_compromised(cls, db: AsyncSession, kid: str) -> bool:
@@ -269,13 +272,14 @@ class OidcKeyDao:
         :param kid: Signing Key 标识
         :return: 是否标记成功
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOidcSigningKey)
             .where(SysOidcSigningKey.kid == kid, SysOidcSigningKey.status != 'retired')
-            .values(status='compromised', signing_stop_at=TimezoneUtil.utc_now())
+            .values(status='compromised', signing_stop_at=TimezoneUtil.utc_now()),
         )
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def retire_due(cls, db: AsyncSession) -> int:
@@ -285,14 +289,15 @@ class OidcKeyDao:
         :param db: orm对象
         :return: 已退役的 OIDC Signing Key 数量
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOidcSigningKey)
             .where(
                 SysOidcSigningKey.status == 'retiring',
                 SysOidcSigningKey.remove_from_jwks_at.is_not(None),
                 SysOidcSigningKey.remove_from_jwks_at <= TimezoneUtil.utc_now(),
             )
-            .values(status='retired')
+            .values(status='retired'),
         )
 
-        return result.rowcount or 0
+        return affected

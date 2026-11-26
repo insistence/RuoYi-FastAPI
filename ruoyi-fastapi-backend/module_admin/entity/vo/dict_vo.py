@@ -1,19 +1,19 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, field_validator
 from pydantic_validation_decorator import NotBlank, Pattern, Size
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 from i18n.translation import TranslationUtil
 
 
-class DictTypeBaseModel(BaseModel):
+class DictTypeBaseModel(CamelModel):
     """字典类型表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     dict_id: int | None = Field(default=None, description='字典主键')
     dict_name: str | None = Field(default=None, description='字典名称')
@@ -85,10 +85,10 @@ class DictTypeModel(DictTypeBaseModel):
         return TranslationUtil.validate(value, 100)
 
 
-class DictDataBaseModel(BaseModel):
+class DictDataBaseModel(CamelModel):
     """字典数据表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     dict_code: int | None = Field(default=None, description='字典编码')
     dict_sort: int | None = Field(default=None, description='字典排序')
@@ -205,10 +205,8 @@ class DictTypePageQueryModel(DictTypeQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteDictTypeModel(BaseModel):
+class DeleteDictTypeModel(CamelModel):
     """删除字典类型模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     dict_ids: str = Field(description='需要删除的字典主键')
 
@@ -227,9 +225,7 @@ class DictDataPageQueryModel(DictDataQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteDictDataModel(BaseModel):
+class DeleteDictDataModel(CamelModel):
     """删除字典数据模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     dict_codes: str = Field(description='需要删除的字典编码')

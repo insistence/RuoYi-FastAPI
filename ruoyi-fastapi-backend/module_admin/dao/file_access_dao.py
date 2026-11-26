@@ -1,7 +1,8 @@
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, delete, or_, select
+from sqlalchemy import ColumnElement, Row, delete, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -142,7 +143,7 @@ class FileAclDao:
         :param dept_data_scope_sql: 部门数据权限对应的查询sql语句
         :return: 主体名称映射
         """
-        subject_name_map = {}
+        subject_name_map: dict[tuple[str, int], str] = {}
         user_ids = subject_ids.get('user', set())
         if user_ids:
             user_rows = (
@@ -186,7 +187,9 @@ class FileAclDao:
                     )
                 )
             ).all()
-            subject_name_map.update({('dept', dept_id): dept_name for dept_id, dept_name in dept_rows})
+            subject_name_map.update(
+                {('dept', dept_id): dept_name or f'部门（{dept_id}）' for dept_id, dept_name in dept_rows}
+            )
 
         return subject_name_map
 
@@ -219,7 +222,7 @@ class FileAclDao:
                 user_data_scope_sql,
                 or_(SysUser.user_name.like(keyword_pattern), SysUser.nick_name.like(keyword_pattern))
                 if keyword
-                else True,
+                else true(),
             )
             rows = (await db.execute(query.order_by(SysUser.user_id).limit(limit))).all()
             return [
@@ -237,7 +240,7 @@ class FileAclDao:
                 SysRole.role_id != 1,
                 SysRole.status == '0',
                 SysRole.del_flag == '0',
-                SysRole.role_name.like(keyword_pattern) if keyword else True,
+                SysRole.role_name.like(keyword_pattern) if keyword else true(),
             )
             rows = (await db.execute(query.order_by(SysRole.role_id))).all()
             rows = await cls._filter_role_rows_by_data_scope(db, rows, user_data_scope_sql)
@@ -248,18 +251,20 @@ class FileAclDao:
             SysDept.status == '0',
             SysDept.del_flag == '0',
             dept_data_scope_sql,
-            SysDept.dept_name.like(keyword_pattern) if keyword else True,
+            SysDept.dept_name.like(keyword_pattern) if keyword else true(),
         )
         rows = (await db.execute(query.order_by(SysDept.order_num, SysDept.dept_id).limit(limit))).all()
-        return [{'subject_id': dept_id, 'subject_name': dept_name} for dept_id, dept_name in rows]
+        return [
+            {'subject_id': dept_id, 'subject_name': dept_name or f'部门（{dept_id}）'} for dept_id, dept_name in rows
+        ]
 
     @classmethod
     async def _filter_role_rows_by_data_scope(
         cls,
         db: AsyncSession,
-        role_rows: list[Any],
+        role_rows: Sequence[Row[int, str] | tuple[int, str]],
         user_data_scope_sql: ColumnElement,
-    ) -> list[Any]:
+    ) -> list[tuple[int, str]]:
         """
         过滤包含数据权限范围外成员的角色。
 
@@ -302,9 +307,9 @@ class FileAclDao:
             visible_member_ids.setdefault(role_id, set()).add(user_id)
 
         return [
-            role_row
-            for role_row in role_rows
-            if all_member_ids.get(role_row[0], set()).issubset(visible_member_ids.get(role_row[0], set()))
+            (role_id, role_name)
+            for role_id, role_name in role_rows
+            if all_member_ids.get(role_id, set()).issubset(visible_member_ids.get(role_id, set()))
         ]
 
 
@@ -347,11 +352,11 @@ class FileAccessLogDao:
             select(SysFileAccessLog)
             .where(
                 SysFileAccessLog.file_id == file_id,
-                SysFileAccessLog.action == query_object.action if query_object.action else True,
-                SysFileAccessLog.result == query_object.result if query_object.result else True,
-                SysFileAccessLog.actor_name.like(f'%{query_object.actor_name}%') if query_object.actor_name else True,
-                SysFileAccessLog.access_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysFileAccessLog.access_time <= time_range[1] if time_range and time_range[1] is not None else True,
+                SysFileAccessLog.action == query_object.action if query_object.action else true(),
+                SysFileAccessLog.result == query_object.result if query_object.result else true(),
+                SysFileAccessLog.actor_name.like(f'%{query_object.actor_name}%') if query_object.actor_name else true(),
+                SysFileAccessLog.access_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysFileAccessLog.access_time <= time_range[1] if time_range and time_range[1] is not None else true(),
             )
             .order_by(SysFileAccessLog.access_time.desc(), SysFileAccessLog.audit_id.desc())
         )

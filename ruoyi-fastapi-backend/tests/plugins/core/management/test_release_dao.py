@@ -33,10 +33,10 @@ async def sessions(tmp_path: Path) -> AsyncIterator[async_sessionmaker[AsyncSess
         await connection.run_sync(
             Base.metadata.create_all,
             tables=[
-                SysPlugin.__table__,
-                SysPluginArtifact.__table__,
-                SysPluginRelease.__table__,
-                SysPluginWorker.__table__,
+                SysPlugin.get_table(),
+                SysPluginArtifact.get_table(),
+                SysPluginRelease.get_table(),
+                SysPluginWorker.get_table(),
             ],
         )
     try:
@@ -140,7 +140,9 @@ async def test_select_requires_exact_preparation_and_never_changes_installed_ver
         assert selected.previous_digest is None
         assert selected.generation != old_generation
         assert selected.expected_workers == EXPECTED_WORKERS
-        assert (await db.get(SysPlugin, 'demo')).installed_version == '1.0.0'
+        stored = await db.get(SysPlugin, 'demo')
+        assert stored is not None
+        assert stored.installed_version == '1.0.0'
         with pytest.raises(PluginReleaseConflictError):
             await PluginReleaseDao.select_target(db, 'demo', target_digest=DIGEST_A, expected_generation=old_generation)
         with pytest.raises(PluginReleaseConflictError):
@@ -166,7 +168,9 @@ async def test_prepare_failure_preserves_target_and_clears_preparation_proof(
         assert release.prepared_digest is None
         assert release.prepared_version is None
         assert release.last_error == 'migration failed'
-        assert (await db.get(SysPlugin, 'demo')).installed_version == '1.0.0'
+        stored = await db.get(SysPlugin, 'demo')
+        assert stored is not None
+        assert stored.installed_version == '1.0.0'
 
 
 @pytest.mark.asyncio
@@ -177,6 +181,7 @@ async def test_explicit_code_rollback_can_keep_newer_data_schema(sessions: async
         await PluginReleaseDao.select_target(db, 'demo', target_digest=DIGEST_A, expected_generation=release.generation)
         await register(db, DIGEST_B, '2.0.0')
         plugin = await db.get(SysPlugin, 'demo')
+        assert plugin is not None
         plugin.installed_version = '2.0.0'
         await db.flush()
         with pytest.raises(ValueError, match='安装版本不一致'):
@@ -227,6 +232,7 @@ async def test_competing_target_selections_only_one_generation_wins(sessions: as
     assert results.count('conflict') == 1
     async with sessions() as db:
         release = await PluginReleaseDao.get_release(db, 'demo')
+        assert release is not None
         assert release.generation in results
         assert release.generation != generation
 

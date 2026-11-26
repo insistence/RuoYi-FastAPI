@@ -2,6 +2,7 @@ import base64
 import hashlib
 import re
 from dataclasses import dataclass, field
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -80,7 +81,7 @@ class PluginTestCommandResultPayload:
 
     completed: Any
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -105,7 +106,7 @@ class PluginTestResultItemPayload:
     target: PluginTestTarget
     completed: Any
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -132,7 +133,7 @@ class PluginTestMissingPayload:
     plugin_id: str
     expected_paths: list[Path]
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -166,7 +167,7 @@ class PluginTestExecutionPayload:
     frontend_build: bool
     results: list[dict[str, Any]]
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -198,10 +199,10 @@ class CliPluginRuntimeExceptionPayload:
     :ivar failure_code: 失败退出码
     """
 
-    exception_payload: dict[str, Any]
+    exception_payload: dict[str, object]
     failure_code: int = RUNTIME_ERROR
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -220,11 +221,11 @@ class CliPluginRuntimeExitCodePayload:
     :ivar failure_code: 失败退出码
     """
 
-    payload: dict[str, Any]
+    payload: dict[str, object]
     success_code: int = SUCCESS
     failure_code: int = RUNTIME_ERROR
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -290,7 +291,9 @@ class PluginDependencyLockfileTemplate:
 
         :return: YAML 文本
         """
-        return yaml.safe_dump(self.to_dict(), allow_unicode=True, sort_keys=False)
+        stream = StringIO()
+        yaml.safe_dump(self.to_dict(), stream, allow_unicode=True, sort_keys=False)
+        return stream.getvalue()
 
 
 class PluginDependencyLockfileTemplateBuilder:
@@ -1010,7 +1013,7 @@ class PluginTestPayloadBuilder:
     """
 
     @staticmethod
-    def build_command_result(completed: Any) -> dict[str, Any]:
+    def build_command_result(completed: Any) -> dict[str, object]:
         """
         构建 CLI 系统命令执行结果负载。
 
@@ -1020,7 +1023,7 @@ class PluginTestPayloadBuilder:
         return PluginTestCommandResultPayload(completed).to_payload()
 
     @staticmethod
-    def build_result_item(target: PluginTestTarget, completed: Any) -> dict[str, Any]:
+    def build_result_item(target: PluginTestTarget, completed: Any) -> dict[str, object]:
         """
         构建单个插件测试结果项。
 
@@ -1032,11 +1035,11 @@ class PluginTestPayloadBuilder:
 
     @staticmethod
     def with_exit_code(
-        payload: dict[str, Any],
+        payload: dict[str, object],
         *,
         success_code: int = SUCCESS,
         failure_code: int = RUNTIME_ERROR,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         为插件测试负载补充退出码。
 
@@ -1052,7 +1055,7 @@ class PluginTestPayloadBuilder:
         ).to_payload()
 
     @staticmethod
-    def build_missing_payload(plugin_id: str, expected_paths: list[Path]) -> dict[str, Any]:
+    def build_missing_payload(plugin_id: str, expected_paths: list[Path]) -> dict[str, object]:
         """
         构建插件测试目标缺失负载。
 
@@ -1071,7 +1074,7 @@ class PluginTestPayloadBuilder:
         quiet: bool,
         frontend_build: bool,
         results: list[dict[str, Any]],
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         构建插件测试执行结果负载。
 

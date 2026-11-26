@@ -7,13 +7,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Annotated
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
 import pytest_asyncio
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from common.aspect.db_session import get_db_session_provider
@@ -31,6 +32,7 @@ from plugins.core.discovery.registry import RegisteredPlugin
 from plugins.core.discovery.scanner import DiscoveredPlugin, PluginScanner
 from plugins.core.runtime.browser_session import COOKIE_NAME_PREFIX, SESSION_KEY_PREFIX
 from plugins.core.runtime.explicit import ExplicitPluginRuntime
+from plugins.core.runtime.route_guard import PluginRouteStateGateway
 from utils.jwt_util import JwtUtil
 
 
@@ -149,7 +151,9 @@ async def browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
     plugin = _write_browser_plugin(tmp_path)
     app = FastAPI()
     app.state.redis = redis = MemoryRedis()
-    runtime = ExplicitPluginRuntime(SimpleNamespace(is_plugin_enabled=AsyncMock(return_value=True)))
+    runtime = ExplicitPluginRuntime(
+        Mock(spec_set=PluginRouteStateGateway, is_plugin_enabled=AsyncMock(return_value=True))
+    )
     app.state.plugin_explicit_runtime = runtime
     user = SimpleNamespace(user=SimpleNamespace(user_id=7), permissions=['browser_test:view'])
     token = JwtUtil.encode({'user_id': '7', 'session_id': 'test-session', 'exp': int(time.time()) + 1800})
@@ -233,7 +237,8 @@ async def issue(browser: SimpleNamespace) -> httpx.Response:
     :param browser: 执行页面操作的浏览器实例
     :return: 插件浏览器会话的签发响应
     """
-    return await browser.client.post(
+    client: httpx.AsyncClient = browser.client
+    return await client.post(
         '/plugin/runtime/browser_test/session',
         headers={
             'Authorization': f'Bearer {browser.token}',
@@ -417,7 +422,8 @@ async def test_renewal_retries_if_record_expires_and_another_tab_replaces_it(
     key = next(key for key in browser.redis.values if key.startswith(SESSION_KEY_PREFIX))
     replacement = json.loads(browser.redis.values[key])
     replacement.update(nonce='n' * 43, csrf='c' * 43)
-    expire = browser.redis.expire
+    redis: MemoryRedis = browser.redis
+    expire = redis.expire
     replaced = False
 
     async def replace_before_expire(record_key: str, seconds: int) -> bool:
@@ -442,6 +448,7 @@ async def test_renewal_retries_if_record_expires_and_another_tab_replaces_it(
     assert renewed.json()['data']['csrfToken'] == replacement['csrf']
     assert renewed.json()['data']['csrfToken'] != first.json()['data']['csrfToken']
     cookie = renewed.cookies.get(f'{COOKIE_NAME_PREFIX}browser_test')
+    assert cookie is not None
     assert cookie.endswith('.' + replacement['nonce'])
     assert (await browser.client.get('/apps/browser_test/api/info')).status_code == status.HTTP_200_OK
 
@@ -499,10 +506,10 @@ async def test_real_plugin_login_resolution_does_not_refresh_or_restore_main_ses
     # 不替换 _resolve_current_user，验证真实 JWT、用户模型和权限构造路径。
     if logout_after_read:
         with pytest.raises(AuthException):
-            await LoginService.get_current_user_for_plugin_session(request, token, object())
+            await LoginService.get_current_user_for_plugin_session(request, token, AsyncSession())
         assert key not in redis.values
     else:
-        user = await LoginService.get_current_user_for_plugin_session(request, token, object())
+        user = await LoginService.get_current_user_for_plugin_session(request, token, AsyncSession())
         assert user.user.user_id == user_id
         assert user.permissions == ['demo:view']
         assert redis.values[key] == token

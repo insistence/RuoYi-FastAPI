@@ -86,7 +86,9 @@ async def test_edit_table_waits_for_details_and_ignores_departing_search_form(
         :param route: 当前请求匹配的路由
         """
         if route.request.method == 'PUT':
-            saved.update(route.request.post_data_json)
+            submitted = route.request.post_data_json
+            assert isinstance(submitted, dict), submitted
+            saved.update(submitted)
             await route.fulfill(json={'code': 200})
         elif route.request.url.endswith('/tool/gen/list'):
             await route.fulfill(json={'code': 200, 'rows': [saved]})

@@ -115,10 +115,8 @@ def test_logged_known_errors_preserve_global_response(
     app.get('/logged', summary='获取审计后的错误响应', description='通过操作日志装饰器触发相同异常，以便比对响应。')(
         Log(title='测试', business_type=BusinessType.OTHER)(endpoint)
     )
-    if audit_fails:
-        monkeypatch.setattr(
-            LogQueueService, 'enqueue_operation_log', AsyncMock(side_effect=RuntimeError('queue unavailable'))
-        )
+    enqueue_log = AsyncMock(side_effect=RuntimeError('queue unavailable') if audit_fails else None)
+    monkeypatch.setattr(LogQueueService, 'enqueue_operation_log', enqueue_log)
     client = TestClient(app, raise_server_exceptions=False)
     plain = client.get('/plain', follow_redirects=False)
     logged = client.get('/logged', follow_redirects=False)
@@ -132,4 +130,4 @@ def test_logged_known_errors_preserve_global_response(
         assert actual == expected
     else:
         assert not logged.content
-    LogQueueService.enqueue_operation_log.assert_awaited_once()
+    enqueue_log.assert_awaited_once()

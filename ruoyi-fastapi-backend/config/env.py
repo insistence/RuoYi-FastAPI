@@ -836,7 +836,7 @@ class GetConfig:
             parser.add_argument('--env', type=str, default='', help='运行环境')
             # 解析命令行参数
             args, _ = parser.parse_known_args()
-            run_env = args.env or run_env
+            run_env = str(args.env or run_env)
         # 运行环境未指定时默认加载.env.dev
         run_env = run_env.strip() or 'dev'
         env_file = f'.env.{run_env}'

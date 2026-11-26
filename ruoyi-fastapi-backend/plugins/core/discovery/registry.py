@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -62,7 +63,7 @@ class PluginRegistry:
     def build(
         cls,
         discovered_plugins: list[DiscoveredPlugin],
-        database_plugins: list[PluginStateRecord] | None = None,
+        database_plugins: Sequence[PluginStateRecord] | None = None,
     ) -> 'PluginRegistry':
         """
         根据已发现插件和数据库状态构建插件运行时注册表。

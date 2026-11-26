@@ -24,9 +24,10 @@ def builtin_routes(routes: list[dict[str, Any]], parent: str = '') -> set[str]:
     :param parent: 用于判断路径从属关系的父目录
     :return: 服务端真实返回的内置页面
     """
-    paths = set()
+    paths: set[str] = set()
     for route in routes:
         segment = route['path']
+        assert isinstance(segment, str)
         if segment.startswith(('http://', 'https://')):
             continue
         path = segment if segment.startswith('/') else f'{parent}/{segment}'
@@ -51,10 +52,10 @@ async def test_every_builtin_menu_has_a_page_case(browser_harness: BrowserHarnes
 async def test_builtin_menu_loads_data_and_content(browser_harness: BrowserHarness, case: PageCase) -> None:
     """每个真实菜单都必须加载业务内容及成功的后端响应，而不是只显示导航标题。"""
     page = await browser_harness.new_page(authenticated=True)
-    if case.api:
+    if api_path := case.api:
         async with page.expect_response(
             lambda response: (
-                urlparse(response.url).path.endswith(case.api)
+                urlparse(response.url).path.endswith(api_path)
                 and response.request.method == 'GET'
                 and response.request.resource_type in {'xhr', 'fetch'}
             )

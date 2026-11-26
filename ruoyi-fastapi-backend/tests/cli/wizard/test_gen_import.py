@@ -1,4 +1,5 @@
 from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
 
 from pytest import MonkeyPatch
 
@@ -8,7 +9,7 @@ def test_gen_import_wizard_executes_nested_cli_with_selected_tables(
     gen_import_flow: ModuleType,
 ) -> None:
     """导入向导将选中的表传给嵌套命令。"""
-    captured: dict[str, object] = {}
+    complete_payload = Mock()
     answers = iter(['dev', 'sys_user,sys_role', True, True])
     monkeypatch.setattr(
         gen_import_flow.GenImportWizardFlow,
@@ -46,21 +47,17 @@ def test_gen_import_wizard_executes_nested_cli_with_selected_tables(
     monkeypatch.setattr(
         gen_import_flow.GenImportWizardFlow.execution_service,
         'complete_payload',
-        lambda ctx, payload, default_exit_code=0: captured.update(
-            {
-                'ctx': ctx,
-                'payload': payload,
-                'default_exit_code': default_exit_code,
-            }
-        ),
+        complete_payload,
     )
 
     gen_import_flow.run_gen_import_wizard('json')
 
-    assert captured['ctx'].env == 'dev'
-    assert captured['ctx'].output == 'json'
-    assert captured['ctx'].dry_run is True
-    assert captured['payload']['tableNames'] == ['sys_user', 'sys_role']
+    complete_payload.assert_called_once()
+    ctx, payload = complete_payload.call_args.args
+    assert ctx.env == 'dev'
+    assert ctx.output == 'json'
+    assert ctx.dry_run is True
+    assert payload['tableNames'] == ['sys_user', 'sys_role']
 
 
 def test_gen_import_wizard_accepts_default_context_values(
@@ -112,7 +109,7 @@ def test_gen_import_wizard_falls_back_to_failure_payload_when_nested_result_has_
     gen_import_flow: ModuleType,
 ) -> None:
     """导入命令缺少字典结果时返回失败信息。"""
-    captured: dict[str, object] = {}
+    complete_payload = Mock()
     answers = iter(['dev', 'sys_notice', True, True])
     monkeypatch.setattr(
         gen_import_flow.GenImportWizardFlow,
@@ -147,19 +144,15 @@ def test_gen_import_wizard_falls_back_to_failure_payload_when_nested_result_has_
     monkeypatch.setattr(
         gen_import_flow.GenImportWizardFlow.execution_service,
         'complete_payload',
-        lambda ctx, payload, default_exit_code=0: captured.update(
-            {
-                'ctx': ctx,
-                'payload': payload,
-                'default_exit_code': default_exit_code,
-            }
-        ),
+        complete_payload,
     )
 
     gen_import_flow.run_gen_import_wizard('text')
 
-    assert captured['ctx'].env == 'dev'
-    assert captured['payload'] == {
+    complete_payload.assert_called_once()
+    ctx, payload = complete_payload.call_args.args
+    assert ctx.env == 'dev'
+    assert payload == {
         'ok': False,
         'message': '代码生成导入向导执行失败',
         'error': 'OK SUCCESS\nmessage: 导入表结构演练完成，未执行实际写入',

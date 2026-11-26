@@ -49,7 +49,7 @@ async def _create_notice_tables() -> tuple[AsyncEngine, async_sessionmaker[Async
         )
         await connection.run_sync(
             Base.metadata.create_all,
-            tables=[SysDept.__table__, SysUser.__table__, SysNoticeRead.__table__],
+            tables=[SysDept.get_table(), SysUser.get_table(), SysNoticeRead.get_table()],
         )
     return engine, session_maker
 
@@ -160,11 +160,11 @@ async def test_get_notice_read_user_list_supports_search_and_pagination() -> Non
 
             page = await NoticeService.get_notice_read_user_list_services(
                 session,
-                NoticeReadUserPageQueryModel(noticeId=1, pageNum=1, pageSize=1),
+                NoticeReadUserPageQueryModel(notice_id=1, page_num=1, page_size=1),
             )
             search_page = await NoticeService.get_notice_read_user_list_services(
                 session,
-                NoticeReadUserPageQueryModel(noticeId=1, searchValue='ali'),
+                NoticeReadUserPageQueryModel(notice_id=1, search_value='ali'),
             )
 
         assert page.total == EXPECTED_VISIBLE_READ_USER_COUNT
@@ -186,7 +186,7 @@ async def test_delete_notice_removes_read_records_in_same_transaction() -> None:
             await NoticeDao.add_notice_reads(session, CURRENT_USER_ID, [1])
             await session.commit()
 
-            result = await NoticeService.delete_notice_services(session, DeleteNoticeModel(noticeIds='1'))
+            result = await NoticeService.delete_notice_services(session, DeleteNoticeModel(notice_ids='1'))
             notice_count = (await session.execute(select(func.count()).select_from(SysNotice))).scalar_one()
             read_count = (await session.execute(select(func.count()).select_from(SysNoticeRead))).scalar_one()
 

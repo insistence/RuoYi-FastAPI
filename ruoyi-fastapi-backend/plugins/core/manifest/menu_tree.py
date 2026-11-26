@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from plugins.core.manifest.schema import PluginManifest, PluginMenuManifest
+    from plugins.core.manifest.schema import PluginMenuManifest
+    from plugins.core.manifest.v2 import VersionedPluginManifest
 
 MIN_PLUGIN_COMPONENT_PARTS = 3
 
@@ -84,7 +85,7 @@ class PluginMenuTree:
 
     @staticmethod
     def resolve_plugin_view_path(
-        manifest: 'PluginManifest', component: str, frontend_framework: str = 'vue3'
+        manifest: 'VersionedPluginManifest', component: str, frontend_framework: str = 'vue3'
     ) -> Path | None:
         """
         将插件组件路径解析为前端插件内视图路径。

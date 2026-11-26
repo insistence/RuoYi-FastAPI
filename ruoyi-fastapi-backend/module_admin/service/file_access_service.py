@@ -69,24 +69,24 @@ class FileAclService:
             dept_data_scope_sql,
         )
         return FileAclListModel(
-            aclVersion=file_info.acl_version,
-            builtinPermissions=cls._build_builtin_permissions(file_info, subject_name_map),
+            acl_version=file_info.acl_version,
+            builtin_permissions=cls._build_builtin_permissions(file_info, subject_name_map),
             entries=[
                 FileAclModel(
-                    aclId=file_acl.acl_id,
-                    fileId=file_acl.file_id,
-                    subjectType=file_acl.subject_type,
-                    subjectId=file_acl.subject_id,
-                    subjectName=subject_name_map.get(
+                    acl_id=file_acl.acl_id,
+                    file_id=file_acl.file_id,
+                    subject_type=file_acl.subject_type,
+                    subject_id=file_acl.subject_id,
+                    subject_name=subject_name_map.get(
                         (file_acl.subject_type, file_acl.subject_id),
                         f'不可用或无权查看主体（{file_acl.subject_id}）',
                     ),
                     permission=file_acl.permission,
                     effect=file_acl.effect,
-                    includeChildren=file_acl.include_children == '1',
-                    expireTime=file_acl.expire_time,
-                    createBy=file_acl.create_by,
-                    createTime=file_acl.create_time,
+                    include_children=file_acl.include_children == '1',
+                    expire_time=file_acl.expire_time,
+                    create_by=file_acl.create_by,
+                    create_time=file_acl.create_time,
                 )
                 for file_acl in file_acl_list
             ],
@@ -109,9 +109,9 @@ class FileAclService:
         builtin_permissions = [
             FileAclBuiltinPermissionModel(
                 source='admin',
-                subjectName='平台管理员',
+                subject_name='平台管理员',
                 enabled=True,
-                denyOverridable=False,
+                deny_overridable=False,
                 description='平台管理员始终允许下载，显式拒绝不能覆盖。',
             )
         ]
@@ -121,13 +121,13 @@ class FileAclService:
             builtin_permissions.append(
                 FileAclBuiltinPermissionModel(
                     source='owner',
-                    subjectId=owner_user_id,
-                    subjectName=subject_name_map.get(
+                    subject_id=owner_user_id,
+                    subject_name=subject_name_map.get(
                         ('user', owner_user_id),
                         f'不可用或无权查看主体（{owner_user_id}）',
                     ),
                     enabled=True,
-                    denyOverridable=False,
+                    deny_overridable=False,
                     description='文件所有者始终允许下载，显式拒绝不能覆盖。',
                 )
             )
@@ -137,13 +137,13 @@ class FileAclService:
             builtin_permissions.append(
                 FileAclBuiltinPermissionModel(
                     source='uploader',
-                    subjectId=upload_user_id,
-                    subjectName=subject_name_map.get(
+                    subject_id=upload_user_id,
+                    subject_name=subject_name_map.get(
                         ('user', upload_user_id),
                         f'不可用或无权查看主体（{upload_user_id}）',
                     ),
                     enabled=uploader_access_enabled,
-                    denyOverridable=uploader_access_enabled and not uploader_is_owner,
+                    deny_overridable=uploader_access_enabled and not uploader_is_owner,
                     description=(
                         (
                             '当前上传人同时是文件所有者，显式拒绝不能覆盖；所有权转移后按上传人规则判断。'
@@ -516,19 +516,19 @@ class FileAuditService:
         try:
             user = current_user.user
             file_access_log = FileAccessLogModel(
-                fileId=file_id,
+                file_id=file_id,
                 action=action,
-                actorUserId=user.user_id if user else None,
-                actorName=user.user_name if user else '',
+                actor_user_id=user.user_id if user else None,
+                actor_name=user.user_name if user else '',
                 result=result,
-                requestId=TraceCtx.get_request_id(),
-                traceId=TraceCtx.get_trace_id(),
-                ipAddress=ClientIPUtil.get_client_ip(request),
-                userAgent=(request.headers.get('User-Agent') or '')[:500],
-                bytesSent=bytes_sent,
-                errorMessage=error_message[:500],
-                operationDetail=cls._serialize_operation_detail(operation_detail),
-                accessTime=TimezoneUtil.utc_now(),
+                request_id=TraceCtx.get_request_id(),
+                trace_id=TraceCtx.get_trace_id(),
+                ip_address=ClientIPUtil.get_client_ip(request),
+                user_agent=(request.headers.get('User-Agent') or '')[:500],
+                bytes_sent=bytes_sent,
+                error_message=error_message[:500],
+                operation_detail=cls._serialize_operation_detail(operation_detail),
+                access_time=TimezoneUtil.utc_now(),
             )
             await LogQueueService.enqueue_file_access_log(
                 request,
@@ -559,13 +559,13 @@ class FileAuditService:
         :param operation_detail: 操作详情
         """
         file_access_log = FileAccessLogModel(
-            fileId=file_id,
+            file_id=file_id,
             action=action,
-            actorName='system',
+            actor_name='system',
             result=result,
-            errorMessage=error_message[:500],
-            operationDetail=cls._serialize_operation_detail(operation_detail),
-            accessTime=TimezoneUtil.utc_now(),
+            error_message=error_message[:500],
+            operation_detail=cls._serialize_operation_detail(operation_detail),
+            access_time=TimezoneUtil.utc_now(),
         )
         await FileAccessLogDao.add_file_access_log_dao(query_db, file_access_log)
 

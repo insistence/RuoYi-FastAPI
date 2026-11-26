@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -109,6 +109,18 @@ class PluginRequestContext:
     request: PluginHttpRequest | None = None
     _transaction: '_PluginTransactionState | None' = field(default=None, repr=False, compare=False)
 
+    @property
+    def http_request(self) -> PluginHttpRequest:
+        """
+        获取当前 HTTP 接口的请求快照。
+
+        :return: 宿主已解析的 HTTP 请求
+        :raises RuntimeError: 当前上下文不属于 HTTP 接口
+        """
+        if self.request is None:
+            raise RuntimeError('当前插件上下文缺少 HTTP 请求快照')
+        return self.request
+
     def require_permission(self, permission: str) -> None:
         """
         执行接口权限检查；数据权限由具体服务按当前用户处理。
@@ -120,7 +132,7 @@ class PluginRequestContext:
             raise PermissionError(f'缺少权限：{permission}')
 
     @asynccontextmanager
-    async def transaction(self) -> AsyncIterator['PluginRequestContext']:
+    async def transaction(self) -> AsyncGenerator['PluginRequestContext', None]:
         """
         为当前任务创建显式事务，成功提交、异常或取消回滚，并关闭独占会话。
 

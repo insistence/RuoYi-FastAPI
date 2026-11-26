@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from cli.tui.actions.builders import TuiActionTemplate, TuiActionTemplateSupport
+from cli.tui.actions.models import ActionParameters
 from cli.tui.adapters.models import BrowserRecordSnapshot
 from cli.tui.copy import TUI_COPY
 
@@ -18,7 +19,7 @@ class JobActionTemplateFactory:
 
     support: TuiActionTemplateSupport
 
-    def build_run_once_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> dict[str, object] | None:
+    def build_run_once_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> ActionParameters | None:
         """
         构建任务执行一次命令参数。
 
@@ -53,7 +54,7 @@ class JobActionTemplateFactory:
             ),
         ]
 
-    def build_toggle_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> dict[str, object] | None:
+    def build_toggle_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> ActionParameters | None:
         """
         构建任务暂停或恢复命令参数。
 

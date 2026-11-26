@@ -102,7 +102,7 @@ async def test_endpoint_adapter_enforces_permission_and_waits_native_style_resul
     )
     assert await endpoint(request) == {'ok': True}
     callback.assert_awaited_once()
-    received = callback.await_args.args[0]
+    received = callback.await_args_list[-1].args[0]
     assert received.host is context.host
     assert received.user is context.user
     assert received.permissions == context.permissions

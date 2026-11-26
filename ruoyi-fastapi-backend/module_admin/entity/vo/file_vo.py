@@ -1,10 +1,10 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 
 from common.mixin import InstantRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 
 FileReconcileAction = Literal[
     'ignore',
@@ -20,10 +20,10 @@ FileReconcileAction = Literal[
 ]
 
 
-class FileInfoModel(BaseModel):
+class FileInfoModel(CamelModel):
     """文件信息表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     file_id: str = Field(max_length=36, description='文件ID')
     original_name: str = Field(max_length=255, description='原始文件名')
@@ -65,10 +65,10 @@ class FileInfoDisplayModel(FileInfoModel):
     )
 
 
-class FileReferenceModel(BaseModel):
+class FileReferenceModel(CamelModel):
     """文件业务引用表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     reference_id: int | None = Field(default=None, description='引用ID')
     file_id: str = Field(description='文件ID')
@@ -81,10 +81,10 @@ class FileReferenceModel(BaseModel):
     legacy: bool = Field(default=False, description='是否为文件主表兼容引用')
 
 
-class FileRetentionPolicyModel(BaseModel):
+class FileRetentionPolicyModel(CamelModel):
     """文件业务保留策略模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True, str_strip_whitespace=True)
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
 
     business_type: str = Field(min_length=1, max_length=50, description='业务类型')
     retention_days: int = Field(ge=1, le=36500, description='保留天数')
@@ -96,10 +96,10 @@ class FileRetentionPolicyModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
 
 
-class FileRetentionNoticeModel(BaseModel):
+class FileRetentionNoticeModel(CamelModel):
     """文件保留期限提醒展示模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     notice_id: int = Field(description='提醒ID')
     file_id: str = Field(description='文件ID')
@@ -116,10 +116,8 @@ class FileRetentionNoticeModel(BaseModel):
     can_dispose: bool = Field(default=False, description='是否允许到期处置')
 
 
-class FileRetentionNoticeQueryModel(BaseModel):
+class FileRetentionNoticeQueryModel(CamelModel):
     """文件保留期限提醒不分页查询模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     original_name: str | None = Field(default=None, description='原始文件名')
     notice_type: Literal['expiring', 'expired'] | None = Field(default=None, description='提醒类型')
@@ -133,36 +131,34 @@ class FileRetentionNoticePageQueryModel(FileRetentionNoticeQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class FileRetentionScanModel(BaseModel):
+class FileRetentionScanModel(CamelModel):
     """文件保留期限提醒扫描结果模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     expiring_count: int = Field(default=0, ge=0, description='新增即将到期提醒数')
     expired_count: int = Field(default=0, ge=0, description='新增已到期提醒数')
 
 
-class ExtendFileRetentionModel(BaseModel):
+class ExtendFileRetentionModel(CamelModel):
     """延长文件保留期限模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     expire_time: ApiUtcDateTime = Field(description='新的到期时间')
     reason: str = Field(min_length=1, max_length=500, description='延期原因')
 
 
-class DisposeExpiredFileModel(BaseModel):
+class DisposeExpiredFileModel(CamelModel):
     """到期文件处置模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     reason: str = Field(min_length=1, max_length=500, description='处置原因')
 
 
-class FileAccessLogModel(BaseModel):
+class FileAccessLogModel(CamelModel):
     """文件访问审计表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     audit_id: int | None = Field(default=None, description='审计ID')
     file_id: str = Field(description='文件ID')
@@ -191,10 +187,10 @@ class FileAccessLogModel(BaseModel):
     access_time: ApiUtcDateTime | None = Field(default=None, description='访问时间')
 
 
-class FileAclModel(BaseModel):
+class FileAclModel(CamelModel):
     """文件访问控制表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     acl_id: int | None = Field(default=None, description='访问控制ID')
     file_id: str = Field(description='文件ID')
@@ -209,10 +205,8 @@ class FileAclModel(BaseModel):
     create_time: ApiUtcDateTime | None = Field(default=None, description='创建时间')
 
 
-class FileAclItemModel(BaseModel):
+class FileAclItemModel(CamelModel):
     """文件访问控制配置项模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     subject_type: Literal['user', 'role', 'dept'] = Field(description='主体类型')
     subject_id: int = Field(gt=0, description='主体ID')
@@ -221,10 +215,8 @@ class FileAclItemModel(BaseModel):
     expire_time: ApiUtcDateTime | None = Field(default=None, description='授权过期时间')
 
 
-class FileAclBuiltinPermissionModel(BaseModel):
+class FileAclBuiltinPermissionModel(CamelModel):
     """文件内置访问权限展示模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     source: Literal['admin', 'owner', 'uploader'] = Field(description='权限来源')
     subject_id: int | None = Field(default=None, description='权限主体ID')
@@ -235,10 +227,8 @@ class FileAclBuiltinPermissionModel(BaseModel):
     description: str = Field(description='权限说明')
 
 
-class FileAclListModel(BaseModel):
+class FileAclListModel(CamelModel):
     """文件访问控制列表模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     acl_version: int = Field(ge=0, description='访问控制版本')
     builtin_permissions: list[FileAclBuiltinPermissionModel] = Field(
@@ -247,38 +237,30 @@ class FileAclListModel(BaseModel):
     entries: list[FileAclModel] = Field(default_factory=list, description='访问控制配置项')
 
 
-class SaveFileAclModel(BaseModel):
+class SaveFileAclModel(CamelModel):
     """保存文件访问控制模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     acl_version: int = Field(ge=0, description='访问控制版本')
     entries: list[FileAclItemModel] = Field(default_factory=list, max_length=100, description='访问控制配置项')
 
 
-class BatchSaveFileAclModel(BaseModel):
+class BatchSaveFileAclModel(CamelModel):
     """批量保存文件访问控制模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     file_ids: str = Field(description='需要授权的文件ID')
     entries: list[FileAclItemModel] = Field(default_factory=list, max_length=100, description='访问控制配置项')
 
 
-class FileAclSubjectOptionModel(BaseModel):
+class FileAclSubjectOptionModel(CamelModel):
     """文件访问控制主体选项模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     subject_id: int = Field(description='主体ID')
     subject_name: str = Field(description='主体名称')
     dept_id: int | None = Field(default=None, description='所属部门ID')
 
 
-class FileInfoQueryModel(InstantRangeQueryMixin, BaseModel):
+class FileInfoQueryModel(InstantRangeQueryMixin, CamelModel):
     """文件信息管理不分页查询模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     original_name: str | None = Field(default=None, description='原始文件名')
     access_type: Literal['public', 'private'] | None = Field(default=None, description='访问类型')
@@ -300,10 +282,8 @@ class FileInfoPageQueryModel(FileInfoQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class FileStatsModel(BaseModel):
+class FileStatsModel(CamelModel):
     """文件管理统计模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     total_count: int = Field(default=0, ge=0, description='文件总数')
     total_size: int = Field(default=0, ge=0, description='文件总大小')
@@ -316,10 +296,8 @@ class FileStatsModel(BaseModel):
     acl_expiring_count: int = Field(default=0, ge=0, description='ACL即将过期文件数')
 
 
-class FileAccessLogQueryModel(InstantRangeQueryMixin, BaseModel):
+class FileAccessLogQueryModel(InstantRangeQueryMixin, CamelModel):
     """文件访问审计不分页查询模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     action: (
         Literal[
@@ -349,18 +327,16 @@ class FileAccessLogPageQueryModel(FileAccessLogQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteFileModel(BaseModel):
+class DeleteFileModel(CamelModel):
     """删除文件模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     file_ids: str = Field(description='需要删除的文件ID')
 
 
-class TransferFileModel(BaseModel):
+class TransferFileModel(CamelModel):
     """转移文件模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     owner_user_id: int = Field(gt=0, description='新所有者用户ID')
     dept_id: int = Field(gt=0, description='新所属部门ID')
@@ -368,10 +344,10 @@ class TransferFileModel(BaseModel):
     reason: str = Field(min_length=1, max_length=500, description='转移原因')
 
 
-class FileReconcileRunModel(BaseModel):
+class FileReconcileRunModel(CamelModel):
     """文件存储对账任务展示模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     run_id: str = Field(description='任务ID')
     trigger_type: Literal['manual', 'scheduled'] = Field(description='触发类型')
@@ -388,10 +364,8 @@ class FileReconcileRunModel(BaseModel):
     error_message: str | None = Field(default=None, description='失败原因')
 
 
-class FileReconcileRunPageQueryModel(BaseModel):
+class FileReconcileRunPageQueryModel(CamelModel):
     """文件存储对账任务分页查询模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     status: Literal['running', 'completed', 'failed'] | None = Field(default=None, description='任务状态')
     trigger_type: Literal['manual', 'scheduled'] | None = Field(default=None, description='触发类型')
@@ -399,10 +373,10 @@ class FileReconcileRunPageQueryModel(BaseModel):
     page_size: int = Field(default=10, ge=1, le=100, description='每页记录数')
 
 
-class FileReconcileIssueModel(BaseModel):
+class FileReconcileIssueModel(CamelModel):
     """文件存储对账异常展示模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     issue_id: int = Field(description='异常ID')
     issue_key: str = Field(description='异常唯一标识')
@@ -445,10 +419,8 @@ class FileReconcileIssueModel(BaseModel):
     available_actions: list[FileReconcileAction] = Field(default_factory=list, description='可用处理动作')
 
 
-class FileReconcileIssuePageQueryModel(BaseModel):
+class FileReconcileIssuePageQueryModel(CamelModel):
     """文件存储对账异常分页查询模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     issue_type: str | None = Field(default=None, max_length=32, description='异常类型')
     severity: Literal['critical', 'warning', 'info'] | None = Field(default=None, description='严重级别')
@@ -458,28 +430,24 @@ class FileReconcileIssuePageQueryModel(BaseModel):
     page_size: int = Field(default=10, ge=1, le=100, description='每页记录数')
 
 
-class FileReconcileStartModel(BaseModel):
+class FileReconcileStartModel(CamelModel):
     """启动文件存储对账模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     check_hash: bool = Field(default=False, description='是否校验文件SHA-256')
 
 
-class FileReconcileHandleModel(BaseModel):
+class FileReconcileHandleModel(CamelModel):
     """文件存储对账异常处理模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     action: FileReconcileAction = Field(description='处理动作')
     reason: str = Field(min_length=1, max_length=500, description='处理原因')
     original_name: str | None = Field(default=None, min_length=1, max_length=255, description='登记原始文件名')
 
 
-class FileReconcileStatsModel(BaseModel):
+class FileReconcileStatsModel(CamelModel):
     """文件存储对账统计模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     open_count: int = Field(default=0, ge=0, description='待处理异常数')
     critical_count: int = Field(default=0, ge=0, description='严重异常数')

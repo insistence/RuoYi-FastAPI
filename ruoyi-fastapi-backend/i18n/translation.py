@@ -47,7 +47,7 @@ class TranslationUtil:
         :param patch: 本次提交的语言补丁
         :return: 合并后的新映射，不修改输入对象
         """
-        result = dict(current or {})
+        result: dict[str, str] = dict(current or {})
         for locale, translation in patch.items():
             if translation is None:
                 result.pop(locale, None)

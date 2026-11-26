@@ -1,6 +1,6 @@
 import json
 import re
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -30,7 +30,7 @@ def _require_request(context: PluginRequestContext, plugin_id: str, capability: 
 
 
 @asynccontextmanager
-async def _request_session(context: PluginRequestContext, factory: Callable[..., Any]) -> AsyncIterator[Any]:
+async def _request_session(context: PluginRequestContext, factory: Callable[..., Any]) -> AsyncGenerator[Any, None]:
     """
     复用当前任务的显式事务；未开启事务时为单次只读服务创建独立会话。
 

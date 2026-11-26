@@ -13,7 +13,7 @@ MAX_TRUST_FILE_BYTES = 1024 * 1024
 class TrustedPublisher(BaseModel):
     """将公钥与可发布插件ID显式绑定的发布者配置。"""
 
-    model_config = ConfigDict(extra='forbid', populate_by_name=True, strict=True)
+    model_config = ConfigDict(extra='forbid', validate_by_name=True, validate_by_alias=True, strict=True)
     key_id: str = Field(alias='keyId', pattern=r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', description='签名密钥标识')
     public_key: str = Field(alias='publicKey', min_length=1, max_length=8192, description='用于验证制品签名的公钥')
     plugin_ids: list[str] = Field(alias='pluginIds', min_length=1, max_length=256, description='插件标识列表')
@@ -41,7 +41,7 @@ class TrustedPublisher(BaseModel):
 class PluginTrustDocument(BaseModel):
     """由宿主管理的发布者公钥及授权范围配置文档。"""
 
-    model_config = ConfigDict(extra='forbid', populate_by_name=True, strict=True)
+    model_config = ConfigDict(extra='forbid', validate_by_name=True, validate_by_alias=True, strict=True)
     schema_version: int = Field(alias='schemaVersion', ge=1, le=1, description='数据结构的版本')
     keys: list[TrustedPublisher] = Field(max_length=256, description='受信任的制品签发者及其密钥')
 

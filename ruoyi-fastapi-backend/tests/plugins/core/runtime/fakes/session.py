@@ -1,7 +1,15 @@
-class FakeSession:
+from unittest.mock import AsyncMock
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+class FakeSession(AsyncSession):
     """
     测试用异步数据库会话。
 
+    :ivar execute: 记录 SQL 并避免访问外部数据库的异步执行方法
+    :ivar install_hook_ran: 安装钩子记录的插件标识
+    :ivar purge_hook_ran: 清理钩子记录的插件标识
     :ivar committed: 是否已经提交事务
     :ivar rolled_back: 是否已经回滚事务
     :ivar executed_statements: 测试替身收到的 SQL 语句
@@ -9,26 +17,13 @@ class FakeSession:
 
     def __init__(self) -> None:
         """初始化测试用异步数据库会话。"""
+        super().__init__()
+        self.execute = AsyncMock(side_effect=self.record_statement)
+        self.install_hook_ran: str | None = None
+        self.purge_hook_ran: str | None = None
         self.committed = False
         self.rolled_back = False
         self.executed_statements = []
-
-    async def __aenter__(self) -> 'FakeSession':
-        """
-        进入异步上下文。
-
-        :return: 当前实例
-        """
-        return self
-
-    async def __aexit__(self, exc_type: object, exc: object, traceback: object) -> None:
-        """
-        退出异步上下文。
-
-        :param exc_type: 退出上下文时的异常类型
-        :param exc: 捕获到的异常实例
-        :param traceback: 异常的调用栈
-        """
 
     async def commit(self) -> None:
         """记录提交动作。"""
@@ -38,7 +33,7 @@ class FakeSession:
         """记录回滚动作。"""
         self.rolled_back = True
 
-    async def execute(self, statement: object) -> None:
+    async def record_statement(self, statement: object) -> None:
         """
         记录 SQL 执行动作。
 

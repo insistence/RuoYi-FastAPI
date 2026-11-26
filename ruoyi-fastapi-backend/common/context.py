@@ -1,8 +1,9 @@
 import re
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, TypedDict
 
+from common.enums import ExcludeRouteMethod
 from config.env import I18nConfig
 from exceptions.exception import LoginException
 
@@ -21,11 +22,27 @@ class LocaleContext:
     locale: str = I18nConfig.i18n_default_locale
 
 
+class CompiledExcludeRoute(TypedDict):
+    """
+    编译后的认证排除规则。
+
+    :ivar pattern: 匹配请求路径的正则表达式
+    :ivar original_path: 原始路由路径
+    :ivar methods: 规则适用的 HTTP 方法，空列表表示全部方法
+    :ivar ignore_paths: 不适用该规则的路径
+    """
+
+    pattern: re.Pattern[str]
+    original_path: str
+    methods: list[ExcludeRouteMethod]
+    ignore_paths: list[str]
+
+
 # 定义上下文变量
 # 存储当前请求的编译后的排除路由模式列表
-current_exclude_patterns: ContextVar[
-    list[dict[str, str | list[Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']] | re.Pattern]] | None
-] = ContextVar('current_exclude_patterns', default=None)
+current_exclude_patterns: ContextVar[list[CompiledExcludeRoute] | None] = ContextVar(
+    'current_exclude_patterns', default=None
+)
 # 存储当前用户信息
 current_user: ContextVar['CurrentUserModel | None'] = ContextVar('current_user', default=None)
 current_timezone: ContextVar[str | None] = ContextVar('current_timezone', default=None)
@@ -38,9 +55,7 @@ class RequestContext:
 
     @staticmethod
     def set_current_exclude_patterns(
-        exclude_patterns: list[
-            dict[str, str | list[Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']] | re.Pattern]
-        ],
+        exclude_patterns: list[CompiledExcludeRoute],
     ) -> Token:
         """
         设置当前请求的编译后的排除路由模式列表。
@@ -51,9 +66,7 @@ class RequestContext:
         return current_exclude_patterns.set(exclude_patterns)
 
     @staticmethod
-    def get_current_exclude_patterns() -> list[
-        dict[str, str | list[Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']] | re.Pattern]
-    ]:
+    def get_current_exclude_patterns() -> list[CompiledExcludeRoute]:
         """
         获取当前请求的编译后的排除路由模式列表。
 

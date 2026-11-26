@@ -5,7 +5,7 @@ import socket
 import subprocess
 import tempfile
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,10 +18,19 @@ from redis.exceptions import RedisError
 STARTUP_TIMEOUT_SECONDS = 5
 DEFAULT_REDIS_PORT = 6379
 ABSOLUTE_EXPIRY_SCRIPT = """
-local ttl = redis.call('PTTL', KEYS[1])
-if ttl < 0 then return ttl end
-local clock = redis.call('TIME')
-return tonumber(clock[1]) * 1000 + math.floor(tonumber(clock[2]) / 1000) + ttl
+local deadline = redis.pcall('PEXPIRETIME', KEYS[1])
+if type(deadline) == 'number' then return deadline end
+
+-- Redis 6.2 只有相对 TTL，前后两次采样一致时才能与中间的服务器时间相加。
+for attempt = 1, 10 do
+    local ttl = redis.call('PTTL', KEYS[1])
+    if ttl < 0 then return ttl end
+    local clock = redis.call('TIME')
+    if redis.call('PTTL', KEYS[1]) == ttl then
+        return tonumber(clock[1]) * 1000 + math.floor(tonumber(clock[2]) / 1000) + ttl
+    end
+end
+return redis.error_reply('无法取得同一毫秒的 TTL 和服务器时间')
 """
 
 
@@ -77,7 +86,7 @@ def available_loopback_port() -> int:
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.bind(('127.0.0.1', 0))
-        port = listener.getsockname()[1]
+        port = int(listener.getsockname()[1])
     if port == DEFAULT_REDIS_PORT:
         raise RuntimeError('Refusing to use the default Redis port for an isolated test')
     return port
@@ -100,7 +109,7 @@ def stop_redis_process(process: subprocess.Popen) -> None:
 
 
 @contextmanager
-def isolated_redis_server(executable: str) -> Iterator[IsolatedRedisServer]:
+def isolated_redis_server(executable: str) -> Generator[IsolatedRedisServer, None, None]:
     """
     启动隔离 Redis，Linux 使用临时套接字，Windows 使用动态回环端口。
 

@@ -487,6 +487,14 @@ class BaseNestedCommandWizardFlow(ABC, Generic[SelectionT]):
         del ctx, nested_result, output
         return False
 
+    def get_execution_result_support(self) -> WizardExecutionResultSupport:
+        """
+        根据向导的失败提示构建结果处理器。
+
+        :return: 向导执行结果处理器
+        """
+        return WizardExecutionResultSupport(failure_message=self.failure_message)
+
     def build_failure_payload(self, nested_result: Any) -> dict[str, Any]:
         """
         为内部 CLI 非 JSON 结果构建失败负载。
@@ -686,14 +694,7 @@ class BaseCliWizardFlow(BaseNestedCommandWizardFlow[SelectionT], ABC):
     nested_command_runner: ClassVar[Callable[..., Any]] = staticmethod(NESTED_CLI_SUPPORT.run)
     nested_live_command_runner: ClassVar[Callable[..., Any]] = staticmethod(NESTED_CLI_SUPPORT.exec)
 
-    def __init__(self) -> None:
-        """
-        初始化当前项目向导基类。
-
-        该基类通过协作者缓存稳定持有交互、结果收口和内部 CLI 调用 support，
-        避免模板方法执行过程中重复构建同类对象。
-        """
-        self._support_cache: WizardSupportCache | None = None
+    _support_cache: WizardSupportCache | None = None
 
     def get_support_cache(self) -> WizardSupportCache:
         """
@@ -703,8 +704,7 @@ class BaseCliWizardFlow(BaseNestedCommandWizardFlow[SelectionT], ABC):
 
         :return: 协作者缓存
         """
-        support_cache = getattr(self, '_support_cache', None)
-        if support_cache is None:
+        if self._support_cache is None:
             self._support_cache = WizardSupportCache(self)
         return self._support_cache
 

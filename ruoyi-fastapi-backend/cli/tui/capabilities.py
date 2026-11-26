@@ -3,6 +3,7 @@ from typing import Literal
 
 from cli.tui.copy import TUI_COPY
 
+ActionSlot = Literal['primary', 'secondary', 'global', 'utility']
 CapabilityKind = Literal['read_only', 'preview', 'low_risk_action', 'command_hint']
 CapabilityScope = Literal['browser', 'detail']
 
@@ -21,7 +22,7 @@ class TuiCapability:
     """
 
     kind: CapabilityKind
-    slot: str
+    slot: ActionSlot
     key: str
     label: str
     hint_label: str
@@ -41,7 +42,7 @@ class TuiCapabilitySpec:
 
     capability_key: str
     kind: CapabilityKind
-    slot: str
+    slot: ActionSlot
     key: str
 
 
@@ -141,7 +142,7 @@ class TuiCapabilityRegistryBuilder:
         *,
         capability_key: str,
         kind: CapabilityKind,
-        slot: str,
+        slot: ActionSlot,
         key: str,
         scope: CapabilityScope,
     ) -> TuiCapability:

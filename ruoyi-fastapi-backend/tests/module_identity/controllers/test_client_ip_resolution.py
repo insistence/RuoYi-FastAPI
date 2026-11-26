@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.env import AppConfig, OidcConfig
 from exceptions.exception import OAuthProtocolException
@@ -101,6 +102,7 @@ def client_request(
     """
     peer, hops, headers, expected = request.param
     monkeypatch.setattr(AppConfig, 'app_trusted_proxy_hops', hops)
+    assert isinstance(expected, str)
     return _request(peer, headers), expected
 
 
@@ -114,9 +116,9 @@ async def test_login_passes_resolved_ip_to_credentials_and_session_flow(
     login = AsyncMock(return_value=InteractionLoginOutcome(failure_message='认证信息无效'))
     monkeypatch.setattr(InteractionLoginService, 'login', login)
 
-    await login_endpoint(request, 'interaction-1', object(), 'csrf')
+    await login_endpoint(request, 'interaction-1', AsyncSession(), 'csrf')
 
-    assert login.await_args.args[5] == expected
+    assert login.await_args_list[-1].args[5] == expected
 
 
 @pytest.mark.asyncio
@@ -145,7 +147,7 @@ async def test_authorize_rate_limit_hashes_the_resolved_client_ip(
     await _enforce_authorization_rate_limit(request, request.app.state.redis)
 
     digest = hmac.new(_PEPPER.encode(), expected.encode(), hashlib.sha256).hexdigest()
-    assert enforce.await_args.args[1] == OidcRedisKey.authorize_ip_rate_limit(digest)
+    assert enforce.await_args_list[-1].args[1] == OidcRedisKey.authorize_ip_rate_limit(digest)
 
 
 @pytest.mark.asyncio
@@ -159,11 +161,11 @@ async def test_logout_rate_limit_hashes_the_resolved_client_ip(
     monkeypatch.setattr(LogoutConfirmationService, 'issue', AsyncMock(return_value=('confirmation', 'nonce')))
     monkeypatch.setattr(LogoutConfirmationService, 'form_redirect_origin', AsyncMock(return_value=None))
 
-    response = await logout(request, object())
+    response = await logout(request, AsyncSession())
 
     assert response.status_code == status.HTTP_200_OK
     digest = hmac.new(_PEPPER.encode(), expected.encode(), hashlib.sha256).hexdigest()
-    assert enforce.await_args.args[1] == OidcRedisKey.logout_rate_limit(digest)
+    assert enforce.await_args_list[-1].args[1] == OidcRedisKey.logout_rate_limit(digest)
 
 
 @pytest.mark.asyncio

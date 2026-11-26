@@ -119,6 +119,7 @@ class GenTableTest(SystemPage):
             await self.page.get_by_role('button', name=button_name('提交')).click()
         response = await pending.value
         submitted = response.request.post_data_json
+        assert isinstance(submitted, dict), submitted
         assert submitted['tableComment'] == self.table_comment, submitted
         await self.payload(response)
         await self.page.wait_for_url(re.compile(r'/tool/gen(?:\?.*)?$'))
@@ -220,7 +221,7 @@ class GenTableTest(SystemPage):
         available = await api.get('/tool/gen/db/list', params={'tableName': self.table_name})
         assert any(row['tableName'] == self.table_name for row in (await available.json())['rows'])
 
-    async def cleanup(self) -> None:
+    async def cleanup_imported_table(self) -> None:
         """失败时仍只清理由本次导入取得 ID 的元数据。"""
         if self.table_id is not None:
             api = await self.harness.api_context(self.token)
@@ -241,4 +242,4 @@ async def test_gen_table_page(browser_harness: BrowserHarness) -> None:
         await test.preview_and_download()
         await test.delete_table()
     finally:
-        await test.cleanup()
+        await test.cleanup_imported_table()

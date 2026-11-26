@@ -1,7 +1,6 @@
-import subprocess
-from collections.abc import Mapping
+from __future__ import annotations
+
 from importlib import import_module
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from plugins.core.lifecycle.migration import PluginMigrationRunner
@@ -12,16 +11,31 @@ from plugins.core.runtime.service.gateway import (
     run_plugin_command,
 )
 from plugins.core.runtime.service.migration_store import PluginDatabaseMigrationHistoryStore
-from plugins.core.types import PluginConfigValue, PluginStateRecord
 
 if TYPE_CHECKING:
+    import subprocess
+    from collections.abc import Awaitable, Callable, Mapping
+    from contextlib import AbstractAsyncContextManager
+    from pathlib import Path
+    from types import TracebackType
+
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from common.vo import CrudResponseModel
+    from plugins.core.discovery.scanner import DiscoveredPlugin
+    from plugins.core.lifecycle.migration import PluginMigrationResult
+    from plugins.core.lifecycle.purge import PluginPurgePlan
     from plugins.core.management.entity.vo.schemas import (
+        PluginConfigModel,
         PluginConfigUpdateModel,
         PluginConfigValueModel,
         PluginMigrationModel,
+        PluginModel,
         PluginOperationLogDetailModel,
         PluginOperationLogExportQueryModel,
     )
+    from plugins.core.types import PluginConfigValue, PluginStateRecord
+    from plugins.core.validation.menus import PluginMenuConflictItem
 
 
 class PluginManagementLifecycleUnitOfWork:
@@ -31,7 +45,7 @@ class PluginManagementLifecycleUnitOfWork:
     :ivar async_session_local: 异步数据库会话工厂
     :ivar plugin_service: 插件管理服务类
     :ivar session_context: 当前会话的上下文
-    :ivar session: 数据库会话
+    :ivar _session: 已进入上下文的数据库会话
     """
 
     def __init__(
@@ -47,20 +61,35 @@ class PluginManagementLifecycleUnitOfWork:
         """
         self.async_session_local = async_session_local
         self.plugin_service = plugin_service
-        self.session_context: object | None = None
-        self.session: object | None = None
+        self.session_context: AbstractAsyncContextManager[AsyncSession] | None = None
+        self._session: AsyncSession | None = None
 
-    async def __aenter__(self) -> 'PluginManagementLifecycleUnitOfWork':
+    @property
+    def session(self) -> AsyncSession:
+        """
+        获取生命周期事务正在使用的会话。
+
+        :return: 已进入上下文的数据库会话
+        :raises RuntimeError: 工作单元尚未进入或已经关闭
+        """
+        if self._session is None:
+            raise RuntimeError('插件生命周期事务尚未打开')
+        return self._session
+
+    async def __aenter__(self) -> PluginManagementLifecycleUnitOfWork:
         """
         打开生命周期主事务会话。
 
         :return: 生命周期主事务工作单元
         """
-        self.session_context = self.async_session_local()
-        self.session = await self.session_context.__aenter__()
+        context = self.async_session_local()
+        self._session = await context.__aenter__()
+        self.session_context = context
         return self
 
-    async def __aexit__(self, exc_type: object, exc: object, traceback: object) -> None:
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc: BaseException | None, traceback: TracebackType | None
+    ) -> None:
         """
         关闭生命周期主事务会话。
 
@@ -70,11 +99,13 @@ class PluginManagementLifecycleUnitOfWork:
         """
         if self.session_context is None:
             return
-        await self.session_context.__aexit__(exc_type, exc, traceback)
-        self.session_context = None
-        self.session = None
+        try:
+            await self.session_context.__aexit__(exc_type, exc, traceback)
+        finally:
+            self.session_context = None
+            self._session = None
 
-    async def check_installed_menu_conflicts(self, discovered_plugin: object) -> list[object]:
+    async def check_installed_menu_conflicts(self, discovered_plugin: DiscoveredPlugin) -> list[PluginMenuConflictItem]:
         """
         检查已安装菜单冲突。
 
@@ -85,10 +116,10 @@ class PluginManagementLifecycleUnitOfWork:
 
     async def upsert_discovered_plugin(
         self,
-        discovered_plugin: object,
-        backend_root: object,
-        frontend_root: object | None = None,
-    ) -> object:
+        discovered_plugin: DiscoveredPlugin,
+        backend_root: Path,
+        frontend_root: Path | None = None,
+    ) -> PluginModel:
         """
         写入或更新已发现插件。
 
@@ -104,7 +135,7 @@ class PluginManagementLifecycleUnitOfWork:
             frontend_root,
         )
 
-    async def install_plugin_menu(self, discovered_plugin: object, *, enabled: bool) -> None:
+    async def install_plugin_menu(self, discovered_plugin: DiscoveredPlugin, *, enabled: bool) -> None:
         """
         安装插件菜单。
 
@@ -113,7 +144,7 @@ class PluginManagementLifecycleUnitOfWork:
         """
         await self.plugin_service.install_plugin_menu_services(self.session, discovered_plugin, enabled=enabled)
 
-    async def install_plugin_default_config(self, discovered_plugin: object) -> list[object]:
+    async def install_plugin_default_config(self, discovered_plugin: DiscoveredPlugin) -> list[PluginConfigModel]:
         """
         安装插件默认配置。
 
@@ -122,7 +153,7 @@ class PluginManagementLifecycleUnitOfWork:
         """
         return await self.plugin_service.install_plugin_default_config_services(self.session, discovered_plugin)
 
-    async def install_plugin_jobs(self, discovered_plugin: object, *, enabled: bool) -> None:
+    async def install_plugin_jobs(self, discovered_plugin: DiscoveredPlugin, *, enabled: bool) -> None:
         """
         同步单个插件任务。
 
@@ -135,7 +166,7 @@ class PluginManagementLifecycleUnitOfWork:
             enabled=enabled,
         )
 
-    async def mark_plugin_installed(self, discovered_plugin: object) -> object:
+    async def mark_plugin_installed(self, discovered_plugin: DiscoveredPlugin) -> PluginModel:
         """
         标记插件已安装。
 
@@ -144,7 +175,7 @@ class PluginManagementLifecycleUnitOfWork:
         """
         return await self.plugin_service.mark_plugin_installed_services(self.session, discovered_plugin)
 
-    async def build_plugin_purge_plan(self, discovered_plugin: object) -> object:
+    async def build_plugin_purge_plan(self, discovered_plugin: DiscoveredPlugin) -> PluginPurgePlan:
         """
         构建插件物理清理计划。
 
@@ -153,7 +184,7 @@ class PluginManagementLifecycleUnitOfWork:
         """
         return await self.plugin_service.build_plugin_purge_plan_services(self.session, discovered_plugin)
 
-    async def purge_plugin_metadata(self, discovered_plugin: object) -> object:
+    async def purge_plugin_metadata(self, discovered_plugin: DiscoveredPlugin) -> PluginPurgePlan:
         """
         清理插件平台元数据。
 
@@ -162,7 +193,7 @@ class PluginManagementLifecycleUnitOfWork:
         """
         return await self.plugin_service.purge_plugin_services(self.session, discovered_plugin)
 
-    async def build_plugin_purge_plan_by_id(self, plugin_id: str) -> object:
+    async def build_plugin_purge_plan_by_id(self, plugin_id: str) -> PluginPurgePlan:
         """
         按插件 ID 构建孤儿元数据清理计划。
 
@@ -171,7 +202,7 @@ class PluginManagementLifecycleUnitOfWork:
         """
         return await self.plugin_service.build_plugin_purge_plan_by_id_services(self.session, plugin_id)
 
-    async def purge_plugin_metadata_by_id(self, plugin_id: str) -> object:
+    async def purge_plugin_metadata_by_id(self, plugin_id: str) -> PluginPurgePlan:
         """
         按插件 ID 清理孤儿元数据。
 
@@ -228,7 +259,7 @@ class PluginManagementRuntimeGateway:
         async_session_local = self.get_async_session_local()
         plugin_service = self.get_plugin_service()
         async with async_session_local() as session:
-            return await plugin_service.get_plugin_list_services(session)
+            return list(await plugin_service.get_plugin_list_services(session))
 
     async def get_plugin_state(self, plugin_id: str) -> PluginStateRecord | None:
         """
@@ -240,10 +271,12 @@ class PluginManagementRuntimeGateway:
         async_session_local = self.get_async_session_local()
         plugin_service = self.get_plugin_service()
         async with async_session_local() as session:
-            state_reader = getattr(plugin_service, 'get_plugin_state_services', plugin_service.plugin_detail_services)
+            state_reader: Callable[[AsyncSession, str], Awaitable[PluginStateRecord | None]] = getattr(
+                plugin_service, 'get_plugin_state_services', plugin_service.plugin_detail_services
+            )
             return await state_reader(session, plugin_id)
 
-    async def get_selected_artifact_plugin(self, plugin_id: str, backend_root: Path) -> object:
+    async def get_selected_artifact_plugin(self, plugin_id: str, backend_root: Path) -> DiscoveredPlugin:
         """
         按发布目标和当前宿主信任配置解析制品清单，供只读配置入口使用。
 
@@ -272,7 +305,7 @@ class PluginManagementRuntimeGateway:
         return catalog.discovered(artifact, generation)
 
     @staticmethod
-    def build_operation_log_export_query(export_limit: int) -> 'PluginOperationLogExportQueryModel':
+    def build_operation_log_export_query(export_limit: int) -> PluginOperationLogExportQueryModel:
         """
         构建插件操作日志导出查询对象。
 
@@ -280,10 +313,10 @@ class PluginManagementRuntimeGateway:
         :return: 插件操作日志导出查询对象
         """
         plugin_vo = import_module('plugins.core.management.entity.vo.schemas')
-        return plugin_vo.PluginOperationLogExportQueryModel(exportLimit=export_limit)
+        return plugin_vo.PluginOperationLogExportQueryModel(export_limit=export_limit)
 
     @staticmethod
-    def build_config_update(values: dict[str, PluginConfigValue]) -> 'PluginConfigUpdateModel':
+    def build_config_update(values: dict[str, PluginConfigValue]) -> PluginConfigUpdateModel:
         """
         构建插件配置更新对象。
 
@@ -295,10 +328,10 @@ class PluginManagementRuntimeGateway:
 
     async def get_plugin_config(
         self,
-        discovered_plugin: object,
+        discovered_plugin: DiscoveredPlugin,
         *,
         reveal_secret: bool = False,
-    ) -> list['PluginConfigValueModel']:
+    ) -> list[PluginConfigValueModel]:
         """
         获取插件配置。
 
@@ -318,9 +351,9 @@ class PluginManagementRuntimeGateway:
 
     async def update_plugin_config(
         self,
-        discovered_plugin: object,
+        discovered_plugin: DiscoveredPlugin,
         values: dict[str, PluginConfigValue],
-    ) -> list['PluginConfigValueModel']:
+    ) -> list[PluginConfigValueModel]:
         """
         更新插件配置。
 
@@ -342,12 +375,12 @@ class PluginManagementRuntimeGateway:
 
     async def set_plugin_config(
         self,
-        discovered_plugin: object,
+        discovered_plugin: DiscoveredPlugin,
         values: dict[str, PluginConfigValue],
         *,
         audit_operation: str,
         success_message: str,
-    ) -> list['PluginConfigValueModel']:
+    ) -> list[PluginConfigValueModel]:
         """
         在同一事务中更新插件配置并记录审计日志。
 
@@ -392,7 +425,7 @@ class PluginManagementRuntimeGateway:
 
     @staticmethod
     async def _ensure_plugin_installed(
-        session: object,
+        session: AsyncSession,
         plugin_service: type[PluginManagementServiceProtocol],
         plugin_id: str,
     ) -> None:
@@ -432,7 +465,7 @@ class PluginManagementRuntimeGateway:
             )
             await session.commit()
 
-    async def list_plugin_operation_logs(self, *, export_limit: int) -> list['PluginOperationLogDetailModel']:
+    async def list_plugin_operation_logs(self, *, export_limit: int) -> list[PluginOperationLogDetailModel]:
         """
         获取插件操作审计日志列表。
 
@@ -468,7 +501,7 @@ class PluginManagementRuntimeGateway:
         self,
         plugin_id: str,
         status: str | None = None,
-    ) -> list['PluginMigrationModel']:
+    ) -> list[PluginMigrationModel]:
         """
         查询插件 migration 历史。
 
@@ -481,7 +514,7 @@ class PluginManagementRuntimeGateway:
         async with async_session_local() as session:
             return await plugin_service.get_plugin_migration_list_services(session, plugin_id, status)
 
-    async def get_plugin_migration(self, plugin_id: str, migration_path: str) -> 'PluginMigrationModel | None':
+    async def get_plugin_migration(self, plugin_id: str, migration_path: str) -> PluginMigrationModel | None:
         """
         获取插件 migration 历史。
 
@@ -500,7 +533,7 @@ class PluginManagementRuntimeGateway:
         migration_path: str,
         status: str,
         error_message: str | None = None,
-    ) -> 'PluginMigrationModel | None':
+    ) -> PluginMigrationModel | None:
         """
         人工标记插件 migration 历史状态。
 
@@ -524,7 +557,7 @@ class PluginManagementRuntimeGateway:
                 await session.commit()
             return migration
 
-    async def build_plugin_purge_plan(self, discovered_plugin: object) -> object:
+    async def build_plugin_purge_plan(self, discovered_plugin: DiscoveredPlugin) -> PluginPurgePlan:
         """
         构建插件物理清理计划。
 
@@ -540,8 +573,8 @@ class PluginManagementRuntimeGateway:
         self,
         plugin_id: str,
         enabled: bool,
-        discovered_plugin: object | None = None,
-    ) -> object:
+        discovered_plugin: DiscoveredPlugin | None = None,
+    ) -> CrudResponseModel:
         """
         更新插件启停状态，并在启用时同步插件菜单。
 
@@ -565,7 +598,7 @@ class PluginManagementRuntimeGateway:
                 await session.commit()
             return response
 
-    async def mark_plugin_uninstalled_state(self, plugin_id: str) -> object:
+    async def mark_plugin_uninstalled_state(self, plugin_id: str) -> CrudResponseModel:
         """
         标记插件安全卸载。
 
@@ -580,7 +613,7 @@ class PluginManagementRuntimeGateway:
                 await session.commit()
             return response
 
-    async def run_plugin_migrations(self, discovered_plugin: object) -> object:
+    async def run_plugin_migrations(self, discovered_plugin: DiscoveredPlugin) -> list[PluginMigrationResult]:
         """
         使用独立执行事务运行插件 migration。
 
@@ -609,7 +642,7 @@ class PluginManagementRuntimeGateway:
         statement_count: int,
         status: str = 'success',
         error_message: str | None = None,
-    ) -> 'PluginMigrationModel':
+    ) -> PluginMigrationModel:
         """
         构建插件 migration 执行历史对象。
 
@@ -624,13 +657,13 @@ class PluginManagementRuntimeGateway:
         """
         plugin_vo = import_module('plugins.core.management.entity.vo.schemas')
         return plugin_vo.PluginMigrationModel(
-            pluginId=plugin_id,
-            migrationPath=migration_path,
-            migrationChecksum=checksum,
+            plugin_id=plugin_id,
+            migration_path=migration_path,
+            migration_checksum=checksum,
             version=version,
-            statementCount=statement_count,
+            statement_count=statement_count,
             status=status,
-            errorMessage=error_message,
+            error_message=error_message,
         )
 
     @staticmethod

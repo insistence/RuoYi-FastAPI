@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -48,7 +49,7 @@ class OpsCommandController:
         self.database_runtime = database_runtime or DATABASE_RUNTIME
         self.operations_runtime = operations_runtime or OPERATIONS_RUNTIME
 
-    def ping_db(self, env: str, output: str) -> None:
+    def ping_db(self, env: str, output: OutputFormat) -> None:
         """
         检查数据库连接。
 
@@ -60,7 +61,7 @@ class OpsCommandController:
             ctx, self.execution_service.run_async(self.database_runtime.ping_database())
         )
 
-    def ping_redis(self, env: str, output: str) -> None:
+    def ping_redis(self, env: str, output: OutputFormat) -> None:
         """
         检查 Redis 连接。
 
@@ -73,7 +74,7 @@ class OpsCommandController:
             self.execution_service.run_async(self.operations_runtime.ping_redis()),
         )
 
-    def health(self, env: str, output: str) -> None:
+    def health(self, env: str, output: OutputFormat) -> None:
         """
         输出基础健康检查结果。
 
@@ -97,7 +98,7 @@ class OpsCommandController:
             default_exit_code=exit_code,
         )
 
-    def deps(self, env: str, output: str, *, include_dev: bool) -> None:
+    def deps(self, env: str, output: OutputFormat, *, include_dev: bool) -> None:
         """
         检查当前 CLI 和后端运行依赖版本。
 
@@ -115,7 +116,7 @@ class OpsCommandController:
             default_exit_code=exit_code,
         )
 
-    def server_info(self, env: str, output: str) -> None:
+    def server_info(self, env: str, output: OutputFormat) -> None:
         """
         输出服务器运行时信息。
 

@@ -1,6 +1,6 @@
-from typing import Protocol, runtime_checkable
+from typing import Annotated, Protocol, runtime_checkable
 
-from fastapi import Depends, params
+from fastapi import params
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.aspect.db_session import DBSessionDependency
@@ -11,7 +11,7 @@ from exceptions.exception import PermissionException
 class PluginRouteStateGateway(Protocol):
     """插件路由状态读取端口。"""
 
-    async def is_plugin_enabled(self, db: AsyncSession, plugin_id: str) -> bool:
+    async def is_plugin_enabled(self, db: AsyncSession, plugin_id: str, /) -> bool:
         """
         判断插件路由是否允许访问。
 
@@ -55,7 +55,7 @@ class CheckPluginEnabled:
         self.plugin_id = plugin_id
         self.state_gateway = state_gateway or UnavailablePluginRouteStateGateway()
 
-    async def __call__(self, db: AsyncSession = DBSessionDependency()) -> bool:
+    async def __call__(self, db: Annotated[AsyncSession, DBSessionDependency()]) -> bool:
         """
         执行插件启用状态校验。
 
@@ -79,4 +79,4 @@ def PluginEnabledDependency(  # noqa: N802
     :param state_gateway: 插件路由状态读取端口
     :return: 插件启用状态依赖
     """
-    return Depends(CheckPluginEnabled(plugin_id, state_gateway))
+    return params.Depends(CheckPluginEnabled(plugin_id, state_gateway))

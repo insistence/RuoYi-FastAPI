@@ -40,14 +40,14 @@ class StringUtil:
         return not cls.is_empty(string)
 
     @classmethod
-    def is_http(cls, link: str) -> bool:
+    def is_http(cls, link: str | None) -> bool:
         """
         判断是否为http(s)://开头。
 
         :param link: 链接
         :return: 是否为http(s)://开头
         """
-        return link.startswith((CommonConstant.HTTP, CommonConstant.HTTPS))
+        return bool(link and link.startswith((CommonConstant.HTTP, CommonConstant.HTTPS)))
 
     @classmethod
     def contains_ignore_case(cls, search_str: str, compare_str: str) -> bool:
@@ -89,7 +89,7 @@ class StringUtil:
         return False
 
     @classmethod
-    def equals_any_ignore_case(cls, search_str: str, compare_str_list: list[str]) -> bool:
+    def equals_any_ignore_case(cls, search_str: str | None, compare_str_list: list[str]) -> bool:
         """
         比较指定字符串是否与指定字符串列表中的任意一个字符串相等同时忽略大小写。
 

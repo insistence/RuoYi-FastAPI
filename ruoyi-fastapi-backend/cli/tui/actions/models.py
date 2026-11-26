@@ -1,11 +1,10 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal
 
 from cli.tui.adapters.models import TUI_ADAPTER_MODEL_RENDERER, BrowserRecordSnapshot
 
-ActionSlot = Literal['primary', 'secondary', 'global', 'utility']
-ActionParameterBuilder = Callable[[BrowserRecordSnapshot | None, str], dict[str, object] | None]
+ActionParameters = dict[str, str | int]
+ActionParameterBuilder = Callable[[BrowserRecordSnapshot | None, str], ActionParameters | None]
 ActionSummaryBuilder = Callable[[BrowserRecordSnapshot | None, str], list[str]]
 ActionTextBuilder = Callable[[BrowserRecordSnapshot | None, str], str]
 
@@ -25,7 +24,7 @@ class TuiActionSpec:
 
     action_id: str
     label: str
-    parameters: dict[str, object]
+    parameters: ActionParameters
     preview_title: str
     preview_lines: list[str]
     refresh_view: bool = True

@@ -43,6 +43,8 @@ def oauth_management_client(monkeypatch: pytest.MonkeyPatch) -> Callable[[APIRou
             if not isinstance(route, APIRoute):
                 continue
             for dependency in route.dependant.dependencies:
+                if dependency.call is None:
+                    continue
                 if dependency.name == 'query_db':
                     app.dependency_overrides[dependency.call] = lambda: session
                 elif dependency.name == 'current_user':

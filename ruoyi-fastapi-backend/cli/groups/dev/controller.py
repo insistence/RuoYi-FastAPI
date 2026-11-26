@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -46,14 +47,14 @@ class DevCommandController:
         self,
         targets: list[str] | None,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         check_only: bool,
         fix: bool,
         unsafe_fixes: bool,
     ) -> None:
         """
-        执行 Ruff 检查、格式化和 reST 文档字符串检查。
+        执行 Ruff 格式化、静态检查、文档规范和 ty 类型检查。
 
         :param targets: 待检查路径列表
         :param env: 当前命令运行环境
@@ -75,7 +76,7 @@ class DevCommandController:
         self,
         targets: list[str] | None,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         keyword: str,
         maxfail: int,

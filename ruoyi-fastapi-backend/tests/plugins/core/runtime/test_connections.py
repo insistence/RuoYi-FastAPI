@@ -2,6 +2,7 @@ import asyncio
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -343,18 +344,22 @@ async def test_cancel_resistant_application_cannot_send_late_events(tmp_path: Pa
         """
         return PluginRequestContext(PluginHostContext('demo', tmp_path), None)
 
-    async def send(message: Message) -> None:
+    def send(message: Message) -> asyncio.Future[None]:
         """
-        收集应用发送的 ASGI 消息。
+        记录网关输出，以 Future 模拟直接返回可等待对象的 ASGI 发送器。
 
-        :param message: 与当前结果一起返回的说明
+        :param message: 网关发给客户端的协议消息
+        :return: 表示消息已发送的 Future
         """
         messages.append(message)
+        sent: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+        sent.set_result(None)
+        return sent
 
     manager = PluginLifespanManager(child, managed=False)
     await manager.startup()
     gateway = PluginGatewayASGI(child, manager, authorize, cancel_timeout=0.01)
-    task = asyncio.create_task(gateway({'type': 'http', 'headers': []}, None, send))
+    task = asyncio.create_task(gateway({'type': 'http', 'headers': []}, AsyncMock(), send))
     try:
         await asyncio.wait_for(opened.wait(), timeout=1)
         await _cancel_or_drain_request(task, gateway, external_cancel)

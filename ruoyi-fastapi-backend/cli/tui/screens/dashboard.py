@@ -1,14 +1,12 @@
-from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Grid, Horizontal, ScrollableContainer
-from textual.screen import Screen
 from textual.widgets import Footer
 
 from cli.tui.adapters import DashboardSnapshot
 from cli.tui.copy import TUI_COPY
 from cli.tui.keymaps import TUI_KEYMAP_REGISTRY
-from cli.tui.screens.focus import BaseScreenFocusService, ScreenFocusActionsMixin
+from cli.tui.screens.focus import BaseScreenFocusService, WorkspaceScreen
 from cli.tui.screens.summary import STATUS_SUMMARY_BUILDER
 from cli.tui.widgets import (
     MetricPanel,
@@ -108,7 +106,7 @@ class DashboardScreenFocusService(BaseScreenFocusService):
         return screen.query_one('#workspace-main', ScrollableContainer)
 
 
-class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
+class DashboardScreen(WorkspaceScreen):
     """
     TUI 首页巡检屏幕。
 
@@ -219,36 +217,3 @@ class DashboardScreen(ScreenFocusActionsMixin, Screen[None]):
     def on_mount(self) -> None:
         """首页挂载后默认将焦点停留在左侧导航。"""
         self.call_after_refresh(self.query_one(WorkspaceSidebar).focus)
-
-    def _open_sidebar_item(self, event: WorkspaceSidebar.Highlighted | WorkspaceSidebar.Selected) -> None:
-        """
-        根据侧边栏事件打开对应视图，并避免重复打开当前页面。
-
-        :param event: 侧边栏高亮或选中事件
-        """
-        item = getattr(event.item, 'item', None)
-        if not isinstance(item, NavigationItem):
-            return
-        if not event.control.navigation_ready:
-            return
-        if item.view_key == self.active_view and self.app.requested_view == self.active_view:
-            return
-        self.app.open_view(item.view_key)
-
-    @on(WorkspaceSidebar.Selected)
-    def on_sidebar_selected(self, event: WorkspaceSidebar.Selected) -> None:
-        """
-        响应左侧导航选中事件并切换视图。
-
-        :param event: 导航选中事件
-        """
-        self._open_sidebar_item(event)
-
-    @on(WorkspaceSidebar.Highlighted)
-    def on_sidebar_highlighted(self, event: WorkspaceSidebar.Highlighted) -> None:
-        """
-        响应左侧导航高亮变更并立即切换视图。
-
-        :param event: 导航高亮事件
-        """
-        self._open_sidebar_item(event)

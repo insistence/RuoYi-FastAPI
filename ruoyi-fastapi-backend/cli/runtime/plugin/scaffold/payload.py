@@ -44,7 +44,7 @@ class PluginScaffoldPlanPayload:
     files: list[tuple[Path, str]]
     conflicts: list[str]
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -83,7 +83,7 @@ class PluginScaffoldSuccessPayload:
     scaffold_plan: dict[str, Any]
     dry_run: bool
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -114,7 +114,7 @@ class PluginScaffoldConflictPayload:
     dry_run: bool
     failure_code: int = RUNTIME_ERROR
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, object]:
         """
         序列化为既有 CLI payload 契约。
 
@@ -140,7 +140,7 @@ class PluginScaffoldPayloadBuilder:
         *,
         dry_run: bool,
         failure_code: int = RUNTIME_ERROR,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         构建插件模板目录冲突负载。
 
@@ -158,7 +158,7 @@ class PluginScaffoldPayloadBuilder:
         ).to_payload()
 
     @staticmethod
-    def build_success_payload(plugin_id: str, scaffold_plan: dict[str, Any], *, dry_run: bool) -> dict[str, Any]:
+    def build_success_payload(plugin_id: str, scaffold_plan: dict[str, Any], *, dry_run: bool) -> dict[str, object]:
         """
         构建插件模板创建成功负载。
 

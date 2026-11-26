@@ -51,7 +51,7 @@ def _execute_sdk(
     operation: str,
     project: Path,
     frontend_root: Path | None,
-    output: str,
+    output: OutputOption,
     *,
     dry_run: bool = False,
     force: bool = False,

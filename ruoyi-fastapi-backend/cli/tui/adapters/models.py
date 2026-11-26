@@ -75,9 +75,11 @@ class BrowserRecordSnapshot:
         """
         if self.detail_loader is None:
             return self.detail_sections
-        if self._cached_detail_sections is None:
-            object.__setattr__(self, '_cached_detail_sections', tuple(await self.detail_loader()))
-        return list(self._cached_detail_sections)
+        cached = self._cached_detail_sections
+        if cached is None:
+            cached = tuple(await self.detail_loader())
+            object.__setattr__(self, '_cached_detail_sections', cached)
+        return list(cached)
 
 
 @dataclass(frozen=True)

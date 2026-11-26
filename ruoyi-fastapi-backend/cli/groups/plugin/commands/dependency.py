@@ -8,10 +8,9 @@ from cli.groups.plugin.options import (
     PluginDependencyAllowlistExampleCommandOptions,
     PluginDependencyInstallCommandOptions,
     PluginDependencyLockCommandOptions,
+    PluginPlanOperation,
+    PluginPrecheckOperation,
 )
-
-PluginPrecheckOperation = Literal['install', 'enable', 'upgrade', 'uninstall', 'purge']
-PluginPlanOperation = Literal['install', 'enable', 'upgrade']
 
 
 def register_dependency_commands(app: typer.Typer, get_controller: Callable[[], Any]) -> None:

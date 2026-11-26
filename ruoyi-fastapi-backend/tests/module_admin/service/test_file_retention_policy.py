@@ -9,17 +9,9 @@ from module_admin.dao.file_business_dao import FileRetentionPolicyDao
 from module_admin.entity.do.file_do import SysFileRetentionPolicy
 from module_admin.entity.vo.file_vo import FileRetentionPolicyModel
 from module_admin.service.file_business_service import FileRetentionPolicyService
+from tests.module_admin.service.helpers import make_query_db
 
 RETENTION_DAYS = 365
-
-
-def make_query_db() -> SimpleNamespace:
-    """
-    创建测试使用的 ``SimpleNamespace`` 实例。
-
-    :return: 测试使用的 ``SimpleNamespace`` 实例
-    """
-    return SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
 
 
 def test_get_file_retention_policy_list_maps_orm_field_names() -> None:
@@ -73,8 +65,8 @@ def test_add_file_retention_policy_commits_new_policy() -> None:
     """新增文件保留策略后提交事务。"""
     query_db = make_query_db()
     policy = FileRetentionPolicyModel(
-        businessType='notice',
-        retentionDays=RETENTION_DAYS,
+        business_type='notice',
+        retention_days=RETENTION_DAYS,
         status='0',
         remark='公告附件',
     )
@@ -99,16 +91,16 @@ def test_add_file_retention_policy_commits_new_policy() -> None:
         )
 
     assert result.is_success is True
-    assert add_policy.await_args.args[1].business_type == 'notice'
-    assert add_policy.await_args.args[1].retention_days == RETENTION_DAYS
-    assert add_policy.await_args.args[1].create_by == 'admin'
+    assert add_policy.await_args_list[-1].args[1].business_type == 'notice'
+    assert add_policy.await_args_list[-1].args[1].retention_days == RETENTION_DAYS
+    assert add_policy.await_args_list[-1].args[1].create_by == 'admin'
     query_db.commit.assert_awaited_once()
 
 
 def test_add_file_retention_policy_rejects_duplicate_business_type() -> None:
     """新增策略时拒绝重复的业务类型。"""
     query_db = make_query_db()
-    policy = FileRetentionPolicyModel(businessType='notice', retentionDays=30)
+    policy = FileRetentionPolicyModel(business_type='notice', retention_days=30)
     with (
         patch.object(
             FileRetentionPolicyDao,

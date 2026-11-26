@@ -1,6 +1,7 @@
 import json
 import re
 from pathlib import Path
+from unittest.mock import AsyncMock
 from urllib.parse import urljoin
 
 import httpx
@@ -58,7 +59,7 @@ def _mount_bundle(plugin_root: Path, *, spa_fallback: bool = True) -> FastAPI:
     parent = FastAPI()
     parent.mount(
         '/apps/demo',
-        PluginBundleASGI(child, 'demo', plugin_root, FrontendBundleManifest(spaFallback=spa_fallback)),
+        PluginBundleASGI(child, 'demo', plugin_root, FrontendBundleManifest(spa_fallback=spa_fallback)),
     )
     return parent
 
@@ -209,7 +210,7 @@ async def test_api_unknown_routes_and_non_http_scopes_are_delegated(bundle_root:
 
     bundle = PluginBundleASGI(child, 'demo', bundle_root.parents[1], FrontendBundleManifest())
     for scope in ({'type': 'lifespan'}, {'type': 'websocket', 'path': '/ui/events'}):
-        await bundle(scope, None, None)
+        await bundle(scope, AsyncMock(), AsyncMock())
         assert reached[-1] is scope
 
 
@@ -293,7 +294,7 @@ async def test_configuration_json_cannot_close_script_and_has_no_request_secrets
         'headers': [(b'accept', b'text/html'), (b'cookie', b'secret-session=top-secret')],
         'query_string': b'token=must-not-be-injected',
     }
-    await bundle(scope, None, send)
+    await bundle(scope, AsyncMock(), send)
     body = b''.join(message.get('body', b'') for message in messages).decode()
     match = _CONFIG_SCRIPT.search(body)
     assert match is not None
@@ -320,7 +321,9 @@ async def test_runtime_base_is_first_and_preserves_doctype(bundle_root: Path, ht
         response = await client.get('/apps/demo/ui/deep/link', headers=_HTML_HEADERS)
     assert response.status_code == status.HTTP_200_OK
     assert response.text.startswith('<!doctype html>')
-    assert re.search(r'<base href="([^"]+)">', response.text).group(1) == '/apps/demo/ui/'
+    match = re.search(r'<base href="([^"]+)">', response.text)
+    assert match is not None
+    assert match[1] == '/apps/demo/ui/'
 
 
 def test_missing_bundle_or_entry_is_rejected_before_activation(tmp_path: Path) -> None:

@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 
 from pytest import MonkeyPatch
+from typer import Context
+from typer.core import TyperCommand
 
 BACKEND_DIR = Path(__file__).resolve().parents[3]
 
@@ -243,14 +245,8 @@ def test_complete_cache_keys_returns_dynamic_readonly_choices(monkeypatch: Monke
 
         CACHE_RUNTIME = CacheRuntime()
 
-    class _FakeContext:
-        """
-        模拟 Click 上下文。
-
-        :cvar params: 调用时传入的参数
-        """
-
-        params = {'cache_name': 'sys_config'}
+    ctx = Context(TyperCommand('get'))
+    ctx.params['cache_name'] = 'sys_config'
 
     monkeypatch.setattr(
         completion_registry.dynamic_service, 'load_runtime_module', lambda module_name: _FakeCacheRuntime
@@ -264,7 +260,7 @@ def test_complete_cache_keys_returns_dynamic_readonly_choices(monkeypatch: Monke
         },
     )
 
-    candidates = completion_gateway.complete_cache_keys(_FakeContext(), None, 'site.n')
+    candidates = completion_gateway.complete_cache_keys(ctx, None, 'site.n')
 
     assert candidates == ['site.name']
 

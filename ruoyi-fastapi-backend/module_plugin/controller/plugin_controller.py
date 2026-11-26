@@ -474,18 +474,16 @@ async def diagnose_system_plugin(
         redis=getattr(request.app.state, 'redis', None),
         ready_key=getattr(application_runtime, 'ready_key', None),
     )
-    logger.info(diagnose_plugin_result.get('message', '插件诊断包生成完成'))
+    default_message = I18nMessage('插件诊断包生成完成', msg_key='plugin.runtime.diagnostics.completed')
+    logger.info(diagnose_plugin_result.get('message', default_message))
 
     if all(key in diagnose_plugin_result for key in ('info', 'check', 'config', 'menuPlan', 'audit')):
         # 完整诊断包中的 ok=false 表示检查发现问题，仍需让页面读取其运行观测证据。
         return ResponseUtil.success(
-            msg=diagnose_plugin_result.get('message')
-            or I18nMessage('插件诊断包生成完成', msg_key='plugin.runtime.diagnostics.completed'),
+            msg=PluginOperationResult.from_payload(diagnose_plugin_result, default_message=default_message).message,
             data=_public_plugin_payload(diagnose_plugin_result),
         )
-    return _plugin_operation_response(
-        diagnose_plugin_result, I18nMessage('插件诊断包生成完成', msg_key='plugin.runtime.diagnostics.completed')
-    )
+    return _plugin_operation_response(diagnose_plugin_result, default_message)
 
 
 @plugin_controller.get(

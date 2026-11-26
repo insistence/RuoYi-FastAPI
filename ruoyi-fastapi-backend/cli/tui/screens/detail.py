@@ -4,7 +4,6 @@ from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, ScrollableContainer
-from textual.screen import Screen
 from textual.widgets import Footer
 
 from cli.tui.actions import (
@@ -15,8 +14,9 @@ from cli.tui.actions import (
 )
 from cli.tui.adapters import DetailPageSnapshot, DetailSectionSnapshot
 from cli.tui.adapters.models import TUI_ADAPTER_MODEL_RENDERER
+from cli.tui.capabilities import ActionSlot
 from cli.tui.copy import TUI_COPY
-from cli.tui.screens.focus import BaseScreenFocusService, ScreenFocusActionsMixin
+from cli.tui.screens.focus import BaseScreenFocusService, WorkspaceScreen
 from cli.tui.screens.interactions import TUI_SCREEN_INTERACTION_SERVICE, ScreenInteractionActionsMixin
 from cli.tui.screens.summary import STATUS_SUMMARY_BUILDER
 from cli.tui.widgets import (
@@ -86,7 +86,7 @@ class DetailScreenSupport:
         return search_context.query if search_context is not None else ''
 
     @staticmethod
-    def resolve_action(*, active_view: str, slot: str, env: str) -> TuiActionSpec | None:
+    def resolve_action(*, active_view: str, slot: ActionSlot, env: str) -> TuiActionSpec | None:
         """
         解析当前详情页指定槽位对应的动作。
 
@@ -136,7 +136,7 @@ class DetailScreenFocusService(BaseScreenFocusService):
         return screen.query_one('#workspace-main', ScrollableContainer)
 
 
-class DetailScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Screen[None]):
+class DetailScreen(ScreenInteractionActionsMixin, WorkspaceScreen):
     """
     TUI 通用详情屏幕。
 
@@ -267,7 +267,7 @@ class DetailScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scree
             self._current_search_query(),
         )
 
-    def _resolve_action(self, slot: str) -> TuiActionSpec | None:
+    def _resolve_action(self, slot: ActionSlot) -> TuiActionSpec | None:
         """
         解析当前详情页指定槽位对应的动作。
 
@@ -276,7 +276,7 @@ class DetailScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scree
         """
         return self.support.resolve_action(active_view=self.active_view, slot=slot, env=self.env)
 
-    def _open_action_confirm(self, slot: str) -> None:
+    def _open_action_confirm(self, slot: ActionSlot) -> None:
         """
         打开指定槽位动作的确认弹窗。
 
@@ -367,39 +367,6 @@ class DetailScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scree
     def on_unmount(self) -> None:
         """详情页卸载时取消尚未完成的后台任务。"""
         self._cancel_task(self._action_task)
-
-    def _open_sidebar_item(self, event: WorkspaceSidebar.Highlighted | WorkspaceSidebar.Selected) -> None:
-        """
-        根据侧边栏事件打开对应视图，并避免重复打开当前页面。
-
-        :param event: 侧边栏高亮或选中事件
-        """
-        item = getattr(event.item, 'item', None)
-        if not isinstance(item, NavigationItem):
-            return
-        if not event.control.navigation_ready:
-            return
-        if item.view_key == self.active_view and self.app.requested_view == self.active_view:
-            return
-        self.app.open_view(item.view_key)
-
-    @on(WorkspaceSidebar.Selected)
-    def on_sidebar_selected(self, event: WorkspaceSidebar.Selected) -> None:
-        """
-        响应左侧导航选中事件并切换视图。
-
-        :param event: 导航选中事件
-        """
-        self._open_sidebar_item(event)
-
-    @on(WorkspaceSidebar.Highlighted)
-    def on_sidebar_highlighted(self, event: WorkspaceSidebar.Highlighted) -> None:
-        """
-        响应左侧导航高亮变更并立即切换视图。
-
-        :param event: 导航高亮事件
-        """
-        self._open_sidebar_item(event)
 
     @on(SectionNavigator.Changed)
     def on_section_changed(self, event: SectionNavigator.Changed) -> None:

@@ -6,14 +6,15 @@ from copy import deepcopy
 from datetime import datetime
 from enum import StrEnum
 from functools import wraps
-from typing import Any, Literal, ParamSpec, TypeVar
+from typing import Any, Final, Literal, ParamSpec, TypeVar
 
 import httpx
 from async_lru import alru_cache
-from fastapi import Request
+from fastapi import Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, ORJSONResponse, UJSONResponse
+from fastapi.responses import JSONResponse
 from pydantic_validation_decorator import FieldValidationError
+from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException
 from starlette.status import HTTP_200_OK
 from user_agents import parse
@@ -179,7 +180,7 @@ class Log:
         :param response_exclude_fields: 响应日志排除字段路径，仅在response_log_mode='exclude'时生效；推荐从code/msg/data/rows/success/time开始，字段名支持 snake_case 与 camelCase 自动兼容
         """
         self.title = title
-        self.business_type = business_type.value
+        self.business_type: Final = business_type.value
         self.log_type = log_type
         self.request_log_mode = request_log_mode
         self.response_log_mode = response_log_mode
@@ -193,7 +194,7 @@ class Log:
         self._validate_request_field_paths_strict()
         self._warn_invalid_field_path_config()
 
-    def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+    def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R | Response]]:
         """
         为接口添加操作日志或登录日志记录。
 
@@ -202,7 +203,7 @@ class Log:
         """
 
         @wraps(func)
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | Response:
             """
             执行接口并根据日志策略记录请求、响应及耗时。
 
@@ -291,11 +292,10 @@ class Log:
                 if self.log_type == 'login':
                     # 登录请求来自于api文档时不记录登录日志，其余情况则记录
                     if not (request_from_swagger or request_from_redoc):
-                        user = kwargs.get('form_data')
                         login_log.update(
                             {
                                 'loginTime': oper_time,
-                                'userName': user.username,
+                                'userName': getattr(kwargs.get('form_data'), 'username', None),
                                 'status': str(status),
                                 'msg': sanitized_result_dict.get('msg') or '',
                             }
@@ -307,21 +307,21 @@ class Log:
                     dept_name = current_user.user.dept.dept_name if current_user.user.dept else None
                     operation_log = OperLogModel(
                         title=self.title,
-                        businessType=self.business_type,
+                        business_type=self.business_type,
                         method=func_path,
-                        requestMethod=request_method,
-                        operatorType=operator_type,
-                        operName=current_user.user.user_name,
-                        deptName=dept_name,
-                        operUrl=oper_url,
-                        operIp=oper_ip,
-                        operLocation=oper_location,
-                        operParam=oper_param,
-                        jsonResult=json_result,
+                        request_method=request_method,
+                        operator_type=operator_type,
+                        oper_name=current_user.user.user_name,
+                        dept_name=dept_name,
+                        oper_url=oper_url,
+                        oper_ip=oper_ip,
+                        oper_location=oper_location,
+                        oper_param=oper_param,
+                        json_result=json_result,
                         status=status,
-                        errorMsg=error_msg,
-                        operTime=oper_time,
-                        costTime=int(cost_time),
+                        error_msg=error_msg,
+                        oper_time=oper_time,
+                        cost_time=int(cost_time),
                     )
                     await LogQueueService.enqueue_operation_log(request, operation_log, func_path)
 
@@ -346,7 +346,8 @@ class Log:
         # 获取完整模块路径
         module_path = module.__name__ if module else ''
         # 获取当前被装饰函数所在路径
-        func_path = f'{module_path}.{func.__name__}()'
+        func_name = getattr(func, '__name__', type(func).__name__)
+        func_path = f'{module_path}.{func_name}()'
 
         return func_path
 
@@ -362,7 +363,7 @@ class Log:
         """
         return overflow_text if len(log_text) > max_length else log_text
 
-    def _get_oper_type(self, user_agent: Any) -> int:
+    def _get_oper_type(self, user_agent: Any) -> Literal[0, 1, 2]:
         """
         获取操作类型。
 
@@ -370,13 +371,11 @@ class Log:
         :return: 操作类型
         """
         user_agent_text = user_agent or ''
-        operator_type = 0
-        if 'Windows' in user_agent_text or 'Macintosh' in user_agent_text or 'Linux' in user_agent_text:
-            operator_type = 1
         if 'Mobile' in user_agent_text or 'Android' in user_agent_text or 'iPhone' in user_agent_text:
-            operator_type = 2
-
-        return operator_type
+            return 2
+        if 'Windows' in user_agent_text or 'Macintosh' in user_agent_text or 'Linux' in user_agent_text:
+            return 1
+        return 0
 
     async def _get_oper_location(self, oper_ip: str) -> str:
         """
@@ -460,7 +459,7 @@ class Log:
             return params
 
         # 过滤掉文件对象，只保留普通表单字段
-        form_dict = {key: value for key, value in form_data.items() if not hasattr(value, 'filename')}
+        form_dict = {key: value for key, value in form_data.items() if not isinstance(value, UploadFile)}
         if form_dict:
             params['form_data'] = form_dict
 
@@ -470,7 +469,7 @@ class Log:
 
         file_info = {}
         for key, value in form_data.items():
-            if hasattr(value, 'filename'):
+            if isinstance(value, UploadFile):
                 file_info[key] = {
                     'filename': value.filename,
                     'content_type': value.content_type,
@@ -1011,7 +1010,7 @@ class Log:
         if 'form_data' in origin_kwargs:
             origin_kwargs['form_data'].login_info = login_log
 
-    def _get_status_and_error_msg(self, result_dict: dict) -> tuple[int, str]:
+    def _get_status_and_error_msg(self, result_dict: dict) -> tuple[Literal[0, 1], str | None]:
         """
         获取操作状态和错误信息。
 
@@ -1023,7 +1022,8 @@ class Log:
         if result_dict.get('code') == HTTP_200_OK:
             status = 0
         else:
-            error_msg = self._get_result_message(result_dict)
+            message = self._get_result_message(result_dict)
+            error_msg = message if isinstance(message, str) else None
 
         return status, error_msg
 
@@ -1044,14 +1044,8 @@ class Log:
         :param request: Request对象
         :return: 是否来自swagger请求和是否来自redoc请求元组
         """
-        request_from_swagger = (
-            request.headers.get('referer').endswith('docs') if request.headers.get('referer') else False
-        )
-        request_from_redoc = (
-            request.headers.get('referer').endswith('redoc') if request.headers.get('referer') else False
-        )
-
-        return request_from_swagger, request_from_redoc
+        referer = request.headers.get('referer', '')
+        return referer.endswith('docs'), referer.endswith('redoc')
 
     def _get_result_dict(self, result: Any, request_from_swagger: bool, request_from_redoc: bool) -> dict:
         """
@@ -1062,7 +1056,7 @@ class Log:
         :param request_from_redoc: 是否来自redoc请求
         :return: 操作结果字典
         """
-        if isinstance(result, (JSONResponse, ORJSONResponse, UJSONResponse)):
+        if isinstance(result, JSONResponse):
             result_dict = json.loads(str(result.body, 'utf-8'))
         elif request_from_swagger or request_from_redoc:
             result_dict = {}

@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import and_, delete, func, select, update
+from sqlalchemy import and_, delete, func, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -41,8 +41,8 @@ class DictTypeDao:
             (
                 await db.execute(
                     select(SysDictType).where(
-                        SysDictType.dict_type == dict_type.dict_type if dict_type.dict_type else True,
-                        SysDictType.dict_name == dict_type.dict_name if dict_type.dict_name else True,
+                        SysDictType.dict_type == dict_type.dict_type if dict_type.dict_type else true(),
+                        SysDictType.dict_name == dict_type.dict_name if dict_type.dict_name else true(),
                     )
                 )
             )
@@ -82,11 +82,11 @@ class DictTypeDao:
         query = (
             select(SysDictType)
             .where(
-                SysDictType.dict_name.like(f'%{query_object.dict_name}%') if query_object.dict_name else True,
-                SysDictType.dict_type.like(f'%{query_object.dict_type}%') if query_object.dict_type else True,
-                SysDictType.status == query_object.status if query_object.status else True,
-                SysDictType.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysDictType.create_time < time_range[1] if time_range and time_range[1] is not None else True,
+                SysDictType.dict_name.like(f'%{query_object.dict_name}%') if query_object.dict_name else true(),
+                SysDictType.dict_type.like(f'%{query_object.dict_type}%') if query_object.dict_type else true(),
+                SysDictType.status == query_object.status if query_object.status else true(),
+                SysDictType.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysDictType.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
             )
             .order_by(SysDictType.dict_id)
             .distinct()
@@ -200,9 +200,9 @@ class DictDataDao:
         query = (
             select(SysDictData)
             .where(
-                SysDictData.dict_type == query_object.dict_type if query_object.dict_type else True,
-                SysDictData.dict_label.like(f'%{query_object.dict_label}%') if query_object.dict_label else True,
-                SysDictData.status == query_object.status if query_object.status else True,
+                SysDictData.dict_type == query_object.dict_type if query_object.dict_type else true(),
+                SysDictData.dict_label.like(f'%{query_object.dict_label}%') if query_object.dict_label else true(),
+                SysDictData.status == query_object.status if query_object.status else true(),
             )
             .order_by(SysDictData.dict_sort)
             .distinct()
@@ -227,7 +227,7 @@ class DictDataDao:
                 await db.execute(
                     select(SysDictData)
                     .select_from(SysDictType)
-                    .where(SysDictType.dict_type == dict_type if dict_type else True, SysDictType.status == '0')
+                    .where(SysDictType.dict_type == dict_type if dict_type else true(), SysDictType.status == '0')
                     .join(
                         SysDictData,
                         and_(SysDictType.dict_type == SysDictData.dict_type, SysDictData.status == '0'),
@@ -290,7 +290,7 @@ class DictDataDao:
         await db.execute(delete(SysDictData).where(SysDictData.dict_code.in_([dict_data.dict_code])))
 
     @classmethod
-    async def count_dict_data_dao(cls, db: AsyncSession, dict_type: str) -> int | None:
+    async def count_dict_data_dao(cls, db: AsyncSession, dict_type: str) -> int:
         """
         根据字典类型查询字典类型关联的字典数据数量。
 
@@ -300,6 +300,6 @@ class DictDataDao:
         """
         dict_data_count = (
             await db.execute(select(func.count('*')).select_from(SysDictData).where(SysDictData.dict_type == dict_type))
-        ).scalar()
+        ).scalar_one()
 
         return dict_data_count

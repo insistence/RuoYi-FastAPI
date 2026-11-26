@@ -169,7 +169,7 @@ def _valid_summary(summary: Mapping[str, Any]) -> bool:
     else:
         expected_status = 'pending_restart'
     expected_restart = summary['targetDigest'] is not None and expected_status not in {'active', 'disabled'}
-    return (
+    return bool(
         summary['status'] == expected_status
         and summary['restartRequired'] == expected_restart
         and (expected_status not in {'active', 'disabled'} or summary['missingWorkers'] == 0)

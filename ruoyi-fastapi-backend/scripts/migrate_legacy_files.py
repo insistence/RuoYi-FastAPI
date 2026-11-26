@@ -202,19 +202,19 @@ async def build_legacy_file_info(legacy_file: LegacyFileInfo) -> FileInfoModel:
     :return: 文件信息模型
     """
     return FileInfoModel(
-        fileId=str(uuid.uuid4()),
-        originalName=legacy_file.filename,
-        storedName=legacy_file.filename,
-        storageKey=legacy_file.storage_key,
-        accessType='public',
+        file_id=str(uuid.uuid4()),
+        original_name=legacy_file.filename,
+        stored_name=legacy_file.filename,
+        storage_key=legacy_file.storage_key,
+        access_type='public',
         extension=legacy_file.extension,
-        contentType=legacy_file.content_type,
-        fileSize=legacy_file.file_size,
-        fileHash=await calculate_file_hash(legacy_file.filepath, legacy_file.signature),
-        createBy='migration',
-        createTime=legacy_file.file_time,
-        updateBy='migration',
-        updateTime=legacy_file.file_time,
+        content_type=legacy_file.content_type,
+        file_size=legacy_file.file_size,
+        file_hash=await calculate_file_hash(legacy_file.filepath, legacy_file.signature),
+        create_by='migration',
+        create_time=legacy_file.file_time,
+        update_by='migration',
+        update_time=legacy_file.file_time,
     )
 
 

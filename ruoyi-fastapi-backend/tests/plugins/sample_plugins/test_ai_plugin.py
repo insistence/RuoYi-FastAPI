@@ -2,12 +2,13 @@ import json
 from pathlib import Path
 
 import pytest
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from config.database import DataSourceRegistry
 from config.env import DataBaseConfig
 from plugins.ai.dao.ai_chat_dao import AiChatConfigDao
 from plugins.ai.dao.ai_model_dao import AiModelDao
+from plugins.ai.entity.do.ai_model_do import AiModels
 from plugins.ai.entity.vo.ai_chat_vo import AiChatConfigModel, AiChatRequestModel
 from plugins.ai.service.ai_chat_service import AiChatService
 from plugins.ai.utils.ai_util import AiUtil
@@ -111,10 +112,10 @@ def test_ai_plugin_runtime_paths_exist(frontend_framework: str) -> None:
         [plugin],
         [
             PluginModel(
-                pluginId='ai',
-                pluginName='AI 管理',
+                plugin_id='ai',
+                plugin_name='AI 管理',
                 version='0.1.0',
-                installedVersion='0.1.0',
+                installed_version='0.1.0',
                 enabled='0',
                 status='installed',
             )
@@ -162,7 +163,7 @@ async def test_ai_chat_config_detail_returns_vo_when_config_missing(monkeypatch:
         fake_get_chat_config_detail_by_user_id,
     )
 
-    result = await AiChatService.ai_chat_config_detail_services(query_db=object(), user_id=1)
+    result = await AiChatService.ai_chat_config_detail_services(query_db=AsyncSession(), user_id=1)
 
     assert isinstance(result, AiChatConfigModel)
     assert result.num_history_runs == EXPECTED_DEFAULT_NUM_HISTORY_RUNS
@@ -184,8 +185,8 @@ async def test_ai_chat_services_rejects_missing_model(monkeypatch: pytest.Monkey
     monkeypatch.setattr(AiModelDao, 'get_ai_model_detail_by_id', fake_get_ai_model_detail_by_id)
 
     stream = AiChatService.chat_services(
-        query_db=object(),
-        chat_req=AiChatRequestModel(modelId=404, message='hi'),
+        query_db=AsyncSession(),
+        chat_req=AiChatRequestModel(model_id=404, message='hi'),
         user_id=1,
     )
 
@@ -205,7 +206,7 @@ async def test_ai_chat_services_rejects_missing_model(monkeypatch: pytest.Monkey
 async def test_ai_chat_services_rejects_disabled_model(monkeypatch: pytest.MonkeyPatch) -> None:
     """校验 AI 对话不能使用已停用模型。"""
 
-    async def fake_get_ai_model_detail_by_id(*_args: object, **_kwargs: object) -> dict[str, object]:
+    async def fake_get_ai_model_detail_by_id(*_args: object, **_kwargs: object) -> AiModels:
         """
         返回测试用 AI 模型配置。
 
@@ -213,22 +214,22 @@ async def test_ai_chat_services_rejects_disabled_model(monkeypatch: pytest.Monke
         :param _kwargs: 调用方按名称传入的附加选项
         :return: 测试用 AI 模型配置
         """
-        return {
-            'model_id': 1,
-            'model_code': 'gpt-4o-mini',
-            'model_name': 'GPT',
-            'provider': 'OpenAI',
-            'api_key': 'encrypted',
-            'status': '1',
-            'support_reasoning': 'N',
-            'support_images': 'N',
-        }
+        return AiModels(
+            model_id=1,
+            model_code='gpt-4o-mini',
+            model_name='GPT',
+            provider='OpenAI',
+            api_key='encrypted',
+            status='1',
+            support_reasoning='N',
+            support_images='N',
+        )
 
     monkeypatch.setattr(AiModelDao, 'get_ai_model_detail_by_id', fake_get_ai_model_detail_by_id)
 
     stream = AiChatService.chat_services(
-        query_db=object(),
-        chat_req=AiChatRequestModel(modelId=1, message='hi'),
+        query_db=AsyncSession(),
+        chat_req=AiChatRequestModel(model_id=1, message='hi'),
         user_id=1,
     )
 
@@ -345,3 +346,10 @@ def test_ai_plugin_sql_assets_own_ai_schema_and_seed_data() -> None:
     assert 'comment on column' in postgres_migration
     assert 'auto_increment' not in postgres_migration
     assert 'engine=innodb' not in postgres_migration
+
+
+@pytest.mark.parametrize(('user_temperature', 'expected'), [(0.0, 0.0), (None, 0.75)])
+def test_chat_temperature_respects_zero(user_temperature: float | None, expected: float) -> None:
+    """用户设置零温度时保留该值，未设置时采用模型默认值。"""
+    config = AiChatConfigModel(temperature=user_temperature)
+    assert AiChatService._resolve_temperature(config, AiModels(temperature=0.75)) == expected

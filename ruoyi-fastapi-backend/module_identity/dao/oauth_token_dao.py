@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.database import execute_rowcount
 from module_identity.entity.do.oauth_grant_do import SysOAuthRefreshToken
 from utils.time_util import TimezoneUtil
 
@@ -128,13 +129,14 @@ class OAuthTokenDao:
         values: dict[str, object] = {'status': 'used', 'last_used_at': now or TimezoneUtil.utc_now()}
         if replaced_by_token_id is not None:
             values['replaced_by_token_id'] = replaced_by_token_id
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOAuthRefreshToken)
             .where(SysOAuthRefreshToken.token_id == token_id, SysOAuthRefreshToken.status == 'active')
-            .values(**values)
+            .values(**values),
         )
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def mark_reuse_detected(cls, db: AsyncSession, token_id: str, reason: str = 'refresh_token_reuse') -> bool:
@@ -147,13 +149,14 @@ class OAuthTokenDao:
         :return: 是否更新成功
         """
         now = TimezoneUtil.utc_now()
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOAuthRefreshToken)
             .where(SysOAuthRefreshToken.token_id == token_id)
-            .values(status='reuse_detected', reuse_detected_at=now, revoked_at=now, revoke_reason=reason)
+            .values(status='reuse_detected', reuse_detected_at=now, revoked_at=now, revoke_reason=reason),
         )
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def refresh_token_family_reuse(
@@ -177,22 +180,24 @@ class OAuthTokenDao:
         """
         await cls.lock_family(db, family_id)
         current = now or TimezoneUtil.utc_now()
-        other_result = await db.execute(
+        other_affected = await execute_rowcount(
+            db,
             update(SysOAuthRefreshToken)
             .where(
                 SysOAuthRefreshToken.family_id == family_id,
                 SysOAuthRefreshToken.token_id != offending_token_id,
                 SysOAuthRefreshToken.status.not_in(['revoked', 'expired', 'reuse_detected']),
             )
-            .values(status='revoked', revoked_at=current, revoke_reason=reason)
+            .values(status='revoked', revoked_at=current, revoke_reason=reason),
         )
-        offending_result = await db.execute(
+        offending_affected = await execute_rowcount(
+            db,
             update(SysOAuthRefreshToken)
             .where(SysOAuthRefreshToken.family_id == family_id, SysOAuthRefreshToken.token_id == offending_token_id)
-            .values(status='reuse_detected', reuse_detected_at=current, revoked_at=current, revoke_reason=reason)
+            .values(status='reuse_detected', reuse_detected_at=current, revoked_at=current, revoke_reason=reason),
         )
 
-        return (other_result.rowcount or 0) + (offending_result.rowcount or 0)
+        return other_affected + offending_affected
 
     @classmethod
     async def revoke_family(cls, db: AsyncSession, family_id: str, reason: str | None = None) -> int:
@@ -204,16 +209,17 @@ class OAuthTokenDao:
         :param reason: 撤销或标记原因
         :return: 已撤销的 OAuth Refresh Token 数量
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOAuthRefreshToken)
             .where(
                 SysOAuthRefreshToken.family_id == family_id, SysOAuthRefreshToken.status.not_in(['revoked', 'expired'])
             )
-            .values(status='revoked', revoked_at=TimezoneUtil.utc_now(), revoke_reason=reason)
+            .values(status='revoked', revoked_at=TimezoneUtil.utc_now(), revoke_reason=reason),
         )
         await db.flush()
 
-        return result.rowcount or 0
+        return affected
 
     @classmethod
     async def revoke_for_user(cls, db: AsyncSession, user_id: int, reason: str | None = None) -> int:
@@ -225,13 +231,14 @@ class OAuthTokenDao:
         :param reason: 撤销或标记原因
         :return: 已撤销的 OAuth Refresh Token 数量
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOAuthRefreshToken)
             .where(SysOAuthRefreshToken.user_id == user_id, SysOAuthRefreshToken.status.not_in(['revoked', 'expired']))
-            .values(status='revoked', revoked_at=TimezoneUtil.utc_now(), revoke_reason=reason)
+            .values(status='revoked', revoked_at=TimezoneUtil.utc_now(), revoke_reason=reason),
         )
 
-        return result.rowcount or 0
+        return affected
 
     @classmethod
     async def revoke_for_users(
@@ -246,17 +253,18 @@ class OAuthTokenDao:
         :param now: 当前时间
         :return: 已撤销的 OAuth Refresh Token 数量
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOAuthRefreshToken)
             .where(
                 SysOAuthRefreshToken.user_id.in_(user_ids),
                 SysOAuthRefreshToken.status.not_in(['revoked', 'expired', 'reuse_detected']),
             )
-            .values(status='revoked', revoked_at=now or TimezoneUtil.utc_now(), revoke_reason=reason)
+            .values(status='revoked', revoked_at=now or TimezoneUtil.utc_now(), revoke_reason=reason),
         )
         await db.flush()
 
-        return result.rowcount or 0
+        return affected
 
     @classmethod
     async def expire_due(cls, db: AsyncSession) -> int:
@@ -266,14 +274,15 @@ class OAuthTokenDao:
         :param db: orm对象
         :return: 已过期的 OAuth Refresh Token 数量
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOAuthRefreshToken)
             .where(
                 SysOAuthRefreshToken.status == 'active',
                 (SysOAuthRefreshToken.idle_expires_at <= TimezoneUtil.utc_now())
                 | (SysOAuthRefreshToken.absolute_expires_at <= TimezoneUtil.utc_now()),
             )
-            .values(status='expired')
+            .values(status='expired'),
         )
 
-        return result.rowcount or 0
+        return affected

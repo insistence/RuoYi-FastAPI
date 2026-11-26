@@ -18,7 +18,6 @@ from plugins.core.runtime.support import (
     PluginEnableUpdateFailurePayloadDict,
     PluginLifecyclePayloadDict,
     PluginNotFoundPayloadDict,
-    PluginPlanResponsePayload,
     PluginPurgeStatePayloadDict,
     PluginRuntimeBatchItemUnsupportedPayloadDict,
     PluginRuntimeDiagnoseFailurePayloadDict,
@@ -101,7 +100,7 @@ PluginConfigStateResponse: TypeAlias = PluginConfigStatePayloadDict | PluginRunt
 PluginConfigExportResponse: TypeAlias = PluginConfigExportPayloadDict | PluginConfigExportFailurePayloadDict
 PluginConfigImportResponse: TypeAlias = PluginConfigImportPayloadDict
 PluginPrecheckResponse: TypeAlias = PluginRuntimePrecheckPayloadDict | PluginRuntimeFailureResponse
-PluginPlanResponse: TypeAlias = PluginPlanResponsePayload | PluginRuntimeInvalidOperationPayloadDict
+PluginPlanResponse: TypeAlias = dict[str, object] | PluginRuntimeInvalidOperationPayloadDict
 PluginBatchResponse: TypeAlias = PluginPlanResponse | PluginBatchRunResponseDict | PluginRuntimeExceptionPayloadDict
 PluginBatchItemExecutionResponse: TypeAlias = (
     BatchOperationResultPayload

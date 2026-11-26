@@ -693,6 +693,13 @@ async def test_tui_sidebar_highlight_updates_screen_across_multiple_switches(
         assert type(app.screen).__name__ == 'DashboardScreen'
         assert app.current_view == 'dashboard'
 
+        sidebar = app.screen.query_one(tui_modules.cli_tui_widgets.WorkspaceSidebar)
+        assert app.focused is sidebar
+        app.screen.focus_next()
+        assert app.focused is not sidebar
+        app.screen.focus_previous()
+        assert app.focused is sidebar
+
         await pilot.press('down')
         await app._view_task
         await pilot.pause()

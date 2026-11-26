@@ -2,8 +2,9 @@ import asyncio
 import json
 from datetime import UTC, datetime
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, create_autospec, patch
 
+from redis.asyncio import Redis
 from sqlalchemy import Text
 
 from config.env import LogConfig
@@ -12,6 +13,8 @@ from module_admin.entity.do.file_do import SysFileAccessLog
 from module_admin.entity.vo.file_vo import FileAccessLogModel
 from module_admin.service.file_access_service import FileAuditService
 from module_admin.service.log_service import LogAggregatorService, LogQueueService
+from tests.module_admin.service.file_helpers import make_file_request
+from tests.module_admin.service.helpers import make_current_user, make_query_db
 
 FILE_SIZE = 12
 BATCH_FILE_COUNT = 2
@@ -69,18 +72,18 @@ def make_file_access_log() -> FileAccessLogModel:
     :return: 测试使用的 ``FileAccessLogModel`` 实例
     """
     return FileAccessLogModel(
-        fileId='file-id',
+        file_id='file-id',
         action='download',
-        actorUserId=10,
-        actorName='user10',
+        actor_user_id=10,
+        actor_name='user10',
         result='completed',
-        requestId='request-id',
-        traceId='trace-id',
-        ipAddress='127.0.0.1',
-        userAgent='pytest',
-        bytesSent=FILE_SIZE,
-        operationDetail='{"newStatus":"active"}',
-        accessTime=datetime(2026, 7, 19, 12, 0, 0, tzinfo=UTC),
+        request_id='request-id',
+        trace_id='trace-id',
+        ip_address='127.0.0.1',
+        user_agent='pytest',
+        bytes_sent=FILE_SIZE,
+        operation_detail='{"newStatus":"active"}',
+        access_time=datetime(2026, 7, 19, 12, 0, 0, tzinfo=UTC),
     )
 
 
@@ -95,7 +98,8 @@ def test_file_access_log_operation_detail_uses_unbounded_text_type() -> None:
 def test_file_access_log_is_enqueued_to_redis_stream() -> None:
     """文件访问日志进入 Redis Stream。"""
     redis = SimpleNamespace(xadd=AsyncMock())
-    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis)))
+    request = make_file_request()
+    request.app.state.redis = redis
 
     with (
         patch('module_admin.service.log_service.TraceCtx.get_request_id', return_value='request-id'),
@@ -105,7 +109,7 @@ def test_file_access_log_is_enqueued_to_redis_stream() -> None:
         asyncio.run(LogQueueService.enqueue_file_access_log(request, make_file_access_log(), 'file:download:completed'))
 
     redis.xadd.assert_awaited_once()
-    stream_name, event = redis.xadd.await_args.args
+    stream_name, event = redis.xadd.await_args_list[-1].args
     assert stream_name == LogConfig.log_stream_key
     assert event['event_type'] == 'file_access'
     payload = json.loads(event['payload'])
@@ -118,8 +122,11 @@ def test_file_access_log_is_enqueued_to_redis_stream() -> None:
 
 def test_file_access_log_event_is_persisted_and_acknowledged() -> None:
     """持久化文件访问日志后确认事件。"""
-    session = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
-    redis = SimpleNamespace(set=AsyncMock(return_value=True), xack=AsyncMock(), delete=AsyncMock())
+    session = make_query_db()
+    redis = create_autospec(Redis, instance=True, spec_set=True)
+    redis.set = AsyncMock(return_value=True)
+    redis.xack = AsyncMock()
+    redis.delete = AsyncMock()
     file_access_log = make_file_access_log()
     messages = [
         (
@@ -144,7 +151,7 @@ def test_file_access_log_event_is_persisted_and_acknowledged() -> None:
         asyncio.run(LogAggregatorService._process_messages(redis, LogConfig.log_stream_key, messages))
 
     add_file_access_log.assert_awaited_once()
-    saved_log = add_file_access_log.await_args.args[1]
+    saved_log = add_file_access_log.await_args_list[-1].args[1]
     assert saved_log.file_id == 'file-id'
     assert saved_log.result == 'completed'
     assert saved_log.operation_detail == '{"newStatus":"active"}'
@@ -155,12 +162,9 @@ def test_file_access_log_event_is_persisted_and_acknowledged() -> None:
 def test_file_audit_batch_events_use_independent_deduplication_keys() -> None:
     """批量审计事件使用独立的去重键。"""
     redis = SimpleNamespace(xadd=AsyncMock())
-    request = SimpleNamespace(
-        app=SimpleNamespace(state=SimpleNamespace(redis=redis)),
-        headers={'User-Agent': 'pytest'},
-        client=SimpleNamespace(host='127.0.0.1'),
-    )
-    current_user = SimpleNamespace(user=SimpleNamespace(user_id=10, user_name='user10'))
+    request = make_file_request(headers=[(b'user-agent', b'pytest')], client=('127.0.0.1', 12345))
+    request.app.state.redis = redis
+    current_user = make_current_user()
 
     async def enqueue_batch() -> None:
         """向文件审计队列投递测试批次。"""
@@ -204,3 +208,29 @@ def test_file_audit_operation_detail_is_not_truncated() -> None:
 
     parsed_detail = json.loads(serialized_detail)
     assert parsed_detail['reason'] == reason
+
+
+def test_log_stream_batches_accept_redis_response_formats() -> None:
+    """不同 Redis 流响应格式应产生相同的消息顺序并跳过无标识的空项。"""
+    entries = [('1-0', {'event_id': '一'}), ('2-0', {'event_id': '二'})]
+    expected = [('audit', entries)]
+    assert list(LogAggregatorService._stream_batches([['audit', entries]])) == expected
+    assert (
+        list(
+            LogAggregatorService._stream_batches(
+                {'audit': [('1-0', {'event_id': '一'}), (None, None), ('2-0', {'event_id': '二'})]}
+            )
+        )
+        == expected
+    )
+    assert (
+        list(
+            LogAggregatorService._stream_batches(
+                {'audit': [[('1-0', {'event_id': '一'}), ('2-0', {'event_id': '二'})]]}
+            )
+        )
+        == expected
+    )
+    assert list(LogAggregatorService._stream_batches({b'audit': [(b'1-0', {b'payload': b'{}'})]})) == [
+        (b'audit', [(b'1-0', {'payload': '{}'})])
+    ]

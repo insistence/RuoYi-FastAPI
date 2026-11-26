@@ -1,5 +1,3 @@
-from typing import cast
-
 from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.support import (
@@ -73,7 +71,7 @@ class PluginConfigUseCase:
         :param reveal_secret: 是否导出敏感配置明文
         :return: 插件配置导出负载
         """
-        payload = cast('dict[str, object]', await self.get_plugin_config(plugin_id, reveal_secret=reveal_secret))
+        payload = await self.get_plugin_config(plugin_id, reveal_secret=reveal_secret)
         if not payload.get('ok', False):
             return PluginConfigPayloadBuilder.build_export_failure_payload(
                 plugin_id,
@@ -81,8 +79,10 @@ class PluginConfigUseCase:
                 reveal_secret=reveal_secret,
             )
 
-        configs = payload.get('configs') if isinstance(payload.get('configs'), list) else []
-        return PluginConfigPayloadBuilder.build_export_payload(plugin_id, configs, reveal_secret=reveal_secret)
+        configs = payload.get('configs')
+        return PluginConfigPayloadBuilder.build_export_payload(
+            plugin_id, configs if isinstance(configs, list) else [], reveal_secret=reveal_secret
+        )
 
     async def set_plugin_config(
         self,
@@ -134,13 +134,10 @@ class PluginConfigUseCase:
         :param values: 待导入配置键值
         :return: 插件配置导入负载
         """
-        payload = cast(
-            'dict[str, object]',
-            await self.set_plugin_config(
-                plugin_id,
-                values,
-                audit_operation='config_import',
-                success_message='插件配置导入完成',
-            ),
+        payload = await self.set_plugin_config(
+            plugin_id,
+            values,
+            audit_operation='config_import',
+            success_message='插件配置导入完成',
         )
         return PluginConfigPayloadBuilder.build_import_payload(plugin_id, payload, values)

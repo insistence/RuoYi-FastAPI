@@ -6,12 +6,13 @@ import secrets
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Literal, NotRequired, TypedDict, overload
 from urllib.parse import urlsplit
 from uuid import uuid4
 
 import jwt
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
+from jwt.algorithms import RSAAlgorithm
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -58,6 +59,34 @@ _SESSION_CACHE_TTL_FLOOR = 1
 _SESSION_STATUS_ACTIVE = 'active'
 _SESSION_STATUS_REVOKED = 'revoked'
 _SESSION_STATUS_EXPIRED = 'expired'
+
+
+class SsoCookieParameters(TypedDict):
+    """
+    写入或清除单点登录 Cookie 时使用的 HTTP 属性。
+
+    :ivar key: Cookie 名称
+    :ivar path: Cookie 生效路径
+    :ivar secure: 是否仅通过 HTTPS 传输
+    :ivar httponly: 是否禁止浏览器脚本读取
+    :ivar samesite: 跨站请求中的 Cookie 发送策略
+    """
+
+    key: str
+    path: str
+    secure: bool
+    httponly: bool
+    samesite: Literal['lax']
+
+
+class SsoSetCookieParameters(SsoCookieParameters):
+    """
+    写入单点登录 Cookie 时可附带有效期。
+
+    :ivar max_age: 持久 Cookie 的最长有效秒数
+    """
+
+    max_age: NotRequired[int]
 
 
 class SsoSessionError(ValueError):
@@ -179,17 +208,13 @@ class SsoSessionService:
             'user_id': row.user_id,
             'subject_id': row.subject_id,
             'auth_version': row.auth_version,
-            'auth_time': TimezoneUtil.to_optional_utc(row.auth_time).isoformat()
-            if TimezoneUtil.to_optional_utc(row.auth_time)
+            'auth_time': TimezoneUtil.to_utc(row.auth_time).isoformat() if row.auth_time is not None else None,
+            'last_seen_at': TimezoneUtil.to_utc(row.last_seen_at).isoformat() if row.last_seen_at is not None else None,
+            'idle_expires_at': TimezoneUtil.to_utc(row.idle_expires_at).isoformat()
+            if row.idle_expires_at is not None
             else None,
-            'last_seen_at': TimezoneUtil.to_optional_utc(row.last_seen_at).isoformat()
-            if TimezoneUtil.to_optional_utc(row.last_seen_at)
-            else None,
-            'idle_expires_at': TimezoneUtil.to_optional_utc(row.idle_expires_at).isoformat()
-            if TimezoneUtil.to_optional_utc(row.idle_expires_at)
-            else None,
-            'absolute_expires_at': TimezoneUtil.to_optional_utc(row.absolute_expires_at).isoformat()
-            if TimezoneUtil.to_optional_utc(row.absolute_expires_at)
+            'absolute_expires_at': TimezoneUtil.to_utc(row.absolute_expires_at).isoformat()
+            if row.absolute_expires_at is not None
             else None,
             'acr': row.acr,
             'amr': row.amr,
@@ -818,7 +843,15 @@ class SsoSessionService:
         return cls._remaining_ttl(absolute, TimezoneUtil.to_optional_utc(now) or TimezoneUtil.utc_now())
 
     @staticmethod
-    def cookie_parameters(*, max_age: int | None = None) -> dict[str, str | bool | int]:
+    @overload
+    def cookie_parameters() -> SsoCookieParameters: ...
+
+    @staticmethod
+    @overload
+    def cookie_parameters(*, max_age: int | None) -> SsoSetCookieParameters: ...
+
+    @staticmethod
+    def cookie_parameters(*, max_age: int | None = None) -> SsoCookieParameters:
         """
         根据配置构造 SSO Cookie 的 HTTP 属性。
 
@@ -832,7 +865,7 @@ class SsoSessionService:
             raise SsoSessionError('单点登录 Cookie 的安全配置无效')
         if max_age is not None and (isinstance(max_age, bool) or not isinstance(max_age, int) or max_age <= 0):
             raise SsoSessionError('单点登录 Cookie 的有效期无效')
-        parameters: dict[str, str | bool | int] = {
+        parameters: SsoSetCookieParameters = {
             'key': OidcConfig.oidc_sso_cookie_name,
             'path': '/',
             'secure': True,
@@ -1013,22 +1046,26 @@ class LogoutService:
         session = None
         client = None
         validated_redirect: str | None = None
-        hint_valid = False
         if id_token_hint:
             try:
                 claims, client = await cls._validate_id_token_hint(db, id_token_hint, current)
-                hint_valid = True
             except (JwtProfileError, KeyServiceError, LogoutServiceError, TypeError, ValueError, jwt.PyJWTError):
                 client = None
-            if hint_valid:
+            else:
                 sid = claims['sid']
                 session = await SsoSessionDao.get_by_sid(db, sid, for_update=True)
-            if hint_valid and (
-                session is None or session.status not in {'active', 'expired'} or session.subject_id != claims['sub']
+                if (
+                    session is None
+                    or session.status not in {'active', 'expired'}
+                    or session.subject_id != claims['sub']
+                ):
+                    session = None
+                    client = None
+            if (
+                client is not None
+                and post_logout_redirect_uri
+                and OidcUtil.is_safe_post_logout_uri(post_logout_redirect_uri)
             ):
-                session = None
-                hint_valid = False
-            if hint_valid and post_logout_redirect_uri and OidcUtil.is_safe_post_logout_uri(post_logout_redirect_uri):
                 registered = await OAuthClientDao.find_exact_uri(
                     db, client.client_pk, _URI_POST_LOGOUT, post_logout_redirect_uri
                 )
@@ -1036,7 +1073,7 @@ class LogoutService:
                     validated_redirect = post_logout_redirect_uri
                 else:
                     state = None
-            elif hint_valid and post_logout_redirect_uri:
+            elif client is not None and post_logout_redirect_uri:
                 state = None
         browser_session = None
         if cookie:
@@ -1114,7 +1151,9 @@ class LogoutService:
         if key_record is None or key_record.status not in _VERIFYING_KEY_STATUSES:
             raise LogoutServiceError('签名密钥不存在或不可用')
         public_jwk = OidcUtil.normalize_public_jwk(key_record)
-        verification_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(public_jwk, separators=(',', ':')))
+        verification_key = RSAAlgorithm.from_jwk(json.dumps(public_jwk, separators=(',', ':')))
+        if not isinstance(verification_key, RSAPublicKey):
+            raise LogoutServiceError('签名公钥无效')
         claims = decode_id_token_hint(
             token,
             verification_key=verification_key,
@@ -1343,6 +1382,8 @@ class LogoutService:
             item: dict[str, Any] | None = None
             try:
                 try:
+                    if not isinstance(raw, (str, bytes)):
+                        raise PermanentBackchannelError('invalid retry payload', '后端退出通知重试载荷无效')
                     item = json.loads(raw)
                 except (TypeError, UnicodeDecodeError, json.JSONDecodeError) as exc:
                     raise PermanentBackchannelError('invalid retry payload', '后端退出通知重试载荷无效') from exc

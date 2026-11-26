@@ -1,7 +1,8 @@
 import sys
 from pathlib import Path
 
-from fastapi import FastAPI
+import pytest
+from fastapi import Depends, FastAPI
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BACKEND_ROOT))
@@ -89,7 +90,7 @@ def test_router_register_includes_plugin_management_controller() -> None:
     assert str(project_root / 'module_plugin' / 'controller' / 'plugin_controller.py') in controller_files
 
 
-def test_auto_register_routers_uses_builtin_controller_registration(monkeypatch: object) -> None:
+def test_auto_register_routers_uses_builtin_controller_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     """校验 auto_register_routers 保持内置 controller 注册语义。"""
     called = []
 
@@ -119,7 +120,9 @@ def test_auto_register_routers_uses_builtin_controller_registration(monkeypatch:
     assert called == [True]
 
 
-def test_router_register_register_routers_uses_common_controller_file_pipeline(tmp_path: Path) -> None:
+def test_router_register_register_routers_uses_common_controller_file_pipeline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """校验内置路由注册复用统一 controller 文件注册流水线。"""
     project_root = tmp_path / 'backend'
     builtin_controller = touch_file(project_root / 'module_demo' / 'controller' / 'demo_controller.py')
@@ -134,14 +137,14 @@ def test_router_register_register_routers_uses_common_controller_file_pipeline(t
         """
         captured_controller_files.extend(controller_files)
 
-    router_register._register_controller_files = fake_register_controller_files
+    monkeypatch.setattr(router_register, '_register_controller_files', fake_register_controller_files)
 
     router_register.register_routers()
 
     assert captured_controller_files == [str(builtin_controller)]
 
 
-def test_auto_register_controller_files_delegates_to_router_register(monkeypatch: object) -> None:
+def test_auto_register_controller_files_delegates_to_router_register(monkeypatch: pytest.MonkeyPatch) -> None:
     """校验指定 controller 文件自动注册函数委托给 RouterRegister。"""
     captured_controller_files = []
     captured_dependencies = []
@@ -175,7 +178,7 @@ def test_auto_register_controller_files_delegates_to_router_register(monkeypatch
 
     monkeypatch.setattr('common.router.RouterRegister', FakeRouterRegister)
 
-    dependency = object()
+    dependency = Depends(lambda: None)
     auto_register_controller_files(FastAPI(), ['demo_controller.py'], dependencies=[dependency])
 
     assert captured_controller_files == ['demo_controller.py']

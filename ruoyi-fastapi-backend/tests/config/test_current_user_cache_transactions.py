@@ -11,6 +11,7 @@ import pytest
 import pytest_asyncio
 from redis.exceptions import ConnectionError as RedisConnectionError
 from sqlalchemy import (
+    Alias,
     Column,
     Integer,
     String,
@@ -40,6 +41,15 @@ _ORIGINAL_INVALIDATE = CurrentUserCacheSession._invalidate_cache
 
 class CacheTestBase(DeclarativeBase):
     """提供缓存集成测试的声明式模型基类。"""
+
+    @classmethod
+    def core_table(cls) -> Table:
+        """
+        获取已注册的 SQLAlchemy 表，用于构造 Core 语句。
+
+        :return: 当前映射模型的数据库表
+        """
+        return cls.metadata.tables[cls.__tablename__]
 
 
 class CacheUser(CacheTestBase):
@@ -247,9 +257,10 @@ async def test_alias_mutations_invalidate_only_auth_tables(
         target = aliased(model)
         target_id = getattr(target, id_column)
     else:
-        target = model.__table__.alias()
+        target = model.core_table().alias()
         if alias_type == 'nested':
             target = target.alias()
+        assert isinstance(target, Alias)
         target_id = target.c[id_column]
     statement = update(target).values({name_column: 'changed'}) if operation == 'update' else delete(target)
     async with env.sessions.begin() as db:
@@ -275,8 +286,9 @@ async def test_alias_target_with_original_table_filter_invalidates_all_users(
 ) -> None:
     """别名目标使用原表过滤时使全部用户缓存失效。"""
     env = cache_transactions
-    users = CacheUser.__table__
+    users = CacheUser.core_table()
     target = users.alias('target')
+    assert isinstance(target, Alias)
     statement = update(target).where(users.c.user_id == 1).values(user_name=target.c.user_name + '-changed')
     async with env.sessions.begin() as db:
         with pytest.warns(SAWarning, match='cartesian product'):
@@ -346,7 +358,7 @@ def test_nested_dml_cte_invalidates_auth_writes_conservatively(
 ) -> None:
     """嵌套 DML 公用表表达式按保守策略使认证缓存失效。"""
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', True)
-    target = CacheUser.__table__ if auth_table else CacheJob.__table__
+    target = CacheUser.core_table() if auth_table else CacheJob.core_table()
     id_column, name_column = ('user_id', 'user_name') if auth_table else ('job_id', 'job_name')
     if operation == 'insert':
         mutation = insert(target).values({id_column: 3, name_column: 'created'})
@@ -358,9 +370,11 @@ def test_nested_dml_cte_invalidates_auth_writes_conservatively(
     if outer == 'select':
         statement = select(nested)
     elif outer == 'user_update':
-        statement = update(CacheUser.__table__).where(CacheUser.user_id == 1).values(user_name='outer').add_cte(nested)
+        statement = (
+            update(CacheUser.core_table()).where(CacheUser.user_id == 1).values(user_name='outer').add_cte(nested)
+        )
     else:
-        statement = update(CacheJob.__table__).where(CacheJob.job_id == 1).values(job_name='outer').add_cte(nested)
+        statement = update(CacheJob.core_table()).where(CacheJob.job_id == 1).values(job_name='outer').add_cte(nested)
     assert str(statement.compile(dialect=postgresql.dialect())).startswith('WITH nested_change AS')
     with CurrentUserCacheSession() as db, db.begin() as transaction:
         state = SimpleNamespace(
@@ -426,8 +440,8 @@ def test_join_update_tracks_auth_tables_after_sql_execution(
 ) -> None:
     """连接更新在 SQL 执行后跟踪认证表。"""
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', True)
-    target = model.__table__
-    joined = joined_model.__table__.alias('joined')
+    target = model.core_table()
+    joined = joined_model.core_table().alias('joined')
     statement = (
         update(target.join(joined, target.c[id_column] == joined.c[joined_id_column]))
         .where(target.c[id_column] == 1)
@@ -782,7 +796,7 @@ async def test_anyio_cancellation_finishes_cache_cleanup_and_preserves_commit(  
     closed = anyio.Event()
     cancelled = anyio.Event()
     cleanup_cancelled = anyio.Event()
-    cancel_scope = None
+    cancel_scope: anyio.CancelScope
 
     async def invalidate(*args: Any) -> None:
         """
@@ -925,7 +939,7 @@ async def test_core_bulk_update_cannot_assume_parameter_is_a_primary_key_filter(
     env = cache_transactions
     async with env.sessions.begin() as db:
         await db.execute(
-            update(CacheUser.__table__).where(CacheUser.user_id == 1), [{'user_id': 3, 'user_name': 'changed'}]
+            update(CacheUser.core_table()).where(CacheUser.user_id == 1), [{'user_id': 3, 'user_name': 'changed'}]
         )
     assert env.invalidations[0][0] is None
 
@@ -937,7 +951,7 @@ async def test_user_relation_move_invalidates_old_and_new_users(
 ) -> None:
     """移动用户关联后同时使新旧用户缓存失效。"""
     env = cache_transactions
-    relation = CacheUserRole.__table__
+    relation = CacheUserRole.core_table()
     async with env.engine.begin() as connection:
         await connection.execute(insert(relation).values(user_id=1, role_id=1))
     statement = update(relation).where(relation.c.user_id == 1)
@@ -968,7 +982,7 @@ async def test_user_relation_move_invalidates_old_and_new_users(
 async def test_core_tuple_parameters_commit_with_precise_user_scope(cache_transactions: SimpleNamespace) -> None:
     """Core 元组参数提交后按准确的用户范围使缓存失效。"""
     env = cache_transactions
-    users = CacheUser.__table__
+    users = CacheUser.core_table()
     statement = update(users).where(users.c.user_id == bindparam('target_id')).values(user_name=bindparam('next_name'))
     parameters = ({'target_id': 1, 'next_name': 'changed-first'}, {'target_id': 2, 'next_name': 'changed-second'})
     async with env.sessions.begin() as db:

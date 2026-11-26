@@ -15,6 +15,7 @@ from tests.config.test_current_user_cache_transactions import (
     CacheUser,
     cache_transactions,  # noqa: F401
 )
+from tests.config.test_database_registry import _settings, _source
 from utils.cache_util import CurrentUserCacheUtil
 
 
@@ -171,9 +172,7 @@ def _registry(env: SimpleNamespace) -> _DataSourceRegistry:
     :param env: 当前运行环境
     :return: 供调用方使用的 ``registry``
     """
-    registry = _DataSourceRegistry(
-        SimpleNamespace(db_default_source='primary', db_sources={'primary': object(), 'reporting': object()})
-    )
+    registry = _DataSourceRegistry(_settings(primary=_source(), reporting=_source()))
     for name in ('primary', 'reporting'):
         runtime = registry._runtime(name)
         runtime.async_engine = env.engine
@@ -199,7 +198,9 @@ async def test_registry_sessions_borrow_registered_cache_client(
         async with registry.session(source, log_sql=log_sql) as db:
             assert db.info[CurrentUserCacheSession._REDIS_KEY] is redis
             assert isinstance(db.sync_session, CurrentUserCacheSession)
-            assert (await db.get(CacheUser, 1)).user_name == 'first'
+            user = await db.get(CacheUser, 1)
+            assert user is not None
+            assert user.user_name == 'first'
     finally:
         await registry.dispose_all()
     assert registry._cache_redis is None

@@ -3,7 +3,7 @@ import importlib
 import json
 import pickle
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from apscheduler.job import Job
 from apscheduler.util import iscoroutinefunction_partial, obj_to_ref
@@ -50,7 +50,7 @@ class JobAdapter:
         :return: 任务对象信息
         """
         if isinstance(record, JobModel):
-            return record
+            return cast('JobModel', record)
         return JobModel.model_construct(
             **{name: getattr(record, name) for name in JobModel.model_fields if hasattr(record, name)}
         )
@@ -168,6 +168,8 @@ class JobAdapter:
         # 禁止非有限数值进入JSON列，避免数据库与执行器对同一参数产生不同解释。
         json.dumps([job.job_args, kwargs], allow_nan=False)
         executor = 'default' if iscoroutinefunction_partial(function) else job.job_executor
+        if job.cron_expression is None:
+            raise ValueError('Cron 表达式不能为空')
         trigger = MyCronTrigger.from_crontab(job.cron_expression, job.time_zone)
         trigger.task_job_group = job.job_group
         options = {

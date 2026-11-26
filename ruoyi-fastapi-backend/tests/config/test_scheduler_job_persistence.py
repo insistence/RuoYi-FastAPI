@@ -7,6 +7,7 @@ import pytest
 from apscheduler.events import EVENT_JOB_EXECUTED, JobExecutionEvent
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from redis.asyncio import Redis
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
@@ -46,17 +47,19 @@ async def verify_persistent_scheduler(
     :param sessions: 异步数据库会话工厂
     :param execution_engine: 执行记录使用的数据库引擎，未指定时使用任务仓库引擎
     """
-    info = JobModel(
-        jobId=81,
-        jobName='persistent timezone check',
-        jobGroup='default',
-        jobExecutor='default',
-        invokeTarget=f'{__name__}.persisted_callable',
-        cronExpression='0 30 2 * * ?',
-        timeZone='America/New_York',
-        status='0',
-        misfireGraceTime=1,
-        maxInstances=1,
+    info = JobModel.model_validate(
+        {
+            'jobId': 81,
+            'jobName': 'persistent timezone check',
+            'jobGroup': 'default',
+            'jobExecutor': 'default',
+            'invokeTarget': f'{__name__}.persisted_callable',
+            'cronExpression': '0 30 2 * * ?',
+            'timeZone': 'America/New_York',
+            'status': '0',
+            'misfireGraceTime': 1,
+            'maxInstances': 1,
+        }
     )
     async with sessions() as db:
         assert await JobDao.get_job_detail_by_id(db, 81) is None
@@ -104,12 +107,13 @@ async def verify_persistent_scheduler(
         JobExecutionStore, 'session', staticmethod(lambda: Session(execution_engine or engine, expire_on_commit=False))
     )
     try:
-        await SchedulerManager._start_scheduler_as_leader(None)
+        await SchedulerManager._start_scheduler_as_leader(AsyncMock(spec=Redis))
         current.pause()
         assert current.get_job('82') is None
         restored = current.get_job('81')
         assert SchedulerManager._jobs.is_config_current(restored, updated)
         assert old_signature != SchedulerManager._jobs.trigger_signature(restored.trigger)
+        assert updated.cron_expression is not None
         expected = MyCronTrigger.from_crontab(updated.cron_expression, updated.time_zone)
         start = datetime(2026, 11, 1, tzinfo=UTC)
         assert restored.trigger.get_next_fire_time(None, start) == expected.get_next_fire_time(None, start)
@@ -165,6 +169,7 @@ async def assert_independent_manual_request(
     current.add_listener(on_complete, EVENT_JOB_EXECUTED)
     async with sessions() as db:
         response = await JobService.execute_job_once_services(db, updated)
+    assert response.result is not None
     execution_id = response.result['executionId']
     original_next = current.get_job('81').next_run_time
     original_trigger = SchedulerManager._jobs.trigger_signature(current.get_job('81').trigger)
@@ -181,7 +186,7 @@ async def assert_independent_manual_request(
     assert SchedulerManager._jobs.is_config_current(current.get_job('81'), updated)
     async with sessions() as db:
         execution = await JobRuntimeDao.get_execution(db, execution_id)
-        assert execution.status == 'success'
-        assert execution.run_duration_ms >= 0
+        assert execution is not None and execution.status == 'success'
+        assert execution.run_duration_ms is not None and execution.run_duration_ms >= 0
         state = (await JobRuntimeDao.get_states(db, [81]))[81]
         assert state['configVersion'] == state['appliedVersion'] == UPDATED_CONFIG_VERSION

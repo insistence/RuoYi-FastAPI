@@ -2,6 +2,7 @@ import base64
 from datetime import timedelta
 from http import HTTPStatus
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 from urllib.parse import parse_qs, quote_plus, urlencode, urlsplit
 
@@ -72,7 +73,7 @@ async def _confidential_token(flow: SimpleNamespace) -> tuple:
     secret = await OAuthClientManagementService._new_secret(flow.db, flow.app, 'admin', flow.now, not_before=flow.now)
     await flow.db.commit()
     authorization = _basic(flow.app.client_id, secret.client_secret)
-    request = AuthorizeRequest(**_authorize_request(flow, offline=True))
+    request = AuthorizeRequest.model_validate(_authorize_request(flow, offline=True))
     context = await AuthorizationService.validate_request(flow.db, request)
     consent = await ConsentService.submit_consent(
         flow.db,
@@ -83,6 +84,7 @@ async def _confidential_token(flow: SimpleNamespace) -> tuple:
         user_id=flow.user.user_id,
         subject_id=flow.subject.subject_id,
     )
+    assert consent.grant is not None
     code = await AuthorizationCodeService.issue(
         flow.redis,
         {
@@ -127,6 +129,7 @@ async def test_revoke_user_terminates_expired_offline_sessions(auth_flow: Simple
     flow.session.idle_expires_at = flow.now - timedelta(seconds=1)
     flow.session.status = stored_status
     await flow.db.commit()
+    assert token.refresh_token is not None
     assert (await _introspect(flow, token.refresh_token))['active'] is True
     count = await OAuthSessionManagementService.revoke_user(
         flow.db, flow.redis, flow.user.user_id, 'admin', '终止该用户的全部外部会话'
@@ -244,8 +247,12 @@ async def test_effective_expiry_matches_list_count_detail_without_mutating_state
     assert count == grant_count == 1
     assert sessions[0].status == grants[0].status == 'expired'
     assert sessions[0].client_ids == ['business-app']
-    assert (await OAuthSessionManagementService.get_session(flow.db, flow.session.sid)).status == 'expired'
-    assert (await OAuthSessionManagementService.get_grant(flow.db, grant.grant_id)).status == 'expired'
+    stored_session = await OAuthSessionManagementService.get_session(flow.db, flow.session.sid)
+    assert stored_session is not None
+    assert stored_session.status == 'expired'
+    stored_grant = await OAuthSessionManagementService.get_grant(flow.db, grant.grant_id)
+    assert stored_grant is not None
+    assert stored_grant.status == 'expired'
     assert await OAuthSessionManagementService.list_sessions(flow.db, SessionPageQueryModel(status='active')) == ([], 0)
     assert await OAuthSessionManagementService.list_grants(flow.db, GrantPageQueryModel(status='active')) == ([], 0)
     assert flow.session.status == grant.status == 'active'
@@ -319,20 +326,20 @@ async def test_failed_token_transaction_rolls_back_session_participation(
     """令牌签发事务失败时不能残留成功登录关联记录。"""
     record = AuditService.record
 
-    async def fail_token_audit(db: AsyncSession, event_type: str, *args: object, **kwargs: object) -> object:
+    async def fail_token_audit(db: AsyncSession, event_type: str, result: str, **kwargs: Any) -> object:
         """
         在令牌签发审计时模拟写入失败。
 
         :param db: 当前操作使用的数据库会话
         :param event_type: 审计事件类型
-        :param args: 传给被调用对象的位置参数
+        :param result: 审计事件的处理结果
         :param kwargs: 传给被调用对象的关键字参数
         :raises RuntimeError: 模拟写入令牌审计时服务不可用
         :return: 未注入故障时原审计函数的结果
         """
         if event_type == OidcAuditEvent.TOKEN_ISSUED:
             raise RuntimeError('audit unavailable')
-        return await record(db, event_type, *args, **kwargs)
+        return await record(db, event_type, result, **kwargs)
 
     monkeypatch.setattr(AuditService, 'record', fail_token_audit)
     with pytest.raises(RuntimeError, match='audit unavailable'):
@@ -384,6 +391,8 @@ def _http_app(flow: SimpleNamespace, router: APIRouter) -> FastAPI:
     for route in router.routes:
         if isinstance(route, APIRoute):
             for dependency in route.dependant.dependencies:
+                if dependency.call is None:
+                    continue
                 if dependency.name == 'query_db':
                     app.dependency_overrides[dependency.call] = lambda: flow.db
                 else:
@@ -401,9 +410,10 @@ async def test_authorize_accepts_query_response_mode_on_both_methods(
     values = {**_authorize_request(auth_flow), 'response_mode': 'query', 'prompt': 'none', 'state': 'test-state'}
     app = _http_app(auth_flow, authorization_controller)
     async with AsyncClient(transport=ASGITransport(app=app), base_url='https://auth.example.com') as client:
-        response = await client.request(
-            method, '/oauth2/authorize', **({'params': values} if method == 'GET' else {'data': values})
-        )
+        if method == 'GET':
+            response = await client.get('/oauth2/authorize', params=values)
+        else:
+            response = await client.post('/oauth2/authorize', data=values)
     assert response.status_code == HTTPStatus.SEE_OTHER
     location = urlsplit(response.headers['location'])
     assert location.netloc == 'app.example.com'

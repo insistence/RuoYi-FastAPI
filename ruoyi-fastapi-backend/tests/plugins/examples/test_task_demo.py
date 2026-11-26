@@ -13,6 +13,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.sql.elements import TextClause
+from starlette.types import Receive, Scope, Send
 
 from config.env import DataBaseConfig
 from plugins.core.discovery.scanner import PluginScanner
@@ -79,9 +80,11 @@ def _client(host: PluginHostContext, permissions: frozenset[str] = frozenset({'*
     :param permissions: 当前调用允许使用的权限
     :return: ``httpx.AsyncClient`` 实例
     """
-    child = create_plugin(host).app_factory(host)
+    factory = create_plugin(host).app_factory
+    assert factory is not None
+    child = factory(host)
 
-    async def authenticated_app(scope: dict[str, Any], receive: Any, send: Any) -> None:
+    async def authenticated_app(scope: Scope, receive: Receive, send: Send) -> None:
         """
         为插件请求注入已认证上下文后调用下游应用。
 
@@ -110,6 +113,7 @@ async def test_crud_is_persistent_across_new_app_and_connection_pool(task_host: 
         assert created['createdAt'].endswith('Z')
         task_id = created['id']
 
+    assert isinstance(task_host.session_factory, async_sessionmaker)
     original_engine = task_host.session_factory.kw['bind']
     await original_engine.dispose()
     restarted_engine = create_async_engine(original_engine.url)
@@ -164,7 +168,9 @@ async def test_permissions_keep_reads_and_writes_independent(task_host: PluginHo
         assert (await reader.get(f'/api/tasks/{task_id}')).json()['title'] == '仅写身份更新'
     async with _client(task_host, frozenset()) as anonymous:
         assert (await anonymous.get('/api/info')).status_code == status.HTTP_403_FORBIDDEN
-    app = create_plugin(task_host).app_factory(task_host)
+    factory = create_plugin(task_host).app_factory
+    assert factory is not None
+    app = factory(task_host)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://task.test') as client:
         assert (await client.get('/api/info')).status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -241,6 +247,7 @@ async def test_exception_after_insert_rolls_back(task_host: PluginHostContext, m
     monkeypatch.setattr(service, '_task_payload', broken_payload)
     with pytest.raises(RuntimeError, match='response construction failed'):
         await service.create_task(_context(task_host), TaskInput(title='必须回滚').model_dump())
+    assert task_host.session_factory is not None
     async with task_host.session_factory() as db:
         assert await db.scalar(select(func.count()).select_from(tasks)) == 0
 
@@ -274,6 +281,7 @@ async def test_cancel_after_insert_rolls_back_and_closes_owned_session(task_host
             await super().close()
             closed.set()
 
+    assert isinstance(task_host.session_factory, async_sessionmaker)
     paused_host = replace(
         task_host,
         session_factory=async_sessionmaker(task_host.session_factory.kw['bind'], class_=PausedSession),
@@ -286,6 +294,7 @@ async def test_cancel_after_insert_rolls_back_and_closes_owned_session(task_host
     with pytest.raises(asyncio.CancelledError):
         await operation
     await asyncio.wait_for(closed.wait(), timeout=5)
+    assert task_host.session_factory is not None
     async with task_host.session_factory() as db:
         assert await db.scalar(select(func.count()).select_from(tasks)) == 0
     created = await service.create_task(_context(task_host), TaskInput(title='回滚后新任务').model_dump())

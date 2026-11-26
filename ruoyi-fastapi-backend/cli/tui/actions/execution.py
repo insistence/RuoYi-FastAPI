@@ -13,7 +13,7 @@ from cli.runtime.db import DATABASE_RUNTIME, DatabaseRuntimeService
 from cli.runtime.gen import GEN_RUNTIME, GenRuntimeService
 from cli.runtime.job import JOB_RUNTIME, JobRuntimeService
 from cli.runtime.ops import OPERATIONS_RUNTIME, OperationsRuntimeService
-from cli.tui.actions.models import TuiActionResult, TuiActionSpec
+from cli.tui.actions.models import ActionParameters, TuiActionResult, TuiActionSpec
 from cli.tui.copy import TUI_COPY
 from cli.utils import SHELL_TEXT_FORMATTER
 from utils.time_util import TimezoneUtil
@@ -59,6 +59,7 @@ class TuiActionExecutionService:
         :return: 动作执行结果
         :raises asyncio.CancelledError: 异步操作被取消时
         """
+        payload: dict[str, object]
         try:
             payload = await asyncio.wait_for(
                 self._dispatch(spec, env),
@@ -118,7 +119,7 @@ class TuiActionExecutionService:
             payload = self._unsupported_action(action_id)
         return payload
 
-    async def _dispatch_job(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
+    async def _dispatch_job(self, action_id: str, parameters: ActionParameters) -> dict[str, Any]:
         """
         执行任务领域动作。
 
@@ -137,7 +138,7 @@ class TuiActionExecutionService:
             return await self.operations_runtime.sync_jobs()
         return self._unsupported_action(action_id)
 
-    async def _dispatch_cache(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
+    async def _dispatch_cache(self, action_id: str, parameters: ActionParameters) -> dict[str, Any]:
         """
         执行缓存领域动作。
 
@@ -154,7 +155,7 @@ class TuiActionExecutionService:
             )
         return self._unsupported_action(action_id)
 
-    async def _dispatch_gen(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
+    async def _dispatch_gen(self, action_id: str, parameters: ActionParameters) -> dict[str, Any]:
         """
         执行代码生成领域动作。
 
@@ -169,7 +170,7 @@ class TuiActionExecutionService:
             return await self.gen_runtime.sync_gen_table_from_db(table_name)
         return self._unsupported_action(action_id)
 
-    async def _dispatch_database(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
+    async def _dispatch_database(self, action_id: str, parameters: ActionParameters) -> dict[str, Any]:
         """
         执行数据库领域动作。
 
@@ -237,7 +238,7 @@ class TuiActionExecutionService:
             activate=True,
         )
 
-    async def _dispatch_crypto(self, action_id: str, parameters: dict[str, object]) -> dict[str, Any]:
+    async def _dispatch_crypto(self, action_id: str, parameters: ActionParameters) -> dict[str, Any]:
         """
         执行传输加密领域动作。
 

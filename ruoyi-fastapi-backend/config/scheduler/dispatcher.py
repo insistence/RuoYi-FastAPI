@@ -74,6 +74,7 @@ class SchedulerDispatcher:
         分批领取待执行请求，派发只在领取事务提交后进行。
 
         :param is_leader: 检查当前进程是否仍持有Leader租约
+        :raises ValueError: 已领取的执行请求缺少派发凭据
         """
         if not is_leader() or self.lock.locked():
             return
@@ -90,8 +91,10 @@ class SchedulerDispatcher:
                     execution = await JobRuntimeDao.claim_request(session, execution_id, job_id)
                     snapshot = execution.job_snapshot if execution is not None else None
                     token = execution.owner_token if execution is not None else None
+                    if execution is not None and token is None:
+                        raise ValueError('已领取的执行请求缺少派发凭据')
                     await session.commit()
-                if execution is None:
+                if token is None:
                     continue
                 if not is_leader():
                     # 尚未开始的领取租约过期后由新 Leader 重新派发。

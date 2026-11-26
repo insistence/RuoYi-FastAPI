@@ -9,11 +9,16 @@ class StatusCarrier(Protocol):
 
     该协议用于描述首页面板、详情分区和浏览记录这类具备 ``status``
     属性的摘要统计对象。
-
-    :ivar status: 操作或记录所处的状态
     """
 
-    status: str
+    @property
+    def status(self) -> str:
+        """
+        获取面板、分区或记录的状态。
+
+        :return: 当前状态
+        """
+        ...
 
 
 @dataclass(frozen=True)

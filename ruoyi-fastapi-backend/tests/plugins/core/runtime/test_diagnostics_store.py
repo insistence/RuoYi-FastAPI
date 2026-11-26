@@ -4,14 +4,13 @@ import time
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from fnmatch import fnmatchcase
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
-from redis._parsers.encoders import Encoder
 from redis.client import NEVER_DECODE
 
+from plugins.core.deployment.worker import PluginReleaseWorker
 from plugins.core.runtime import diagnostics_store as module
 from plugins.core.runtime.application import PluginApplicationRuntime
 from plugins.core.runtime.diagnostics import PluginRuntimeDiagnostic, PluginRuntimeDiagnosticSnapshot
@@ -36,7 +35,6 @@ class DiagnosticsRedis:
     :ivar expirations: 按键记录的失效时间
     :ivar writes: 已执行写入操作的记录
     :ivar fail: 是否模拟操作失败
-    :ivar encoder: 将输入值转换为编码表示的对象
     """
 
     def __init__(self) -> None:
@@ -45,7 +43,6 @@ class DiagnosticsRedis:
         self.expirations: dict[str, int] = {}
         self.writes = 0
         self.fail = False
-        self.encoder = Encoder('utf-8', 'strict', decode_responses=True)
 
     async def set(self, key: str, value: bytes, *, ex: int) -> None:
         """
@@ -85,7 +82,7 @@ class DiagnosticsRedis:
         for key in self.values:
             raw_key = key.encode() if isinstance(key, str) else key
             if fnmatchcase(raw_key, match.encode()):
-                yield raw_key if NEVER_DECODE in options else self.encoder.decode(raw_key)
+                yield raw_key if NEVER_DECODE in options else raw_key.decode()
 
     async def mget(self, keys: list[str]) -> list[bytes | None]:
         """
@@ -107,7 +104,7 @@ class DiagnosticsRedis:
         """
         assert command == 'MGET'
         values = await self.mget(list(keys))
-        return [value if value is None or NEVER_DECODE in options else self.encoder.decode(value) for value in values]
+        return [value if value is None or NEVER_DECODE in options else value.decode() for value in values]
 
 
 def snapshot(worker_id: str, *, pending: int = 0, collected_at: float | None = None) -> PluginRuntimeDiagnosticSnapshot:
@@ -379,7 +376,8 @@ async def test_empty_runtime_uses_release_worker_identity_without_fabricating_mi
     explicit = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     app.state.plugin_explicit_runtime = explicit
     worker_id = 'b' * 32
-    worker = SimpleNamespace(
+    worker = MagicMock(
+        spec=PluginReleaseWorker,
         worker_id=worker_id,
         start=AsyncMock(),
         ready=AsyncMock(),

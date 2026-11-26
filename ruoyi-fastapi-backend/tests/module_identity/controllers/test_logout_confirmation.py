@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.aspect.db_session import get_db_session_provider
 from config.env import OidcConfig
@@ -58,6 +59,20 @@ class ConfirmationRedis:
         return value if expires > monotonic() else None
 
 
+def _confirmation_token(html: str) -> str:
+    """
+    提取确认表单中的一次性令牌。
+
+    :param html: 注销确认页面
+    :return: 表单提交所需的令牌
+    """
+    match = re.search(r'name="confirmation" value="(?P<token>[^"]+)"', html)
+    assert match is not None
+    token = match.group('token')
+    assert isinstance(token, str)
+    return token
+
+
 @pytest.fixture
 def logout_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[TestClient, AsyncMock]]:
     """
@@ -75,9 +90,9 @@ def logout_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[TestClient,
     app.add_middleware(OidcCorsMiddleware)
     app.state.redis = ConfirmationRedis()
     app.include_router(authorization_controller)
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = AsyncMock(spec=AsyncSession)
 
-    async def get_db() -> AsyncIterator[SimpleNamespace]:
+    async def get_db() -> AsyncIterator[AsyncMock]:
         """
         为请求提供数据库会话。
 
@@ -115,7 +130,7 @@ def test_standard_logout_requires_confirmation_then_redirects(
     assert "frame-ancestors 'none'" in response.headers['content-security-policy']
     assert "form-action 'self' https://rp.example;" in response.headers['content-security-policy']
     execute.assert_not_awaited()
-    token = re.search(r'name="confirmation" value="([^"]+)"', response.text).group(1)
+    token = _confirmation_token(response.text)
     response = client.post(
         '/oauth2/logout/confirm',
         data={'confirmation': token, 'decision': 'confirm'},
@@ -123,8 +138,8 @@ def test_standard_logout_requires_confirmation_then_redirects(
     )
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers['location'] == 'https://rp.example/done?state=state-1'
-    assert execute.await_args.kwargs['confirmed'] is True
-    assert execute.await_args.kwargs['id_token_hint'] == 'private-hint'
+    assert execute.await_args_list[-1].kwargs['confirmed'] is True
+    assert execute.await_args_list[-1].kwargs['id_token_hint'] == 'private-hint'
     execute.reset_mock()
     replay = client.post(
         '/oauth2/logout/confirm',
@@ -140,7 +155,7 @@ def test_cancel_keeps_sso_cookie_and_never_calls_revocation(logout_client: tuple
     client, execute = logout_client
     client.cookies.set(OidcConfig.oidc_sso_cookie_name, 'current-sso', domain='auth.example', path='/')
     page = client.get('/oauth2/logout')
-    token = re.search(r'name="confirmation" value="([^"]+)"', page.text).group(1)
+    token = _confirmation_token(page.text)
     response = client.post(
         '/oauth2/logout/confirm',
         data={'confirmation': token, 'decision': 'cancel'},
@@ -159,11 +174,12 @@ def test_confirmation_rejects_wrong_origin_browser_or_expiry(
     """注销确认时拒绝来源、浏览器或有效期不符的请求。"""
     client, execute = logout_client
     page = client.get('/oauth2/logout')
-    token = re.search(r'name="confirmation" value="([^"]+)"', page.text).group(1)
+    token = _confirmation_token(page.text)
     origin = 'https://evil.example' if attack == 'origin' else 'https://auth.example'
     if attack == 'cookie':
         client.cookies.clear()
     if attack == 'expired':
+        assert isinstance(client.app, FastAPI)
         redis = client.app.state.redis
         redis.values = {key: (value, 0) for key, (value, _expires) in redis.values.items()}
     response = client.post(
@@ -180,7 +196,7 @@ def test_cross_site_post_may_omit_lax_sso_cookie_until_confirmation(
     client, execute = logout_client
     page = client.post('/oauth2/logout', data={'state': 'cross-site'})
     assert page.headers['referrer-policy'] == 'strict-origin'
-    token = re.search(r'name="confirmation" value="([^"]+)"', page.text).group(1)
+    token = _confirmation_token(page.text)
     client.cookies.set(OidcConfig.oidc_sso_cookie_name, 'current-sso', domain='auth.example', path='/')
     response = client.post(
         '/oauth2/logout/confirm',
@@ -188,7 +204,7 @@ def test_cross_site_post_may_omit_lax_sso_cookie_until_confirmation(
         headers={'Origin': 'https://auth.example'},
     )
     assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert execute.await_args.kwargs['cookie'] == 'current-sso'
+    assert execute.await_args_list[-1].kwargs['cookie'] == 'current-sso'
 
 
 def test_changing_an_initially_bound_sso_cookie_rejects_confirmation(
@@ -198,7 +214,7 @@ def test_changing_an_initially_bound_sso_cookie_rejects_confirmation(
     client, execute = logout_client
     client.cookies.set(OidcConfig.oidc_sso_cookie_name, 'first-sso', domain='auth.example', path='/')
     page = client.get('/oauth2/logout')
-    token = re.search(r'name="confirmation" value="([^"]+)"', page.text).group(1)
+    token = _confirmation_token(page.text)
     client.cookies.set(OidcConfig.oidc_sso_cookie_name, 'second-sso', domain='auth.example', path='/')
     response = client.post(
         '/oauth2/logout/confirm',
@@ -224,13 +240,13 @@ async def test_confirmation_csp_allows_only_verified_registered_redirect(
         AsyncMock(return_value=SimpleNamespace(status='0') if registered else None),
     )
     origin = await LogoutConfirmationService.form_redirect_origin(
-        object(), {'id_token_hint': 'valid-hint', 'post_logout_redirect_uri': 'https://rp.example:9443/done'}
+        AsyncSession(), {'id_token_hint': 'valid-hint', 'post_logout_redirect_uri': 'https://rp.example:9443/done'}
     )
     assert origin == ('https://rp.example:9443' if registered else None)
     monkeypatch.setattr(LogoutService, '_validate_id_token_hint', AsyncMock(side_effect=ValueError('invalid hint')))
     assert (
         await LogoutConfirmationService.form_redirect_origin(
-            object(), {'id_token_hint': 'invalid-hint', 'post_logout_redirect_uri': 'https://rp.example/done'}
+            AsyncSession(), {'id_token_hint': 'invalid-hint', 'post_logout_redirect_uri': 'https://rp.example/done'}
         )
         is None
     )

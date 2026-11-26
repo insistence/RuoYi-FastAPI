@@ -4,7 +4,7 @@ import secrets
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, TypeVar, cast
 
 from anyio import Path as AsyncPath
 from cryptography.hazmat.primitives import serialization
@@ -190,7 +190,7 @@ class KeyService:
         :raises KeyServiceError: 状态、来源、格式或公私钥不匹配
         """
         cls._require_enabled(management=management)
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         cls._validate_record_window(record, current, require_active=require_active)
         material = await cls._private_material_async(record, decrypt_private_key)
         try:
@@ -267,7 +267,7 @@ class KeyService:
         :raises KeyServiceError: OIDC 关闭或公开密钥记录不合法
         """
         cls._require_enabled()
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         records = await OidcKeyDao.list_published(db, now=current)
         keys: list[dict[str, str]] = []
         for record in records:
@@ -316,7 +316,7 @@ class KeyService:
         if not OidcUtil.is_valid_kid(kid):
             raise KeyServiceError('签名密钥标识 kid 包含不允许的字符')
         async with cls._rotation_lock(redis):
-            current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+            current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
             await OidcKeyDao.lock_algorithm_for_update(db, alg=RS256)
             target = await OidcKeyDao.get_by_kid_for_update(db, kid)
             if target is None or target.alg != RS256 or target.status != 'pending':
@@ -390,8 +390,8 @@ class KeyService:
         encryption_material = str(OidcConfig.oidc_signing_key_encryption_key or '').encode()
         if len(encryption_material) < _MIN_ENCRYPTION_KEY_BYTES:
             raise KeyServiceError('签名私钥加密密钥不能为空')
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
-        publish_at = TimezoneUtil.to_optional_utc(publish_at)
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
+        publish_at = TimezoneUtil.to_utc(publish_at)
         activate_at = TimezoneUtil.to_optional_utc(activate_at)
         if activate_at is not None and activate_at < publish_at:
             raise KeyServiceError('密钥生效时间不得早于发布时间')
@@ -456,7 +456,7 @@ class KeyService:
         :return: 签名密钥记录与本次是否创建新密钥
         :raises KeyServiceError: 密钥配置、状态或材料不可用
         """
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         async with cls._rotation_lock(redis):
             records = await OidcKeyDao.lock_algorithm_for_update(db, alg=RS256)
             active = next(
@@ -464,8 +464,8 @@ class KeyService:
                     row
                     for row in reversed(records)
                     if row.status == 'active'
-                    and TimezoneUtil.to_optional_utc(row.signing_start_at) is not None
-                    and TimezoneUtil.to_optional_utc(row.signing_start_at) <= current
+                    and row.signing_start_at is not None
+                    and TimezoneUtil.to_utc(row.signing_start_at) <= current
                 ),
                 None,
             )
@@ -526,7 +526,7 @@ class KeyService:
         cls._require_enabled(management=True)
         if not OidcUtil.is_valid_kid(kid):
             raise KeyServiceError('签名密钥标识 kid 包含不允许的字符')
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         record = await OidcKeyDao.get_by_kid_for_update(db, kid)
         if record is None or record.status not in {'active', 'retiring'}:
             raise KeyServiceError('签名密钥未处于活动状态')
@@ -584,7 +584,7 @@ class KeyService:
         :return: 本次成功激活的密钥数量
         """
         cls._require_enabled()
-        current = TimezoneUtil.to_optional_utc(now or TimezoneUtil.utc_now())
+        current = TimezoneUtil.to_utc(now or TimezoneUtil.utc_now())
         pending = await OidcKeyDao.list_due_pending(db, now=current)
         activated = 0
         for record in pending:
@@ -676,18 +676,8 @@ class OidcKeyManagementService:
         :param row: 签名密钥 ORM 记录
         :return: 签名密钥管理视图字段映射
         """
-        return OidcKeyViewModel(
-            kid=row.kid,
-            key_use=row.key_use,
-            alg=row.alg,
-            public_jwk=row.public_jwk,
-            status=row.status,
-            publish_at=TimezoneUtil.to_optional_utc(row.publish_at),
-            signing_start_at=TimezoneUtil.to_optional_utc(row.signing_start_at),
-            signing_stop_at=TimezoneUtil.to_optional_utc(row.signing_stop_at),
-            remove_from_jwks_at=TimezoneUtil.to_optional_utc(row.remove_from_jwks_at),
-            create_time=TimezoneUtil.to_optional_utc(row.create_time),
-        ).model_dump(by_alias=True)
+        model = OidcKeyViewModel.model_validate(row)
+        return cast('dict[str, object]', model.model_dump(by_alias=True))
 
     @classmethod
     async def bootstrap(

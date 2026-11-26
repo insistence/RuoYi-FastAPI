@@ -1,7 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
+from textual import on
 from textual.containers import ScrollableContainer
+from textual.screen import Screen
+
+from cli.tui.widgets import NavigationItem, WorkspaceSidebar
+
+if TYPE_CHECKING:
+    from cli.tui.app import RuoyiTuiApp
 
 
 class BaseScreenFocusService(ABC):
@@ -59,25 +66,58 @@ class BaseScreenFocusService(ABC):
         return self.get_default_scroll_target(screen)
 
 
-class ScreenFocusActionsMixin:
+class WorkspaceScreen(Screen[None]):
     """
-    TUI 屏幕焦点动作混入。
+    工作区屏幕的焦点与侧栏导航行为。
 
-    该混入负责将焦点服务暴露为屏幕上的左右移动与滚动 action，避免
-    各个 Screen 类重复编写同形转发方法。
-
+    :ivar active_view: 当前视图标识
     :ivar focus_service: TUI 屏幕焦点服务基类
     """
 
+    active_view: str
     focus_service: BaseScreenFocusService
 
-    def _move_focus(self, step: int) -> None:
+    @property
+    def workspace_app(self) -> 'RuoyiTuiApp':
         """
-        按给定方向移动当前焦点。
+        获取挂载当前工作区屏幕的应用。
 
-        :param step: 焦点移动步长
+        :return: 管理工作区导航的应用
         """
-        self.focus_service.move_focus(self, step)
+        return cast('RuoyiTuiApp', self.app)
+
+    def _open_sidebar_item(self, event: WorkspaceSidebar.Highlighted | WorkspaceSidebar.Selected) -> None:
+        """
+        根据侧边栏事件打开对应视图，并避免重复打开当前页面。
+
+        :param event: 侧边栏高亮或选中事件
+        """
+        item = getattr(event.item, 'item', None)
+        if not isinstance(item, NavigationItem):
+            return
+        if not isinstance(event.control, WorkspaceSidebar) or not event.control.navigation_ready:
+            return
+        if item.view_key == self.active_view and self.workspace_app.requested_view == self.active_view:
+            return
+        self.workspace_app.open_view(item.view_key)
+
+    @on(WorkspaceSidebar.Selected)
+    def on_sidebar_selected(self, event: WorkspaceSidebar.Selected) -> None:
+        """
+        响应左侧导航选中事件并切换视图。
+
+        :param event: 导航选中事件
+        """
+        self._open_sidebar_item(event)
+
+    @on(WorkspaceSidebar.Highlighted)
+    def on_sidebar_highlighted(self, event: WorkspaceSidebar.Highlighted) -> None:
+        """
+        响应左侧导航高亮变更并立即切换视图。
+
+        :param event: 导航高亮事件
+        """
+        self._open_sidebar_item(event)
 
     def _get_scroll_target(self) -> Any:
         """
@@ -113,8 +153,8 @@ class ScreenFocusActionsMixin:
 
     def action_focus_left(self) -> None:
         """将焦点向左移动一列。"""
-        self._move_focus(-1)
+        self.focus_service.move_focus(self, -1)
 
     def action_focus_right(self) -> None:
         """将焦点向右移动一列。"""
-        self._move_focus(1)
+        self.focus_service.move_focus(self, 1)

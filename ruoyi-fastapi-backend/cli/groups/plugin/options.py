@@ -1,7 +1,12 @@
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from plugins.core.validation.dependency_policy import DependencyInstallPolicyMode
 
 PluginFrontendFrameworkChoice = Literal['auto', 'vue2', 'vue3', 'react']
+PluginPlanOperation = Literal['install', 'enable', 'upgrade']
+PluginPrecheckOperation = Literal[PluginPlanOperation, 'uninstall', 'purge']
 
 
 @dataclass(frozen=True)
@@ -52,7 +57,7 @@ class PluginDependencyInstallCommandOptions:
     allow_prod: bool = False
     yes: bool = False
     dry_run: bool = False
-    policy_mode: str | None = None
+    policy_mode: 'DependencyInstallPolicyMode | None' = None
     allow_unlisted: bool = False
     lockfile: str = ''
     allowlist: str = ''

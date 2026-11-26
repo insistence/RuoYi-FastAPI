@@ -3,7 +3,7 @@ import logging
 import sys
 import time
 import traceback
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from concurrent.futures import Future
 from concurrent.futures.process import BrokenProcessPool
 from contextlib import contextmanager
@@ -46,7 +46,7 @@ def _execution(
     logger_name: str,
     *,
     event: TimedJobExecutionEvent | None = None,
-) -> Iterator[TimedJobExecutionEvent]:
+) -> Generator[TimedJobExecutionEvent, None, None]:
     """
     在实际调用边界记录任务起止时刻和单调耗时。
 
@@ -97,7 +97,7 @@ def _claim_execution(event: TimedJobExecutionEvent) -> str | None:
     try:
         claim = JobExecutionStore.claim(
             event.execution_id,
-            snapshot.job_id,
+            snapshot.require_job_id(),
             snapshot.execution_snapshot(),
             event.scheduled_run_time,
             dispatch_token=snapshot.dispatch_token,
@@ -123,6 +123,8 @@ def _finish_execution(event: TimedJobExecutionEvent, token: str) -> None:
     :param token: 当前执行占用凭据
     """
     try:
+        if event.start_time is None or event.end_time is None or event.run_duration_ms is None:
+            raise ValueError('任务执行计时信息不完整')
         JobExecutionStore.finish(
             event.execution_id,
             token,
@@ -147,7 +149,7 @@ def _record_unstarted_execution(event: TimedJobExecutionEvent) -> None:
     try:
         JobExecutionStore.record_unstarted(
             event.execution_id,
-            event.snapshot.job_id,
+            event.snapshot.require_job_id(),
             event.snapshot.execution_snapshot(),
             event.scheduled_run_time,
             'missed' if event.code == EVENT_JOB_MISSED else 'rejected',

@@ -1,6 +1,9 @@
 from pathlib import Path
 
+import pytest
+
 from cli.runtime.plugin.service import CliPluginRuntimeService
+from plugins.core.runtime.service.lifecycle_lock import NoopPluginLifecycleLock
 from plugins.core.validation.dependencies import PluginDependencyChecker
 from tests.cli.runtime.plugin.conftest import (
     FakePluginRuntimeGateway,
@@ -48,12 +51,12 @@ def test_plugin_runtime_core_runtime_initializes_without_getattr_recursion(tmp_p
     assert core_runtime is not runtime
 
 
-def test_plugin_runtime_exposes_only_cli_workflow_surface(tmp_path: Path) -> None:
+def test_plugin_runtime_exposes_only_cli_workflow_surface(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """校验 CLI 运行时只暴露命令工作流所需接口。"""
     backend_root = tmp_path / 'ruoyi-fastapi-backend'
     backend_root.mkdir()
     runtime = build_runtime(backend_root)
-    runtime.core_runtime.dynamic_core_only = 'hidden'
+    monkeypatch.setattr(runtime.core_runtime, 'dynamic_core_only', 'hidden', raising=False)
 
     assert not hasattr(runtime, '_missing_internal')
     assert not hasattr(runtime, 'dynamic_core_only')
@@ -86,17 +89,31 @@ def test_plugin_runtime_dependencies_are_exposed_through_container(tmp_path: Pat
     runtime_gateway = FakePluginRuntimeGateway()
     runtime = build_runtime_with_gateway(backend_root, runtime_gateway)
 
+    assert runtime.dependencies.runtime_environment is not None
     assert runtime.dependencies.runtime_environment.get_backend_dir() == str(backend_root)
     assert runtime.dependencies.management_gateway is runtime_gateway
     assert runtime.dependencies.model_gateway is runtime_gateway
     assert runtime.dependencies.command_gateway is runtime_gateway
 
 
+def test_injected_management_gateway_supplies_default_model_and_command_gateways(tmp_path: Path) -> None:
+    """单独注入管理网关时，模型构建和命令执行均使用该网关。"""
+    gateway = FakePluginRuntimeGateway()
+    runtime = CliPluginRuntimeService(
+        runtime_environment=FakeRuntimeEnvironment(tmp_path),
+        management_gateway=gateway,
+    )
+
+    assert runtime.core_runtime.dependencies.config_gateway is gateway
+    assert runtime.core_runtime.dependencies.model_gateway is gateway
+    assert runtime.core_runtime.dependencies.command_gateway is gateway
+
+
 def test_plugin_runtime_passes_lifecycle_lock_to_core_runtime(tmp_path: Path) -> None:
     """校验 CLI 创建核心插件运行时时会显式注入生命周期锁。"""
     backend_root = tmp_path / 'ruoyi-fastapi-backend'
     backend_root.mkdir()
-    lifecycle_lock = object()
+    lifecycle_lock = NoopPluginLifecycleLock()
     runtime = CliPluginRuntimeService(
         runtime_environment=FakeRuntimeEnvironment(backend_root),
         dependency_checker=PluginDependencyChecker(),

@@ -11,6 +11,7 @@ from module_identity.dao.oauth_access_policy_dao import OAuthAccessPolicyDao
 from module_identity.dao.oauth_client_dao import OAuthClientDao
 from module_identity.dao.oauth_grant_dao import OAuthGrantDao, OAuthGrantSnapshot
 from module_identity.entity.do.oauth_grant_do import SysOAuthGrant
+from module_identity.entity.types import InteractionRecord
 from module_identity.entity.vo.interaction_vo import InteractionConsentModel, InteractionResultModel
 from module_identity.service.audit_service import AuditService
 from module_identity.service.authorization_service import (
@@ -239,7 +240,7 @@ class InteractionConsentService:
     """认证中心授权同意流程模块服务层。"""
 
     @staticmethod
-    async def context_from_record(db: AsyncSession, record: dict[str, object]) -> AuthorizationContext:
+    async def context_from_record(db: AsyncSession, record: InteractionRecord) -> AuthorizationContext:
         """
         从 Interaction 白名单记录和当前数据库策略重建同意上下文。
 
@@ -305,7 +306,7 @@ class InteractionConsentService:
             nonce=record['nonce'],
             code_challenge=record['codeChallenge'],
             code_challenge_method=record['codeChallengeMethod'],
-            prompt=' '.join(record.get('prompt') or ()),
+            prompt=record['prompt'] if isinstance(record['prompt'], str) else ' '.join(record['prompt'] or ()),
             max_age=record.get('maxAge'),
             required_scopes=required,
         )

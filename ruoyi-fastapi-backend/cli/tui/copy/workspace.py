@@ -1,5 +1,4 @@
 from cli.tui.copy.fragments import (
-    ACTION_HINT_COPY,
     BROWSER_ACTION_PANEL_COPY,
     BROWSER_EMPTY_RECORD_COPY,
     BROWSER_LOADING_COPY,
@@ -7,6 +6,7 @@ from cli.tui.copy.fragments import (
     DETAIL_EMPTY_SECTION_COPY,
     GENERAL_COPY,
     METRIC_COPY,
+    OPERATION_HINT_LINES,
     SIGNAL_RAIL_COPY,
     STATE_SECTION_TITLES,
     STATE_SUGGESTIONS,
@@ -424,7 +424,7 @@ class TuiWorkspaceCopyMixin:
             '',
             BROWSER_ACTION_PANEL_COPY['operation_section_title'],
         ]
-        lines.extend(ACTION_HINT_COPY['operation_hint_lines'])
+        lines.extend(OPERATION_HINT_LINES)
         if feedback_lines:
             lines.extend(
                 [

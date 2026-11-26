@@ -1,5 +1,6 @@
 import io
 import os
+from collections.abc import Callable
 from contextlib import redirect_stderr
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,6 +10,7 @@ import click
 import typer
 import typer.main
 from click.shell_completion import BashComplete, FishComplete, ShellComplete, ZshComplete
+from typer._click import Command as TyperClickCommand
 
 from cli.completion.providers import COMPLETION_PROVIDER_GATEWAY, CompletionProviderGateway
 from cli.completion.shells import PowerShellComplete, ensure_custom_completion_classes_registered
@@ -104,7 +106,7 @@ class CompletionInstallerShellSupport:
         return '\n'.join(compatible_lines) + '\n'
 
     @staticmethod
-    def build_posix_source_command(target_file: Path) -> str:
+    def build_posix_source_command(target_file: Path | str) -> str:
         """
         构建 POSIX shell 使用的 source 命令。
 
@@ -114,7 +116,7 @@ class CompletionInstallerShellSupport:
         return f'source {target_file}'
 
     @staticmethod
-    def build_fish_source_command(target_file: Path) -> str:
+    def build_fish_source_command(target_file: Path | str) -> str:
         """
         构建 Fish shell 使用的 source 命令。
 
@@ -124,7 +126,7 @@ class CompletionInstallerShellSupport:
         return f'status --is-interactive; and source {target_file}'
 
     @staticmethod
-    def build_powershell_source_command(target_file: Path) -> str:
+    def build_powershell_source_command(target_file: Path | str) -> str:
         """
         构建 PowerShell 使用的 source 命令。
 
@@ -146,9 +148,9 @@ class CompletionShellRuntimePolicy:
     """
 
     name: str
-    click_completion_class: type[Any]
-    script_transformer: Any
-    source_command_builder: Any
+    click_completion_class: type[ShellComplete]
+    script_transformer: Callable[[str], str]
+    source_command_builder: Callable[[str], str]
 
 
 @dataclass(frozen=True)
@@ -262,9 +264,9 @@ class CompletionInstallerService:
         return runtime_policy
 
     @staticmethod
-    def build_completion_click_command(root_cli: typer.Typer) -> click.Command:
+    def build_completion_click_command(root_cli: typer.Typer) -> TyperClickCommand:
         """
-        将 Typer 根应用转换为 Click 命令对象，供 shell completion 生成使用。
+        将 Typer 根应用转换为其可执行的 Click 命令。
 
         :param root_cli: Typer 根应用
         :return: Click 命令对象
@@ -289,7 +291,7 @@ class CompletionInstallerService:
         stderr_buffer = io.StringIO()
         with redirect_stderr(stderr_buffer):
             script_text = runtime_policy.click_completion_class(
-                click_command,
+                click.Command(click_command.name),
                 {},
                 'ruoyi',
                 CLICK_COMPLETE_ENV_VAR,

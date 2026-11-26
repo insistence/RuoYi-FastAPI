@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from redis.asyncio import Redis
 
 from utils.server_util import StartupUtil
 
@@ -46,7 +47,7 @@ class FakeLeaseRedis:
         """
         return self.values.get(key)
 
-    async def eval(self, script: str, _key_count: int, key: str, *args: object) -> int:
+    async def eval(self, script: str, _key_count: int, key: str, *args: str | int) -> int:
         """
         模拟compare-and-expire和compare-and-delete脚本。
 
@@ -102,7 +103,8 @@ def test_application_lock_owner_token_is_stable_in_process_and_unique_between_pr
 @pytest.mark.asyncio
 async def test_application_leader_lease_only_accepts_current_owner() -> None:
     """校验不同owner token无法同时获得同一Application leader租约。"""
-    redis = FakeLeaseRedis()
+    lease = FakeLeaseRedis()
+    redis = MagicMock(spec=Redis, wraps=lease)
 
     first_acquired = await StartupUtil.acquire_application_leader(redis, 'app:leader', 'owner-1', 60)
     repeated_acquired = await StartupUtil.acquire_application_leader(redis, 'app:leader', 'owner-1', 60)
@@ -116,9 +118,10 @@ async def test_application_leader_lease_only_accepts_current_owner() -> None:
 @pytest.mark.asyncio
 async def test_application_leader_renew_and_release_are_owner_safe() -> None:
     """校验非owner不能续期或删除已换主的Application leader租约。"""
-    redis = FakeLeaseRedis()
-    redis.values['app:leader'] = 'owner-2'
-    redis.expires['app:leader'] = 60
+    lease = FakeLeaseRedis()
+    redis = MagicMock(spec=Redis, wraps=lease)
+    lease.values['app:leader'] = 'owner-2'
+    lease.expires['app:leader'] = 60
 
     stale_renewed = await StartupUtil.renew_application_leader(
         redis,
@@ -137,19 +140,20 @@ async def test_application_leader_renew_and_release_are_owner_safe() -> None:
     assert stale_renewed is False
     assert stale_released is False
     assert owner_renewed is True
-    assert redis.expires['app:leader'] == RENEWED_LEASE_SECONDS
+    assert lease.expires['app:leader'] == RENEWED_LEASE_SECONDS
 
     owner_released = await StartupUtil.release_application_leader(redis, 'app:leader', 'owner-2')
 
     assert owner_released is True
-    assert 'app:leader' not in redis.values
+    assert 'app:leader' not in lease.values
 
 
 @pytest.mark.asyncio
 async def test_application_leader_renewal_reports_lock_loss() -> None:
     """校验owner不再匹配时续期任务会退出并通知Scheduler降级。"""
-    redis = FakeLeaseRedis()
-    redis.values['app:leader'] = 'new-owner'
+    lease = FakeLeaseRedis()
+    redis = MagicMock(spec=Redis, wraps=lease)
+    lease.values['app:leader'] = 'new-owner'
     on_lock_lost = MagicMock()
 
     renewal_task = StartupUtil.start_application_leader_renewal(

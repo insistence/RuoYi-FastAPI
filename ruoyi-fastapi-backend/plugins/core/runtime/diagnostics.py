@@ -2,23 +2,24 @@ import time
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, ValidationInfo, field_validator, model_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, NonNegativeInt, ValidationInfo, field_validator, model_validator
 
+from common.vo import CamelModel
 from plugins.core.runtime.task_cleanup import pending_plugin_tasks
 
 if TYPE_CHECKING:
+    import asyncio
+
     from plugins.core.runtime.explicit import ExplicitPluginRuntime, LoadedExplicitPlugin
     from plugins.core.runtime.health import PluginHealthResult
-    from plugins.core.runtime.metrics import PluginMetricSeries
 
 MAX_DIAGNOSTIC_PLUGINS = 1024
 
 
-class _DiagnosticModel(BaseModel):
+class _DiagnosticModel(CamelModel):
     """只接收有界的宿主观测字段，禁止混入插件业务对象或额外字段。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra='forbid', strict=True)
+    model_config = ConfigDict(extra='forbid', strict=True)
 
     @model_validator(mode='before')
     @classmethod
@@ -173,21 +174,18 @@ def _recent_errors(runtime: 'ExplicitPluginRuntime') -> dict[str, PluginDiagnost
     :param runtime: 当前 worker 的显式插件运行时
     :return: 按插件 ID 索引的错误关联摘要
     """
-    latest: dict[str, PluginMetricSeries] = {}
+    latest: dict[str, PluginDiagnosticError] = {}
     for series in runtime.metrics.series.values():
         if series.last_error_at is None or not series.last_error_type:
             continue
         previous = latest.get(series.plugin_id)
-        if previous is None or series.last_error_at > previous.last_error_at:
-            latest[series.plugin_id] = series
-    return {
-        plugin_id: PluginDiagnosticError(
-            error_type=series.last_error_type,
-            request_id=series.last_error_request_id,
-            at=series.last_error_at,
-        )
-        for plugin_id, series in latest.items()
-    }
+        if previous is None or series.last_error_at > previous.at:
+            latest[series.plugin_id] = PluginDiagnosticError(
+                error_type=series.last_error_type,
+                request_id=series.last_error_request_id,
+                at=series.last_error_at,
+            )
+    return latest
 
 
 def _plugin_observation(
@@ -249,7 +247,7 @@ def collect_runtime_diagnostics(runtime: 'ExplicitPluginRuntime') -> PluginRunti
     :param runtime: 当前 worker 的显式插件运行时
     :return: 有界且独立于后续资源变化的诊断快照
     """
-    pending = set(pending_plugin_tasks())
+    pending: set[asyncio.Future[Any]] = set(pending_plugin_tasks())
     for loaded in runtime.loaded.values():
         if loaded.gateway is not None:
             pending.update(loaded.gateway.connections.pending_tasks())

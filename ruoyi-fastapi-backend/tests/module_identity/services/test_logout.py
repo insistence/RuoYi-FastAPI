@@ -8,7 +8,9 @@ import httpx
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
+from httpcore._backends.auto import AutoBackend
 from jwt.utils import base64url_encode
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
 from config.env import OidcConfig
@@ -96,11 +98,11 @@ def _configure_oidc(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(OidcConfig, 'oidc_token_hash_pepper', _PEPPER)
 
 
-def _key_record(private_key: object, now: datetime, kid: str = 'key-1') -> SimpleNamespace:
+def _key_record(private_key: rsa.RSAPrivateKey, now: datetime, kid: str = 'key-1') -> SimpleNamespace:
     """
     构造本地数据库公开 JWK 记录。
 
-    :param private_key: 仅在当前构建进程内使用的 Ed25519 签名私钥
+    :param private_key: 用于签发测试令牌的 RSA 私钥
     :param now: 用于设置签发和过期时间的基准时刻
     :param kid: 用于定位签名密钥的标识
     :return: 本地数据库公开 JWK 记录
@@ -125,11 +127,11 @@ def _key_record(private_key: object, now: datetime, kid: str = 'key-1') -> Simpl
     )
 
 
-def _id_token(private_key: object, *, now: datetime, kid: str = 'key-1', aud: str = 'portal') -> str:
+def _id_token(private_key: rsa.RSAPrivateKey, *, now: datetime, kid: str = 'key-1', aud: str = 'portal') -> str:
     """
     签发用于测试的真实 ID Token。
 
-    :param private_key: 仅在当前构建进程内使用的 Ed25519 签名私钥
+    :param private_key: 用于签发测试令牌的 RSA 私钥
     :param now: 用于设置签发和过期时间的基准时刻
     :param kid: 用于定位签名密钥的标识
     :param aud: 令牌声明的受众
@@ -167,7 +169,7 @@ async def test_id_token_hint_uses_local_rsa_kid_and_rejects_remote_header(
         'module_identity.service.session_service.OidcKeyDao.get_verifying',
         _async_return(_key_record(private_key, now)),
     )
-    db = SimpleNamespace()
+    db = AsyncSession()
     token = _id_token(private_key, now=now, aud='portal')
 
     claims, resolved = await LogoutService._validate_id_token_hint(db, token, now)
@@ -197,7 +199,7 @@ async def test_pending_signing_key_cannot_validate_id_token_hint(
     key = _key_record(private_key, now)
     key.status = 'pending'
     monkeypatch.setattr('module_identity.service.session_service.OidcKeyDao.get_verifying', _async_return(key))
-    db = SimpleNamespace()
+    db = AsyncSession()
     token = _id_token(private_key, now=now, aud='portal')
 
     with pytest.raises(LogoutServiceError):
@@ -229,6 +231,7 @@ async def test_logout_redirect_and_backchannel_are_after_commit(monkeypatch: pyt
         :param kwargs: 传给被调用对象的关键字参数
         """
         coordinator = kwargs['coordinator']
+        assert isinstance(coordinator, AfterCommitCoordinator)
 
         async def notify() -> None:
             """记录待发送的后通道注销通知。"""
@@ -237,7 +240,7 @@ async def test_logout_redirect_and_backchannel_are_after_commit(monkeypatch: pyt
         await coordinator.register(notify)
 
     monkeypatch.setattr(LogoutService, '_register_backchannel', register_backchannel)
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = AsyncMock(spec=AsyncSession)
     coordinator = AfterCommitCoordinator()
 
     monkeypatch.setattr(
@@ -245,7 +248,7 @@ async def test_logout_redirect_and_backchannel_are_after_commit(monkeypatch: pyt
     )
     result = await LogoutService._logout(
         db,
-        object(),
+        FakeRedis().client,
         id_token_hint='opaque-input-not-logged',
         post_logout_redirect_uri='https://portal.example/logged-out',
         state='opaque-state',
@@ -263,7 +266,7 @@ async def test_logout_redirect_and_backchannel_are_after_commit(monkeypatch: pyt
     coordinator = AfterCommitCoordinator()
     result = await LogoutService._logout(
         db,
-        object(),
+        FakeRedis().client,
         id_token_hint='opaque-input-not-logged',
         post_logout_redirect_uri='https://portal.example/logged-out',
         state='opaque-state',
@@ -306,8 +309,8 @@ async def test_invalid_hint_with_valid_cookie_still_revokes_server_session(
         'module_identity.service.session_service.SsoSessionDao.client_ids_for_sid', AsyncMock(return_value=[])
     )
     result = await LogoutService._logout(
-        SimpleNamespace(),
-        object(),
+        AsyncSession(),
+        FakeRedis().client,
         id_token_hint='bad-hint',
         cookie='ss1.valid-cookie',
         post_logout_redirect_uri='https://portal.example/logged-out',
@@ -340,7 +343,7 @@ async def test_unsafe_or_unregistered_redirect_falls_back_to_local_and_logout_to
     monkeypatch.setattr(LogoutService, '_lock_session_refresh_tokens', _async_return([]))
     monkeypatch.setattr(LogoutService, '_revoke_session_state', _async_noop)
     monkeypatch.setattr(LogoutService, '_register_backchannel', _async_noop)
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = AsyncMock(spec=AsyncSession)
     coordinator = AfterCommitCoordinator()
 
     monkeypatch.setattr(
@@ -348,7 +351,7 @@ async def test_unsafe_or_unregistered_redirect_falls_back_to_local_and_logout_to
     )
     result = await LogoutService._logout(
         db,
-        object(),
+        FakeRedis().client,
         id_token_hint='hint',
         post_logout_redirect_uri='https://evil.example/redirect#fragment',
         state='do-not-echo',
@@ -368,6 +371,7 @@ async def test_unsafe_or_unregistered_redirect_falls_back_to_local_and_logout_to
         signing_kid='key-1',
         db=db,
     )
+    assert token is not None
     claims = decode_logout_token(token, verification_key=private_key.public_key(), issuer=_ISSUER, audience='portal')
     assert claims['sid'] == 'sid-1'
     assert claims['exp'] == claims['iat'] + 120
@@ -384,6 +388,7 @@ async def test_unsafe_or_unregistered_redirect_falls_back_to_local_and_logout_to
         signing_kid='key-1',
         db=db,
     )
+    assert subject_token is not None
     subject_claims = decode_logout_token(
         subject_token, verification_key=private_key.public_key(), issuer=_ISSUER, audience='portal'
     )
@@ -596,7 +601,7 @@ async def test_malformed_retry_payload_goes_to_safe_dead_letter_and_audit(
         audited.append(f'{event}:{kwargs.get("failure_code")}')
 
     monkeypatch.setattr(LogoutService, '_audit_writer', lambda _db: audit)
-    assert await LogoutService.consume_backchannel_retry(object(), redis) == 1
+    assert await LogoutService.consume_backchannel_retry(AsyncSession(), redis.client) == 1
     dead = await redis.lpop(OidcRedisKey.backchannel_retry_queue() + ':dead')
     assert dead == '{"error":"invalid_retry_payload"}'
     assert audited == ['backchannel_logout_failed:invalid retry payload']
@@ -610,16 +615,15 @@ async def test_pinned_transport_uses_approved_ip_and_preserves_origin_host(monke
     stream.start_tls.return_value = stream
     stream.get_extra_info.return_value = None
     transport = PinnedHttpxTransport('client.example', {'203.0.113.7'})
-    backend = transport._pool._network_backend
     connect = AsyncMock(return_value=stream)
-    monkeypatch.setattr(backend._backend, 'connect_tcp', connect)
+    monkeypatch.setattr(AutoBackend, 'connect_tcp', connect)
 
     async with httpx.AsyncClient(transport=transport) as client:
         response = await client.post('https://client.example/logout', data={'logout_token': 'opaque'})
 
     assert response.content == b'OK'
-    assert connect.await_args.args[:2] == ('203.0.113.7', 443)
-    assert stream.start_tls.await_args.kwargs['server_hostname'] == 'client.example'
+    assert connect.await_args_list[-1].args[:2] == ('203.0.113.7', 443)
+    assert stream.start_tls.await_args_list[-1].kwargs['server_hostname'] == 'client.example'
     sent = b''.join(call.args[0] for call in stream.write.await_args_list)
     assert b'host: client.example\r\n' in sent.lower()
 
@@ -627,6 +631,7 @@ async def test_pinned_transport_uses_approved_ip_and_preserves_origin_host(monke
 @pytest.mark.asyncio
 async def test_pinned_transport_stops_oversized_response_stream() -> None:
     """远端超大响应在流读取时主动中止，不在内存中无限累积。"""
+    closed = AsyncMock()
 
     class Stream:
         """提供可异步迭代和关闭的响应流。"""
@@ -640,17 +645,17 @@ async def test_pinned_transport_stops_oversized_response_stream() -> None:
             yield b'x' * (70 * 1024)
 
         async def aclose(self) -> None:
-            """完成无需返回值的回调。"""
-            return
+            """记录底层响应流已关闭。"""
+            await closed()
 
-    response = SimpleNamespace(status=200, headers=[], stream=Stream(), extensions={}, aclose=AsyncMock())
+    response = httpcore.Response(200, content=Stream())
     transport = PinnedHttpxTransport('client.example', {'203.0.113.7'})
     transport._pool.handle_async_request = AsyncMock(return_value=response)
     result = await transport.handle_async_request(httpx.Request('POST', 'https://client.example/logout'))
     with pytest.raises(OSError, match='响应大小超过限制'):
         async for _chunk in result.aiter_bytes():
             pass
-    response.aclose.assert_awaited_once()
+    closed.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -686,7 +691,7 @@ async def test_backchannel_retry_consumer_revalidates_uri_and_reissues_short_liv
         """
         sent.append((uri, token))
 
-    result = await LogoutService.consume_backchannel_retry(object(), redis, notifier=notify)
+    result = await LogoutService.consume_backchannel_retry(AsyncSession(), redis.client, notifier=notify)
 
     assert result == 1
     assert sent == [('https://client.example/logout', 'fresh.logout.token')]
@@ -700,7 +705,7 @@ async def test_logout_endpoint_disabled_is_local_404_without_legacy_pre_auth(
     """OIDC 关闭时直接返回裸 404，不执行数据库或 Legacy PreAuth。"""
     config = SimpleNamespace(oidc_enabled=False)
     monkeypatch.setattr(controller, 'OidcConfig', config)
-    response = await controller.logout(_request(), object())
+    response = await controller.logout(_request(), AsyncSession())
 
     assert response.status_code == _HTTP_NOT_FOUND
 
@@ -730,7 +735,7 @@ async def test_logout_endpoint_prepares_confirmation_without_clearing_sso_cookie
         return LogoutResult('https://portal.example/logged-out', 'state-1', True)
 
     monkeypatch.setattr(controller.LogoutService, 'execute_logout', fake_logout)
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = AsyncMock(spec=AsyncSession)
     monkeypatch.setattr(controller.LogoutConfirmationService, 'issue', AsyncMock(return_value=('t' * 43, 'n' * 43)))
     execute = AsyncMock()
     monkeypatch.setattr(controller.LogoutService, 'execute_logout', execute)
@@ -772,7 +777,7 @@ async def test_logout_endpoint_unexpected_service_error_returns_503_without_clea
 
     monkeypatch.setattr(controller.LogoutConfirmationService, 'issue', fail)
     request = _request(headers=[(b'cookie', b'__Host-ruoyi-sso=valid-cookie')])
-    response = await controller.logout(request, SimpleNamespace())
+    response = await controller.logout(request, AsyncSession())
 
     assert response.status_code == _HTTP_SERVICE_UNAVAILABLE
     assert 'set-cookie' not in response.headers
@@ -817,7 +822,7 @@ async def test_logout_endpoint_post_form_forwards_logout_parameters(
         body=body,
     )
 
-    response = await controller.logout(request, SimpleNamespace())
+    response = await controller.logout(request, AsyncSession())
 
     assert response.status_code == _HTTP_OK
     assert captured['id_token_hint'] == 'hint-value'
@@ -907,7 +912,7 @@ async def test_expired_id_token_is_accepted_only_as_logout_hint(monkeypatch: pyt
         'module_identity.service.session_service.OidcKeyDao.get_verifying',
         _async_return(_key_record(private_key, now)),
     )
-    claims, _ = await LogoutService._validate_id_token_hint(object(), token, now)
+    claims, _ = await LogoutService._validate_id_token_hint(AsyncSession(), token, now)
     assert claims['sid'] == 'sid-1'
     with pytest.raises(JwtProfileError):
         decode_id_token(token, verification_key=private_key.public_key(), issuer=_ISSUER, audience='portal')
@@ -936,13 +941,13 @@ async def test_confirmed_logout_does_not_revoke_another_accounts_hint_session(
         'module_identity.service.session_service.SsoSessionDao.client_ids_for_sid', AsyncMock(return_value=[])
     )
     result = await LogoutService._logout(
-        object(),
-        object(),
+        AsyncSession(),
+        FakeRedis().client,
         id_token_hint='signed-other-account',
         cookie='current-cookie',
         confirmed=True,
         coordinator=AfterCommitCoordinator(),
         now=now,
     )
-    assert revoked.await_args.args[2] == 'current-sid'
+    assert revoked.await_args_list[-1].args[2] == 'current-sid'
     assert result.redirect_uri is None

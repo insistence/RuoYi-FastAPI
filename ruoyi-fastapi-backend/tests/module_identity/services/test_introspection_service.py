@@ -1,7 +1,9 @@
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.env import OidcConfig
 from module_identity.dao.oauth_access_policy_dao import OAuthAccessPolicyDao
@@ -69,9 +71,10 @@ def _principal(client_type: str = 'confidential') -> OAuthClientPrincipal:
 
 
 @pytest.mark.asyncio
-async def test_introspection_rejects_non_client_principal(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize('invalid_principal', [object()])
+async def test_introspection_rejects_non_client_principal(invalid_principal: Any) -> None:
     """任意用户主体或普通对象都不能调用内省端点。"""
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'not-a-token', object())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'not-a-token', invalid_principal)
 
     assert result == {'active': False}
 
@@ -91,7 +94,7 @@ async def test_introspection_rejects_public_or_inactive_client(monkeypatch: pyte
         return _client('public')
 
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', client_lookup)
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'not-a-token', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'not-a-token', _principal())
 
     assert result == {'active': False}
 
@@ -123,7 +126,7 @@ async def test_introspection_auth_method_pair_is_exact(
     )
 
     result = await IntrospectionService._resolve_caller(
-        object(), OAuthClientPrincipal('introspector', principal_type, principal_method)
+        AsyncSession(), OAuthClientPrincipal('introspector', principal_type, principal_method)
     )
 
     assert (result is not None) is expected
@@ -169,7 +172,7 @@ async def test_access_introspection_honours_revoked_jti_and_resource_owner(
     await redis.set('oidc:revoked_jti:jti-1', '1', ex=60)
 
     result = await IntrospectionService.introspect(
-        object(), redis, 'signed-access', _principal(), now=datetime.now(UTC)
+        AsyncSession(), redis.client, 'signed-access', _principal(), now=datetime.now(UTC)
     )
 
     assert result == {'active': False}
@@ -216,7 +219,7 @@ async def test_business_client_a_is_introspected_by_independent_resource_client_
     monkeypatch.setattr(IntrospectionService, '_resources_owned_by_caller', lambda *_args, **_kwargs: _async_true())
     monkeypatch.setattr(IntrospectionService, '_client_allows_access', lambda *_args, **_kwargs: _async_true())
     monkeypatch.setattr(IntrospectionService, '_access_user_state', lambda *_args, **_kwargs: _async_user())
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'signed-access', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'signed-access', _principal())
 
     assert result['active'] is True
     assert result['client_id'] == 'business-a'
@@ -262,7 +265,7 @@ async def test_independent_resource_client_b_is_rejected_for_wrong_audience(
     )
     monkeypatch.setattr(IntrospectionService, '_resources_owned_by_caller', lambda *_args, **_kwargs: _async_false())
 
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'signed-access', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'signed-access', _principal())
 
     assert result == {'active': False}
 
@@ -276,7 +279,7 @@ async def test_access_user_state_rejects_each_real_time_failure(
     subject = SimpleNamespace(subject_id='subject-a', user_id=7, auth_version=3)
     user = SimpleNamespace(status='0', del_flag='0', user_name='alice')
     session = SimpleNamespace(user_id=7, subject_id='subject-a', auth_version=3)
-    db = object()
+    db = AsyncSession()
     if invalid_state == 'subject':
         subject = None
     elif invalid_state == 'user':
@@ -347,7 +350,7 @@ async def test_machine_access_token_uses_client_binding_without_user_state(
     monkeypatch.setattr(IntrospectionService, '_resources_owned_by_caller', lambda *_args, **_kwargs: _async_true())
     monkeypatch.setattr(IntrospectionService, '_client_allows_access', lambda *_args, **_kwargs: _async_true())
 
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'machine-access', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'machine-access', _principal())
 
     assert result['active'] is True
 
@@ -367,7 +370,7 @@ async def test_invalid_refresh_shape_is_inactive(monkeypatch: pytest.MonkeyPatch
         return _client()
 
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthClientDao.get_by_client_id', client_lookup)
-    result = await IntrospectionService.introspect(object(), FakeRedis(), 'rt1.token-id', _principal())
+    result = await IntrospectionService.introspect(AsyncSession(), FakeRedis().client, 'rt1.token-id', _principal())
 
     assert result == {'active': False}
 
@@ -436,13 +439,13 @@ async def test_refresh_introspection_rechecks_identity_session_grant_and_resourc
         'module_identity.service.token_protocol_service.SsoSessionDao.get_active',
         _lookup(SimpleNamespace(subject_id='subject-7', user_id=7, auth_version=session_auth_version)),
     )
-    db = object()
+    db = AsyncSession()
     monkeypatch.setattr(
         'module_identity.service.token_protocol_service.IntrospectionService._resources_owned_by_caller',
         lambda *_args, **_kwargs: _async_true(),
     )
 
-    result = await IntrospectionService.introspect(db, FakeRedis(), token, _principal(), now=now)
+    result = await IntrospectionService.introspect(db, FakeRedis().client, token, _principal(), now=now)
 
     assert result['active'] is (session_auth_version == _AUTH_VERSION)
     if session_auth_version == _AUTH_VERSION:

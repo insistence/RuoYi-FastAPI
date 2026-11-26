@@ -3,6 +3,7 @@ import json
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from functools import cache
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 
@@ -14,6 +15,9 @@ from plugins.core.runtime.startup_coordination import PluginStartupGenerationRes
 from utils.log_util import logger
 
 from .service.lifecycle_lock import NoopPluginLifecycleLock, PluginLifecycleLock
+
+if TYPE_CHECKING:
+    from plugins.core.deployment.worker import PluginReleaseWorker
 
 
 class PluginApplicationRuntime:
@@ -42,10 +46,10 @@ class PluginApplicationRuntime:
         ready_expire_seconds: int = LockConstant.PLUGIN_STARTUP_READY_EXPIRE_SECONDS,
         failed_expire_seconds: int = LockConstant.PLUGIN_STARTUP_FAILED_EXPIRE_SECONDS,
         ready_wait_timeout_seconds: int = LockConstant.PLUGIN_STARTUP_READY_WAIT_TIMEOUT_SECONDS,
-        ready_wait_interval_seconds: int = LockConstant.PLUGIN_STARTUP_READY_WAIT_INTERVAL_SECONDS,
+        ready_wait_interval_seconds: float = LockConstant.PLUGIN_STARTUP_READY_WAIT_INTERVAL_SECONDS,
         lifecycle_lock: PluginLifecycleLock | None = None,
         startup_generation: str | None = None,
-        release_worker: object | None = None,
+        release_worker: 'PluginReleaseWorker | None' = None,
     ) -> None:
         """
         初始化插件应用运行时适配器。

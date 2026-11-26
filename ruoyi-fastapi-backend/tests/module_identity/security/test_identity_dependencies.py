@@ -5,7 +5,9 @@ from typing import Any
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.routing import APIRoute
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
 from exceptions.exception import OAuthProtocolException
@@ -118,7 +120,7 @@ async def test_access_key_helper_rejects_remote_key_header(monkeypatch: pytest.M
         headers={'kid': 'kid-1', 'typ': 'at+jwt', 'jku': 'https://evil.example/jwks'},
     )
     with pytest.raises(dependencies.JwtProfileError):
-        await dependencies.load_access_verification_key(token, object())
+        await dependencies.load_access_verification_key(token, AsyncSession())
 
 
 @pytest.mark.asyncio
@@ -161,7 +163,7 @@ async def test_userinfo_accepts_case_insensitive_scheme_without_changing_token(
             'headers': [(b'authorization', f'{scheme} {token}'.encode())],
         }
     )
-    context = await dependencies.get_oidc_access_token(request, object())
+    context = await dependencies.get_oidc_access_token(request, AsyncSession())
     assert context.token == token
     assert context.claims['sub'] == 'subject-1'
 
@@ -180,7 +182,7 @@ async def test_userinfo_rejects_other_schemes_and_missing_space(monkeypatch: pyt
         }
     )
     with pytest.raises(HTTPException) as raised:
-        await dependencies.get_oidc_access_token(request, object())
+        await dependencies.get_oidc_access_token(request, AsyncSession())
     assert raised.value.status_code == _UNAUTHORIZED
 
 
@@ -201,9 +203,9 @@ async def test_client_dependency_invalid_client_has_basic_challenge(monkeypatch:
         raise OAuthProtocolException('invalid_client', 'Client authentication failed', 401)
 
     monkeypatch.setattr(dependencies.TokenService, 'authenticate_client', invalid)
-    request = SimpleNamespace(headers={})
+    request = Request({'type': 'http', 'headers': []})
     with pytest.raises(HTTPException) as raised:
-        await dependencies.get_oidc_client(request, object())
+        await dependencies.get_oidc_client(request, AsyncSession())
     assert raised.value.status_code == _UNAUTHORIZED
     assert raised.value.headers == {'WWW-Authenticate': 'Basic realm="oauth2/token"'}
 
@@ -216,6 +218,7 @@ def test_protocol_routers_have_no_legacy_preauth_dependency() -> None:
             for dependency in route.dependencies
         )
         for route in token_controller.routes
+        if isinstance(route, APIRoute)
     )
 
 
@@ -231,9 +234,9 @@ async def test_protocol_readiness_dependency_returns_503_without_active_key(
         'cached_readiness',
         lambda *args: _async(not_ready),
     )
-    request = SimpleNamespace(app=SimpleNamespace())
+    request = Request({'type': 'http', 'app': FastAPI()})
     with pytest.raises(OAuthProtocolException) as raised:
-        await dependencies.require_oidc_protocol_ready(request, object())
+        await dependencies.require_oidc_protocol_ready(request, AsyncSession())
     assert raised.value.error == 'temporarily_unavailable'
     assert raised.value.status_code == _SERVICE_UNAVAILABLE
 
@@ -242,6 +245,7 @@ def test_invalid_token_challenge_is_standard_bearer() -> None:
     """Access Token 依赖的失败响应不泄漏验签细节。"""
     error = dependencies._invalid_token()
     assert error.status_code == _UNAUTHORIZED
+    assert error.headers is not None
     assert error.headers['WWW-Authenticate'] == 'Bearer error="invalid_token"'
 
 

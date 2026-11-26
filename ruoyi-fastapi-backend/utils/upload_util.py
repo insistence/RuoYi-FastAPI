@@ -7,7 +7,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
-import aiofiles
+import anyio
 from fastapi import UploadFile
 
 from config.env import UploadConfig
@@ -264,7 +264,7 @@ class UploadUtil:
         """
         if start < 0 or (length is not None and length < 0):
             raise ValueError('文件读取范围不合法')
-        async with aiofiles.open(filepath, 'rb') as response_file:
+        async with await anyio.open_file(filepath, 'rb') as response_file:
             await response_file.seek(start)
             remaining = length
             while remaining is None or remaining > 0:

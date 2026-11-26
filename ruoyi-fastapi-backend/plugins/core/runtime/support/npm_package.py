@@ -1,9 +1,8 @@
 import json
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from plugins.core.validation.dependencies import DependencyInstallPlanItem, DependencyRequirementParser
-
-from .payload.dependencies import DependencyInstallReturnCodePayload
 
 
 class PluginNpmPackageJsonSynchronizer:
@@ -18,7 +17,7 @@ class PluginNpmPackageJsonSynchronizer:
     def sync_successful_items(
         cls,
         install_plan_items: list[DependencyInstallPlanItem],
-        install_results: list[DependencyInstallReturnCodePayload],
+        install_results: Sequence[Mapping[str, object]],
     ) -> None:
         """
         同步安装成功的 npm 依赖声明。

@@ -101,7 +101,7 @@ async def resolution_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Asy
     tables = [SysUser, SysDept, SysRole, SysPost, SysMenu, SysUserRole, SysUserPost, SysRoleMenu]
     async with engine.begin() as connection:
         await connection.run_sync(
-            lambda conn: Base.metadata.create_all(conn, tables=[model.__table__ for model in tables])
+            lambda conn: Base.metadata.create_all(conn, tables=[model.get_table() for model in tables])
         )
     async with sessions.begin() as db:
         db.add_all(

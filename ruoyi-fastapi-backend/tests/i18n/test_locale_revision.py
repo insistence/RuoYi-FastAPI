@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -24,6 +24,7 @@ from module_admin.entity.do.user_do import SysUser
 from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel, UserLocaleModel, UserModel
 from module_admin.service.login_service import LoginService
 from module_admin.service.user_service import UserService
+from tests.module_admin.service.helpers import make_current_user, make_query_db
 from utils.common_util import CamelCaseUtil
 
 
@@ -36,7 +37,7 @@ async def sessions() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
     """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     async with engine.begin() as connection:
-        await connection.run_sync(SysUser.__table__.create)
+        await connection.run_sync(SysUser.get_table().create)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory.begin() as db:
         db.add_all(
@@ -64,6 +65,7 @@ async def test_login_writes_only_an_explicit_valid_preference(
     async with sessions() as db:
         app.dependency_overrides[get_db_session_provider(None)] = lambda: db
         user = await db.get(SysUser, 1)
+        assert user is not None
         monkeypatch.setattr(LoginService, 'authenticate_user', AsyncMock(return_value=(user, None)))
         monkeypatch.setattr(UserService, 'user_detail_services', AsyncMock(return_value=SimpleNamespace(data=user)))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
@@ -85,28 +87,28 @@ async def test_preference_endpoint_returns_monotonic_revision_and_get_info_prese
     sessions: async_sessionmaker[AsyncSession],
 ) -> None:
     """偏好接口返回递增版本且用户信息保留大整数精度。"""
-    current = SimpleNamespace(user=SimpleNamespace(user_id=1, user_name='one'))
+    current = make_current_user(1, user_name='one')
+    request = Request({'type': 'http'})
     async with sessions() as db:
-        first = await inspect.unwrap(change_system_user_locale)(
-            SimpleNamespace(), UserLocaleModel(locale='en_US'), db, current
-        )
-        second = await inspect.unwrap(change_system_user_locale)(
-            SimpleNamespace(), UserLocaleModel(locale='en-US'), db, current
-        )
-    assert json.loads(first.body)['data'] == {'locale': 'en-US', 'revision': '1'}
-    assert json.loads(second.body)['data'] == {'locale': 'en-US', 'revision': '2'}
+        first = await inspect.unwrap(change_system_user_locale)(request, UserLocaleModel(locale='en_US'), db, current)
+        second = await inspect.unwrap(change_system_user_locale)(request, UserLocaleModel(locale='en-US'), db, current)
+    assert json.loads(bytes(first.body))['data'] == {'locale': 'en-US', 'revision': '1'}
+    assert json.loads(bytes(second.body))['data'] == {'locale': 'en-US', 'revision': '2'}
     async with sessions.begin() as db:
         user = await db.get(SysUser, 1)
+        assert user is not None
         user.locale_revision = 2**53 + 1
     async with sessions() as db:
         result = await UserService.update_user_locale_services(db, 1, 'one', 'auto')
         assert result.result == {'locale': 'auto', 'revision': str(2**53 + 2)}
     async with sessions() as db:
         user = await db.get(SysUser, 1)
+        assert user is not None
         info = CurrentUserModel(permissions=[], roles=[], user=UserInfoModel(**CamelCaseUtil.transform_result(user)))
-        response = await get_login_user_info(SimpleNamespace(), info)
-        assert json.loads(response.body)['user']['localeRevision'] == str(2**53 + 2)
+        response = await get_login_user_info(request, info)
+        assert json.loads(bytes(response.body))['user']['localeRevision'] == str(2**53 + 2)
         untouched = await db.get(SysUser, 2)
+        assert untouched is not None
         assert (untouched.locale, untouched.locale_revision) == ('zh-CN', 0)
 
 
@@ -125,9 +127,10 @@ async def test_other_user_edits_cannot_overwrite_revision_and_locale_rollback_is
         await db.rollback()
     async with sessions() as db:
         user = await db.get(SysUser, 1)
+        assert user is not None
         assert (user.locale, user.locale_revision, user.nick_name) == ('en-GB', 1, 'Changed')
         added = await UserDao.add_user_dao(
-            db, UserModel(userId=3, userName='three', nickName='Three', localeRevision='999')
+            db, UserModel(user_id=3, user_name='three', nick_name='Three', locale_revision='999')
         )
         assert added.locale_revision == 0
 
@@ -135,7 +138,8 @@ async def test_other_user_edits_cannot_overwrite_revision_and_locale_rollback_is
 @pytest.mark.asyncio
 async def test_locale_update_locks_the_row_and_uses_database_increment() -> None:
     """更新语言时锁定记录并通过数据库递增版本。"""
-    db = SimpleNamespace(scalar=AsyncMock(side_effect=[1, 42]), execute=AsyncMock())
+    db = make_query_db()
+    db.scalar.side_effect = [1, 42]
     assert await UserDao.edit_user_dao(db, {'user_id': 1, 'locale': 'en-US'}) == {'locale': 'en-US', 'revision': '42'}
     lock = db.scalar.call_args_list[0].args[0]
     update = db.execute.call_args.args[0]
@@ -177,4 +181,4 @@ def test_exact_registered_locale_wins_and_chinese_scripts_do_not_merge(monkeypat
 def test_locale_endpoint_does_not_accept_client_revision() -> None:
     """语言接口拒绝客户端提供的版本。"""
     with pytest.raises(ValueError):
-        UserLocaleModel(locale='en-US', revision='12')
+        UserLocaleModel.model_validate({'locale': 'en-US', 'revision': '12'})

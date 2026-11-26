@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, and_, delete, exists, func, or_, select, update
+from sqlalchemy import ColumnElement, and_, delete, exists, func, literal, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -275,7 +275,7 @@ class FileRetentionPolicyDao:
                 await db.execute(
                     select(SysFileRetentionPolicy).where(
                         SysFileRetentionPolicy.business_type == business_type,
-                        SysFileRetentionPolicy.status == '0' if enabled_only else True,
+                        SysFileRetentionPolicy.status == '0' if enabled_only else true(),
                     )
                 )
             )
@@ -380,7 +380,7 @@ class FileRetentionNoticeDao:
                         SysFileInfo.expire_time.is_not(None),
                         expire_condition,
                         ~current_notice_exists,
-                        file_data_scope_sql,
+                        literal(file_data_scope_sql) if isinstance(file_data_scope_sql, bool) else file_data_scope_sql,
                     )
                     .order_by(SysFileInfo.expire_time, SysFileInfo.file_id)
                     .limit(batch_size)
@@ -442,7 +442,7 @@ class FileRetentionNoticeDao:
         :param expire_time: 文件当前到期时间
         """
         expire_condition = (
-            True
+            true()
             if expire_time is None
             else or_(
                 SysFileRetentionNotice.expire_time != expire_time,
@@ -518,9 +518,9 @@ class FileRetentionNoticeDao:
                 file_data_scope_sql,
                 SysFileInfo.original_name.like(f'%{query_object.original_name}%')
                 if query_object.original_name
-                else True,
-                SysFileRetentionNotice.notice_type == query_object.notice_type if query_object.notice_type else True,
-                SysFileRetentionNotice.status == query_object.status if query_object.status else True,
+                else true(),
+                SysFileRetentionNotice.notice_type == query_object.notice_type if query_object.notice_type else true(),
+                SysFileRetentionNotice.status == query_object.status if query_object.status else true(),
             )
             .order_by(
                 SysFileRetentionNotice.status,

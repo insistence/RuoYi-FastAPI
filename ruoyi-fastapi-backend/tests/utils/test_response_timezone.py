@@ -9,7 +9,7 @@ from utils.response_util import ResponseUtil
 def test_response_util_serializes_nested_datetimes_as_fixed_utc_rfc3339() -> None:
     """响应中的嵌套日期时间统一序列化为 UTC 的 RFC 3339 格式。"""
     response = ResponseUtil.success(data={'createdAt': datetime(2026, 8, 28, 10, 30, 0, 123456, tzinfo=UTC)})
-    payload = json.loads(response.body)
+    payload = json.loads(bytes(response.body))
 
     assert payload['data']['createdAt'] == '2026-08-28T10:30:00.123Z'
     assert payload['time'].endswith('Z')

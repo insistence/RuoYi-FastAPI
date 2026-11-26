@@ -36,18 +36,18 @@ def column(
     :return: 测试使用的 ``GenTableColumnModel`` 实例
     """
     return GenTableColumnModel(
-        columnName=name,
-        columnComment=name,
-        columnType=sql_type,
-        pythonType=python_type,
-        pythonField=TemplateUtils.to_camel_case(name),
-        isPk='1' if pk else '0',
-        isInsert='1',
-        isEdit='0' if pk else '1',
-        isList='1',
-        isQuery='0' if pk else '1',
-        queryType=query_type,
-        htmlType='time' if python_type == 'time' else 'datetime' if python_type in {'date', 'datetime'} else 'input',
+        column_name=name,
+        column_comment=name,
+        column_type=sql_type,
+        python_type=python_type,
+        python_field=TemplateUtils.to_camel_case(name),
+        is_pk='1' if pk else '0',
+        is_insert='1',
+        is_edit='0' if pk else '1',
+        is_list='1',
+        is_query='0' if pk else '1',
+        query_type=query_type,
+        html_type='time' if python_type == 'time' else 'datetime' if python_type in {'date', 'datetime'} else 'input',
     )
 
 
@@ -79,22 +79,22 @@ def make_table(db_type: str, category: str, web_type: str) -> GenTableModel:
     if category == 'tree':
         columns.append(column('parent_id', 'bigint', 'int'))
     table = GenTableModel(
-        tableName='generated_time_item',
-        tableComment='时间样例',
-        className='TimeItem',
-        tplCategory=category,
-        tplWebType=web_type,
-        packageName='module_generated_time',
-        moduleName='test',
-        businessName='item',
-        functionName='时间样例',
-        functionAuthor='test',
-        formColNum=2,
+        table_name='generated_time_item',
+        table_comment='时间样例',
+        class_name='TimeItem',
+        tpl_category=category,
+        tpl_web_type=web_type,
+        package_name='module_generated_time',
+        module_name='test',
+        business_name='item',
+        function_name='时间样例',
+        function_author='test',
+        form_col_num=2,
         options=json.dumps(
             {'genView': True, 'treeCode': 'item_id', 'treeParentCode': 'parent_id', 'treeName': 'item_name'}
         ),
         columns=columns,
-        pkColumn=columns[0],
+        pk_column=columns[0],
     )
     if category == 'sub':
         children = [
@@ -107,13 +107,13 @@ def make_table(db_type: str, category: str, web_type: str) -> GenTableModel:
         # 子表外键刻意使用不同于主表主键的名称，验证生成关联字段的映射。
         table.sub_table_fk_name = 'parent_item_id'
         table.sub_table = GenTableModel(
-            tableName=table.sub_table_name,
-            tableComment='子表',
-            className='TimeDetail',
-            businessName='detail',
-            functionName='子表',
+            table_name=table.sub_table_name,
+            table_comment='子表',
+            class_name='TimeDetail',
+            business_name='detail',
+            function_name='子表',
             columns=children,
-            pkColumn=children[0],
+            pk_column=children[0],
         )
     return table
 
@@ -131,8 +131,10 @@ def render_case(db_type: str, category: str, web_type: str, *, field_constraints
     with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type=db_type)):
         table = make_table(db_type, category, web_type)
         if field_constraints:
+            assert table.columns
             table.columns[1].unique = table.columns[1].required = True
             if table.sub_table:
+                assert table.sub_table.columns
                 table.sub_table.columns[1].required = True
         context = TemplateUtils.prepare_context(table)
         environment = TemplateInitializer.init_jinja2()
@@ -220,6 +222,7 @@ def import_generated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rendered: 
         path = tmp_path / f'item_{kind}.py'
         path.write_text(rendered[f'python/{kind}.py.jinja2'], encoding='utf-8')
         spec = importlib.util.spec_from_file_location(name, path)
+        assert spec is not None and spec.loader is not None
         module = importlib.util.module_from_spec(spec)
         monkeypatch.setitem(sys.modules, name, module)
         spec.loader.exec_module(module)
@@ -230,6 +233,8 @@ def import_generated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rendered: 
 def test_generated_models_publish_column_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """验证主表和子表的列说明能传递到数据库元数据与接口模式。"""
     table = make_table('mysql', 'sub', 'element-plus')
+    assert table.pk_column is not None and table.columns
+    assert table.sub_table is not None and table.sub_table.columns
     table.pk_column.column_comment = None
     label = """客户的 "VIP" 生日和 O'Brien 备注"""
     table.columns[2].column_comment = label
@@ -276,10 +281,10 @@ async def test_generated_import_crud_and_query(
                 await dao.ItemDao.add_detail_dao(
                     session,
                     vo.DetailModel(
-                        detailId=10,
-                        parentItemId=1,
+                        detail_id=10,
+                        parent_item_id=1,
                         birthday='2000-02-29',
-                        occurredAt='2026-11-01T01:30:00.456-05:00',
+                        occurred_at='2026-11-01T01:30:00.456-05:00',
                     ),
                 )
             await session.commit()
@@ -300,23 +305,23 @@ async def test_generated_import_crud_and_query(
             assert len(rows) == 1
             assert rows[0]['itemName'] == 'changed'
             empty = await dao.ItemDao.get_item_list(
-                session, vo.ItemPageQueryModel(endBirthday='2000-02-28'), is_page=False
+                session, vo.ItemPageQueryModel(end_birthday='2000-02-28'), is_page=False
             )
             assert empty == []
             if category == 'sub':
                 await dao.ItemDao.edit_detail_dao(session, {'detail_id': 10, 'occurred_at': None})
-                await dao.ItemDao.delete_detail_dao(session, vo.DetailModel(detailId=10))
-            await dao.ItemDao.delete_item_dao(session, vo.ItemModel(itemId=1))
+                await dao.ItemDao.delete_detail_dao(session, vo.DetailModel(detail_id=10))
+            await dao.ItemDao.delete_item_dao(session, vo.ItemModel(item_id=1))
             await session.commit()
             assert await dao.ItemDao.get_item_detail_by_id(session, 1) is None
         with pytest.raises(ValidationError):
             vo.ItemModel(birthday='2000-02-30')
         with pytest.raises(ValidationError):
-            vo.ItemModel(openingTime='25:00:00')
+            vo.ItemModel(opening_time='25:00:00')
         with pytest.raises(ValidationError):
-            vo.ItemPageQueryModel(beginBirthday='2000-03-01', endBirthday='2000-02-29')
+            vo.ItemPageQueryModel(begin_birthday='2000-03-01', end_birthday='2000-02-29')
         with pytest.raises(ValidationError):
-            (vo.DetailModel if category == 'sub' else vo.ItemModel)(occurredAt='2026-03-08 02:30:00')
+            (vo.DetailModel if category == 'sub' else vo.ItemModel)(occurred_at='2026-03-08 02:30:00')
     finally:
         await engine.dispose()
 
@@ -325,18 +330,22 @@ async def test_generated_import_crud_and_query(
 def test_rejects_postgres_ambiguous_timestamp(column_type: str) -> None:
     """拒绝 PostgreSQL 有歧义的时间戳。"""
     table = make_table('postgresql', 'crud', 'element-plus')
+    assert table.columns
     table.columns[4].column_type = column_type
     with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type='postgresql')):
         with pytest.raises(ServiceWarning) as error:
             TemplateUtils.prepare_context(table)
+        assert error.value.message is not None
         assert 'TIMESTAMP(3) WITH TIME ZONE' in error.value.message
 
 
 def test_mysql_time_requires_explicit_time_of_day_control() -> None:
     """MySQL 时间字段需要明确的时刻控件。"""
     table = make_table('mysql', 'crud', 'element-plus')
+    assert table.columns
     table.columns[3].html_type = 'datetime'
     with patch.object(type(database.DataBaseConfig), 'get_source', return_value=SimpleNamespace(db_type='mysql')):
         with pytest.raises(ServiceWarning) as error:
             TemplateUtils.prepare_context(table)
+        assert error.value.message is not None
         assert 'MySQL TIME' in error.value.message

@@ -8,7 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import delete, update
+from sqlalchemy import CursorResult, delete, update
 
 from plugins.core.artifacts import ArtifactStore, verify_artifact
 from plugins.core.artifacts.schema import DIGEST_PATTERN, safe_artifact_path, strict_json
@@ -362,7 +362,7 @@ class PluginArtifactMaintenanceService(PluginDeploymentService):
                     )
                     .values(key_id=stored.key_id)
                 )
-                if result.rowcount != 1:
+                if not isinstance(result, CursorResult) or result.rowcount != 1:
                     raise ValueError('制品签名索引发生并发变化')
                 payload = {
                     'ok': True,

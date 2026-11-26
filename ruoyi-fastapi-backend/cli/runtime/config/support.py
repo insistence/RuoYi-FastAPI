@@ -103,13 +103,13 @@ class ConfigDomainSupport:
         """
         config_vo_module = self.infrastructure_gateway.get_config_vo_module()
         return config_vo_module.ConfigPageQueryModel(
-            configName=config_name or None,
-            configKey=config_key or None,
-            configType=config_type,
-            beginTime=begin_date or None,
-            endTime=end_date or None,
-            pageNum=page_num,
-            pageSize=page_size,
+            config_name=config_name or None,
+            config_key=config_key or None,
+            config_type=config_type,
+            begin_time=begin_date or None,
+            end_time=end_date or None,
+            page_num=page_num,
+            page_size=page_size,
         )
 
     def build_target_config_model(
@@ -138,17 +138,17 @@ class ConfigDomainSupport:
         config_vo_module = self.infrastructure_gateway.get_config_vo_module()
         default_config_type = existing_config.config_type if existing_config else common_constant.NO
         target_config = config_vo_module.ConfigModel(
-            configId=existing_config.config_id if existing_config else None,
-            configName=config_name
+            config_id=existing_config.config_id if existing_config else None,
+            config_name=config_name
             if config_name is not None
             else (existing_config.config_name if existing_config else None),
-            configKey=config_key,
-            configValue=config_value,
-            configType=config_type if config_type is not None else default_config_type,
-            createBy=existing_config.create_by if existing_config else operator,
-            createTime=existing_config.create_time if existing_config else current_time,
-            updateBy=operator,
-            updateTime=current_time,
+            config_key=config_key,
+            config_value=config_value,
+            config_type=config_type if config_type is not None else default_config_type,
+            create_by=existing_config.create_by if existing_config else operator,
+            create_time=existing_config.create_time if existing_config else current_time,
+            update_by=operator,
+            update_time=current_time,
             remark=remark if remark is not None else (existing_config.remark if existing_config else None),
         )
         target_config.validate_fields()

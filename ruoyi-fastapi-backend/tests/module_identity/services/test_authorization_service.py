@@ -41,7 +41,7 @@ def _request(**overrides: object) -> AuthorizeRequest:
         'code_challenge_method': 'S256',
     }
     values.update(overrides)
-    return AuthorizeRequest(**values)
+    return AuthorizeRequest.model_validate(values)
 
 
 async def _seed_authorization_data(db: AsyncSession, *, second_resource_scope: bool = False) -> None:

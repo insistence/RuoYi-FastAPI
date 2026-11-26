@@ -1,9 +1,11 @@
 import asyncio
 import subprocess
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
+from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.runtime.service.gateway import (
     DefaultPluginCommandRunnerGateway,
     PluginAuditGateway,
@@ -50,7 +52,10 @@ def test_gateway_protocols_are_runtime_checkable() -> None:
 def test_unavailable_gateways_fail_explicitly() -> None:
     """校验不可用网关通过明确异常快速失败。"""
     cases = (
-        (lambda: asyncio.run(UnavailablePluginConfigGateway().get_plugin_config(object())), '配置适配器'),
+        (
+            lambda: asyncio.run(UnavailablePluginConfigGateway().get_plugin_config(Mock(spec_set=DiscoveredPlugin))),
+            '配置适配器',
+        ),
         (
             lambda: asyncio.run(UnavailablePluginAuditGateway().list_plugin_operation_logs(export_limit=5)),
             '审计适配器',
@@ -70,7 +75,9 @@ def test_unavailable_gateways_fail_explicitly() -> None:
             'migration 历史适配器',
         ),
         (
-            lambda: asyncio.run(UnavailablePluginPurgePlanGateway().build_plugin_purge_plan(object())),
+            lambda: asyncio.run(
+                UnavailablePluginPurgePlanGateway().build_plugin_purge_plan(Mock(spec_set=DiscoveredPlugin))
+            ),
             '清理计划适配器',
         ),
         (
@@ -83,7 +90,9 @@ def test_unavailable_gateways_fail_explicitly() -> None:
         ),
         (UnavailablePluginLifecycleUnitOfWorkGateway().open_lifecycle_unit_of_work, '生命周期主事务适配器'),
         (
-            lambda: asyncio.run(UnavailablePluginMigrationExecutionGateway().run_plugin_migrations(object())),
+            lambda: asyncio.run(
+                UnavailablePluginMigrationExecutionGateway().run_plugin_migrations(Mock(spec_set=DiscoveredPlugin))
+            ),
             'migration 执行适配器',
         ),
         (lambda: asyncio.run(UnavailablePluginStateQueryGateway().list_plugin_states()), '状态查询适配器'),

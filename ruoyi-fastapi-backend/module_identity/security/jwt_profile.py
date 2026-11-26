@@ -334,6 +334,8 @@ def _decode(
         raise JwtProfileError('JWT 用途类型不匹配')
     key_source = verification_key if verification_key is not None else verification_keys
     key = _key_for_kid(key_source, str(headers['kid']))
+    if not isinstance(key, (RSAPublicKey, jwt.PyJWK, str, bytes)):
+        raise JwtProfileError('签名密钥不存在或不可用')
     try:
         payload = jwt.decode(
             token,

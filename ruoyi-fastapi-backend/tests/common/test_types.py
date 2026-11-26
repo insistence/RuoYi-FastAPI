@@ -27,7 +27,7 @@ class TestApiUtcDateTime:
     )
     def test_aware_inputs_keep_the_same_instant(self, value: object) -> None:
         """带时区的输入保留同一时刻。"""
-        model = TimestampModel(occurred_at=value)
+        model = TimestampModel.model_validate({'occurred_at': value})
 
         assert model.occurred_at == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=UTC)
         assert model.occurred_at.tzinfo is UTC
@@ -51,7 +51,7 @@ class TestApiUtcDateTime:
     def test_datetime_requires_a_complete_valid_rfc3339_instant(self, value: object) -> None:
         """日期时间必须是完整有效的 RFC 3339 时刻。"""
         with pytest.raises(ValidationError, match='RFC 3339'):
-            TimestampModel(occurred_at=value)
+            TimestampModel.model_validate({'occurred_at': value})
 
 
 class TestDbUtcDateTime:
@@ -89,9 +89,11 @@ class TestDbUtcDateTime:
         value = datetime(2026, 8, 28, 10, 30, 0, 123456, tzinfo=timezone(timedelta(hours=8)))
         stored = column_type.process_bind_param(value, dialect)
 
+        assert stored is not None
         assert stored == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=stored_timezone)
         assert stored.tzinfo is stored_timezone
         restored = column_type.process_result_value(stored, dialect)
+        assert restored is not None
         assert restored == datetime(2026, 8, 28, 2, 30, 0, 123000, tzinfo=UTC)
         assert restored.tzinfo is UTC
 

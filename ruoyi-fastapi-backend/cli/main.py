@@ -1,5 +1,9 @@
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TypeVar
+
+from typer import Typer
 
 from cli.core import (
     DEFAULT_CORE_SERVICES,
@@ -7,6 +11,8 @@ from cli.core import (
     CompletionDispatcher,
     ProjectRuntimeLocator,
 )
+
+ResultT = TypeVar('ResultT')
 
 
 @dataclass(frozen=True)
@@ -23,7 +29,7 @@ class CliImportArgvScope:
 
     project_runtime_locator: ProjectRuntimeLocator
 
-    def run(self, callback: object) -> object:
+    def run(self, callback: Callable[[], ResultT]) -> ResultT:
         """
         在导入期参数作用域内执行回调。
 
@@ -58,7 +64,7 @@ class CliMainRunner:
     application_builder: CliApplicationBuilder
     import_argv_scope: CliImportArgvScope
 
-    def build_cli(self) -> object:
+    def build_cli(self) -> Typer:
         """
         构建 CLI 根应用，并在导入期仅保留最小化参数集。
 

@@ -1,6 +1,7 @@
 import json
 import shutil
 import subprocess
+from functools import partial
 from pathlib import Path
 
 import pytest
@@ -36,14 +37,16 @@ def test_react_scaffold_generates_checkable_files_and_route_test(
         backend_root=backend, frontend_root=frontend if selection == 'package' else container
     )
     runtime = CliPluginRuntimeService(runtime_environment=environment)
-    kwargs = {'frontend_framework': 'react'} if selection == 'explicit' else {}
-    preview = runtime.create_plugin('react_demo', template=template, dry_run=True, **kwargs)
+    create = partial(runtime.create_plugin, 'react_demo', template=template)
+    if selection == 'explicit':
+        create = partial(create, frontend_framework='react')
+    preview = create(dry_run=True)
     assert preview['ok'] is True
     assert preview['frontendFramework'] == 'react'
     assert not (backend / 'plugins' / 'react_demo').exists()
     assert not (frontend / 'plugins' / 'react_demo').exists()
 
-    created = runtime.create_plugin('react_demo', template=template, **kwargs)
+    created = create()
     assert created['ok'] is True
     view = frontend / 'plugins' / 'react_demo' / 'views' / 'index.jsx'
     api = frontend / 'plugins' / 'react_demo' / 'api' / 'react_demo.js'
@@ -59,9 +62,10 @@ def test_react_scaffold_generates_checkable_files_and_route_test(
     )
     checked = react_runtime.core_runtime.check_plugin('react_demo')
     assert checked['ok'] is True, checked
+    assert isinstance(checked['checks'], list)
     assert checked['checks'][0]['structureErrors'] == []
     before = {path: path.read_bytes() for path in frontend.rglob('*') if path.is_file()}
-    conflict = runtime.create_plugin('react_demo', template=template, **kwargs)
+    conflict = create()
     assert conflict['ok'] is False
     assert before == {path: path.read_bytes() for path in frontend.rglob('*') if path.is_file()}
 

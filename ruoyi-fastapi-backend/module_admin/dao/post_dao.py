@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -56,9 +56,9 @@ class PostDao:
             (
                 await db.execute(
                     select(SysPost).where(
-                        SysPost.post_name == post.post_name if post.post_name else True,
-                        SysPost.post_code == post.post_code if post.post_code else True,
-                        SysPost.post_sort == post.post_sort if post.post_sort else True,
+                        SysPost.post_name == post.post_name if post.post_name else true(),
+                        SysPost.post_code == post.post_code if post.post_code else true(),
+                        SysPost.post_sort == post.post_sort if post.post_sort else true(),
                     )
                 )
             )
@@ -83,9 +83,9 @@ class PostDao:
         query = (
             select(SysPost)
             .where(
-                SysPost.post_code.like(f'%{query_object.post_code}%') if query_object.post_code else True,
-                SysPost.post_name.like(f'%{query_object.post_name}%') if query_object.post_name else True,
-                SysPost.status == query_object.status if query_object.status else True,
+                SysPost.post_code.like(f'%{query_object.post_code}%') if query_object.post_code else true(),
+                SysPost.post_name.like(f'%{query_object.post_name}%') if query_object.post_name else true(),
+                SysPost.status == query_object.status if query_object.status else true(),
             )
             .order_by(SysPost.post_sort)
             .distinct()
@@ -135,7 +135,7 @@ class PostDao:
         await db.execute(delete(SysPost).where(SysPost.post_id.in_([post.post_id])))
 
     @classmethod
-    async def count_user_post_dao(cls, db: AsyncSession, post_id: int) -> int | None:
+    async def count_user_post_dao(cls, db: AsyncSession, post_id: int) -> int:
         """
         根据岗位id查询岗位关联的用户数量。
 
@@ -145,6 +145,6 @@ class PostDao:
         """
         user_post_count = (
             await db.execute(select(func.count('*')).select_from(SysUserPost).where(SysUserPost.post_id == post_id))
-        ).scalar()
+        ).scalar_one()
 
         return user_post_count

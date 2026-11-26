@@ -88,7 +88,7 @@ def test_run_nested_cli_command_falls_back_to_text_payload_when_json_missing(
 
     result = cli_utils.NESTED_CLI_SUPPORT.run('job', 'run-once', '1', '--output=json', parse_json=True)
 
-    assert result.payload is not None
+    assert isinstance(result.payload, dict)
     assert result.payload.get('ok') is True
     assert result.payload.get('message') == '任务已提交到调度器'
     assert result.payload.get('fallback') == 'non_json_output'

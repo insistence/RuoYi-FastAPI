@@ -43,6 +43,7 @@ async def _prepare_cached_session(
     """
     monkeypatch.setattr(AppConfig, 'app_same_time_login', same_time_login)
     token = env.headers[USER_ID]['Authorization'].removeprefix('Bearer ')
+    assert isinstance(token, str)
     token_id = f'session-{USER_ID}' if same_time_login else str(USER_ID)
     token_key = f'access_token:{token_id}'
     await env.redis.set(token_key, token, ex=60)
@@ -64,7 +65,7 @@ async def _prepare_cached_session(
 
 async def _resolve_cached_session(
     env: SimpleNamespace, request: Request, token: str, for_plugin: bool
-) -> CurrentUserModel:
+) -> CurrentUserModel | None:
     """
     通过新数据库会话进入真实缓存命中及最终会话校验路径。
 

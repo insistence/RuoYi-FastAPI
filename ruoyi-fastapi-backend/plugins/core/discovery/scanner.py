@@ -5,7 +5,8 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from plugins.core.manifest.schema import PluginManifest, PluginManifestError, PluginManifestFactory
+from plugins.core.manifest.schema import PluginManifestError, PluginManifestFactory
+from plugins.core.manifest.v2 import VersionedPluginManifest
 
 PLUGIN_MANIFEST_NAME = 'plugin.yaml'
 UNSUPPORTED_PLUGIN_MANIFEST_NAMES = ('plugin.yml',)
@@ -23,14 +24,14 @@ class DiscoveredPlugin:
     :ivar artifact_generation: 发现该插件时对应的制品代次
     """
 
-    manifest: PluginManifest
+    manifest: VersionedPluginManifest
     backend_path: Path
     manifest_path: Path
     artifact_digest: str | None = None
     artifact_generation: str | None = None
 
 
-def is_artifact_plugin(plugin: DiscoveredPlugin) -> bool:
+def is_artifact_plugin(plugin: DiscoveredPlugin | None) -> bool:
     """
     只有显式的非空字符串摘要表示制品来源，兼容旧扫描器返回对象。
 

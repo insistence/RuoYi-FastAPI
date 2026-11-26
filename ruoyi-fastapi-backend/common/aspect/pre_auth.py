@@ -41,7 +41,7 @@ def PreAuthDependency(exclude_routes: list[ExcludeRoute] | None = None) -> param
                             methods为空列表表示所有方法
     :return: 登录认证前置校验依赖
     """
-    return Depends(PreAuth(exclude_routes))
+    return params.Depends(PreAuth(exclude_routes))
 
 
 def CurrentUserDependency() -> params.Depends:  # noqa: N802
@@ -50,4 +50,4 @@ def CurrentUserDependency() -> params.Depends:  # noqa: N802
 
     :return: 当前登录用户信息依赖
     """
-    return Depends(LoginService.get_current_user)
+    return params.Depends(LoginService.get_current_user)

@@ -429,15 +429,16 @@ async def test_multi_bind_sessions_keep_original_database_resolution(
     """多绑定会话保留原数据库解析行为。"""
     engine = cache_env.sessions.kw['bind']
     secondary = create_async_engine(engine.url)
-    bindings = dict.fromkeys(
-        (SysUser, SysDept, SysRole, SysPost, SysMenu, SysUserRole, SysUserPost, SysRoleMenu), engine
-    )
-    if default_bind:
-        bindings[SysRole] = secondary
     read = AsyncMock(side_effect=AssertionError('多绑定会话不应访问用户快照缓存'))
     monkeypatch.setattr(CurrentUserCacheUtil, 'read', read)
     try:
-        async with AsyncSession(bind=engine if default_bind else None, binds=bindings) as db:
+        async with AsyncSession(
+            bind=engine if default_bind else None,
+            binds={
+                model: secondary if default_bind and model is SysRole else engine
+                for model in (SysUser, SysDept, SysRole, SysPost, SysMenu, SysUserRole, SysUserPost, SysRoleMenu)
+            },
+        ) as db:
             user = await LoginService._get_current_user_snapshot(cache_env.redis, db, USER_ID)
         assert user.user.user_id == USER_ID
         assert user.permissions == ['demo:read']

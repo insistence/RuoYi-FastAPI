@@ -5,6 +5,7 @@ import socket
 import uuid
 from collections.abc import Callable
 from copy import deepcopy
+from functools import partial
 from typing import Any
 
 import psutil
@@ -71,7 +72,7 @@ class APIDocsUtil:
         return cls._DOCS_URL
 
     @classmethod
-    def proxy_docs_url(cls) -> str:
+    def proxy_docs_url(cls) -> str | None:
         """
         代理文档URL。
 
@@ -89,7 +90,7 @@ class APIDocsUtil:
         return cls._REDOC_URL
 
     @classmethod
-    def proxy_redoc_url(cls) -> str:
+    def proxy_redoc_url(cls) -> str | None:
         """
         代理ReDoc文档URL。
 
@@ -98,7 +99,7 @@ class APIDocsUtil:
         return cls._PROXY_REDOC_URL if not AppConfig.app_disable_redoc else None
 
     @classmethod
-    def proxy_oauth2_redirect_url(cls) -> str:
+    def proxy_oauth2_redirect_url(cls) -> str | None:
         """
         代理OAuth2重定向URL。
 
@@ -124,40 +125,15 @@ class APIDocsUtil:
         :param swagger_css_url: 用于加载Swagger UI CSS的URL
         :param swagger_favicon_url: Swagger UI要使用的favicon的URL
         """
-
-        def redoc_monkey_patch(*args, **kwargs) -> HTMLResponse:
-            """
-            使用本地静态资源生成 ReDoc 页面。
-
-            :param args: 传给被调用对象的位置参数
-            :param kwargs: 传给被调用对象的关键字参数
-            :return: 引用本地静态资源的 ReDoc 响应
-            """
-            return get_redoc_html(
-                *args,
-                **kwargs,
-                redoc_js_url=redoc_js_url,
-                redoc_favicon_url=redoc_favicon_url,
-            )
-
-        def swagger_ui_monkey_patch(*args, **kwargs) -> HTMLResponse:
-            """
-            使用本地静态资源生成 Swagger UI 页面。
-
-            :param args: 传给被调用对象的位置参数
-            :param kwargs: 传给被调用对象的关键字参数
-            :return: 引用本地静态资源的 Swagger UI 响应
-            """
-            return get_swagger_ui_html(
-                *args,
-                **kwargs,
-                swagger_js_url=swagger_js_url,
-                swagger_css_url=swagger_css_url,
-                swagger_favicon_url=swagger_favicon_url,
-            )
-
-        applications.get_redoc_html = redoc_monkey_patch
-        applications.get_swagger_ui_html = swagger_ui_monkey_patch
+        applications.get_redoc_html = partial(
+            get_redoc_html, redoc_js_url=redoc_js_url, redoc_favicon_url=redoc_favicon_url
+        )
+        applications.get_swagger_ui_html = partial(
+            get_swagger_ui_html,
+            swagger_js_url=swagger_js_url,
+            swagger_css_url=swagger_css_url,
+            swagger_favicon_url=swagger_favicon_url,
+        )
 
     @classmethod
     def custom_api_docs_router(
@@ -610,7 +586,7 @@ class IPUtil:
             for snics in psutil.net_if_addrs().values():
                 for snic in snics:
                     if snic.family == socket.AF_INET and snic.address.startswith('127.'):
-                        return snic.address
+                        return str(snic.address)
         except Exception:
             pass
 
@@ -623,7 +599,7 @@ class IPUtil:
 
         :return: 本机Network IP列表
         """
-        network_ips = []
+        network_ips: list[str] = []
         try:
             # 获取网卡状态
             stats = psutil.net_if_stats()

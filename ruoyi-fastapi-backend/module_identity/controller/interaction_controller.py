@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, TypeVar
+from typing import Annotated, TypeVar, cast
 
 from fastapi import Depends, Header, Request
 from fastapi.responses import Response
@@ -54,7 +54,7 @@ def _redis(request: Request) -> Redis:
     value = getattr(request.app.state, 'redis', None)
     if value is None:
         raise OidcInteractionException(error='server_error', status_code=503, message='认证服务不可用')
-    return value
+    return cast('Redis', value)
 
 
 def _not_found() -> Response:

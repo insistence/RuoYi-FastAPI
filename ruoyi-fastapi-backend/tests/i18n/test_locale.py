@@ -76,7 +76,7 @@ def test_negotiation(header: str, expected: str) -> None:
 
 def test_disabled_locales_are_excluded_from_negotiation_catalogs_and_names(monkeypatch: pytest.MonkeyPatch) -> None:
     """验证停用语言从协商结果、发布词库和显示名称的回退链中移除。"""
-    monkeypatch.setitem(LOCALES['en-US'], 'enabled', False)
+    monkeypatch.setitem(LOCALES, 'en-US', {**LOCALES['en-US'], 'enabled': False})
     monkeypatch.setitem(LOCALES, 'en-GB', {'aliases': (), 'fallback': ('en-US',)})
     assert LocaleRegistry.enabled_locales() == ('zh-CN', 'en-GB')
     assert all(LocaleRegistry.match_locale(tag) is None for tag in ('en-US', 'en', 'en-AU'))
@@ -120,7 +120,7 @@ def test_preferences_are_extensible(value: str) -> None:
     """验证账号偏好可保存合法的扩展语言标签。"""
     assert UserLocaleModel(locale=value).locale == value
     with pytest.raises(ValueError):
-        UserLocaleModel(locale=value, userId=2)
+        UserLocaleModel.model_validate({'locale': value, 'userId': 2})
 
 
 def test_locale_normalization() -> None:
@@ -279,7 +279,7 @@ async def test_context_cleanup_preserves_outer_locale(raise_error: bool) -> None
                 await middleware.dispatch(request, call_next)
         else:
             response = await middleware.dispatch(request, call_next)
-            assert json.loads(response.body)['msg'] == 'Operation successful'
+            assert json.loads(bytes(response.body))['msg'] == 'Operation successful'
         assert RequestContext.get_current_locale() == context
     finally:
         RequestContext.reset_current_locale(token)
@@ -312,7 +312,7 @@ def test_explicit_message_key_takes_precedence_in_both_languages() -> None:
     token = RequestContext.set_current_locale(LocaleContext('en-US'))
     try:
         response = ResponseUtil.success('旧文案', msg_key='profile.localeSaved')
-        assert json.loads(response.body)['msg'] == 'Language preference saved'
+        assert json.loads(bytes(response.body))['msg'] == 'Language preference saved'
         assert I18nUtil.message_fields('custom original')['msg'] == 'custom original'
         assert I18nUtil.translate('missing.internal.key') != 'missing.internal.key'
     finally:
@@ -412,7 +412,7 @@ async def test_locale_endpoint_only_changes_current_account() -> None:
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     try:
         async with engine.begin() as connection:
-            await connection.run_sync(SysUser.__table__.create)
+            await connection.run_sync(SysUser.get_table().create)
         sessions = async_sessionmaker(engine, expire_on_commit=False)
         async with sessions() as db:
             db.add_all(
@@ -426,7 +426,7 @@ async def test_locale_endpoint_only_changes_current_account() -> None:
             response = await inspect.unwrap(change_system_user_locale)(
                 SimpleNamespace(), UserLocaleModel(locale='ja-JP'), db, current
             )
-            assert json.loads(response.body)['data']['locale'] == 'ja-JP'
+            assert json.loads(bytes(response.body))['data']['locale'] == 'ja-JP'
         async with sessions() as db:
             users = (await db.scalars(select(SysUser).order_by(SysUser.user_id))).all()
             assert [user.locale for user in users] == ['ja-JP', 'zh-CN']

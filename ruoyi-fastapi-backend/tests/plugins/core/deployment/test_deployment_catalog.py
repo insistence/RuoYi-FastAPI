@@ -33,6 +33,7 @@ async def test_import_indexes_immutable_object_without_installing_or_selecting(
     assert (await catalog.list_artifacts('artifact_demo'))['artifacts'][0]['digest'] == stored.digest
     async with deployment_sessions() as db:
         record = await db.get(SysPluginArtifact, stored.digest)
+        assert record is not None
         assert record.created_by == 'publisher-test'
         assert record.relative_path == f'artifact_demo/1.0.0/{stored.digest}'
         assert (await db.scalars(select(SysPlugin))).all() == []

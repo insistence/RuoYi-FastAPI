@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, model_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, NonNegativeInt, model_validator
 from starlette import status
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from common.vo import CamelModel
 from middlewares.trace_middleware.ctx import CTX_REQUEST_ID
 from plugins.core.runtime.configuration import PluginConfigObservation
 from plugins.core.runtime.connections import CONNECTION_OUTCOME_KEY, ConnectionClosure
@@ -22,10 +22,10 @@ MAX_METRIC_SERIES = 1024
 MetricOutcome = Literal['succeeded', 'rejected', 'failed', 'cancelled']
 
 
-class PluginMetricSeries(BaseModel):
+class PluginMetricSeries(CamelModel):
     """一个 worker 上某插件和操作的累计指标，不包含请求参数、路径或用户数据。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra='forbid', strict=True)
+    model_config = ConfigDict(extra='forbid', strict=True)
 
     plugin_id: str = Field(pattern=r'^[a-z][a-z0-9_]{1,63}$', description='插件标识')
     version: str = Field(max_length=128, description='插件版本')
@@ -90,10 +90,10 @@ class PluginMetricSeries(BaseModel):
         }
 
 
-class PluginMetricSnapshot(BaseModel):
+class PluginMetricSnapshot(CamelModel):
     """带采样时间和进程标识的有界指标快照。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra='forbid', strict=True)
+    model_config = ConfigDict(extra='forbid', strict=True)
 
     schema_version: Literal[1] = Field(default=1, description='数据结构的版本')
     worker_id: str = Field(pattern=r'^[0-9a-f]{32}$', description='工作进程标识')

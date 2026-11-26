@@ -4,7 +4,7 @@ import re
 import subprocess
 import sys
 import tokenize
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cache
@@ -281,10 +281,11 @@ def resolve_binding(expr: ast.expr | None, bindings: Bindings) -> ast.expr | str
     :return: 导入的完整名称、绑定的表达式或空值
     """
     seen = set()
-    while isinstance(expr, ast.Name) and expr.id in bindings and expr.id not in seen:
-        seen.add(expr.id)
-        expr = bindings[expr.id]
-    return expr
+    resolved: ast.expr | str | None = expr
+    while isinstance(resolved, ast.Name) and resolved.id in bindings and resolved.id not in seen:
+        seen.add(resolved.id)
+        resolved = bindings[resolved.id]
+    return resolved
 
 
 def imported_name(expr: ast.expr | None, bindings: Bindings) -> str:
@@ -588,23 +589,24 @@ def registered_callback(call: ast.Call) -> ast.expr | None:
     return callback
 
 
-def router_method(call: ast.expr, methods: set[str], routers: set[str]) -> bool:
+def router_method(call: ast.Call, routers: set[str]) -> str | None:
     """
-    判断调用是否来自路由对象或应用自带的路由器。
+    识别路由对象或应用自带路由器上的方法名。
 
     :param call: 待识别的装饰器或注册调用
-    :param methods: 需要匹配的路由方法名
     :param routers: 当前作用域的路由对象名称
-    :return: 调用是否来自路由对象或应用自带的路由器
+    :return: 路由方法名，未匹配时返回空值
     """
-    if not isinstance(call, ast.Call) or not isinstance(call.func, ast.Attribute) or call.func.attr not in methods:
-        return False
+    if not isinstance(call.func, ast.Attribute):
+        return None
     receiver = call.func.value
     if ast.unparse(receiver) in routers:
-        return True
+        return call.func.attr
     if isinstance(receiver, ast.Attribute) and receiver.attr in {'router', 'webhooks'}:
         receiver = receiver.value
-    return ast.unparse(receiver) in routers or (isinstance(receiver, ast.Attribute) and receiver.attr == 'app')
+    if ast.unparse(receiver) in routers or (isinstance(receiver, ast.Attribute) and receiver.attr == 'app'):
+        return call.func.attr
+    return None
 
 
 def inspect_routes(tree: ast.Module) -> tuple[set[ast.AST], list[tuple[int, str]]]:
@@ -704,19 +706,19 @@ def inspect_routes(tree: ast.Module) -> tuple[set[ast.AST], list[tuple[int, str]
 
             :param call: 当前语句中的调用
             """
-            if router_method(call.func, ROUTE_METHODS, routers) and call.args:
+            if isinstance(call.func, ast.Call) and router_method(call.func, routers) in ROUTE_METHODS and call.args:
                 operation, callback = call.func, call.args[0]
             elif (
                 (isinstance(call.func, ast.Attribute) and call.func.attr == 'add_api_route')
                 or ast.unparse(call.func) in api_route_types
-                or router_method(call, ROUTE_REGISTRATIONS, routers)
+                or router_method(call, routers) in ROUTE_REGISTRATIONS
             ):
                 operation, callback = call, registered_callback(call)
             else:
                 return
-            if ast.unparse(operation.func) in api_route_types or operation.func.attr in HTTP_OPERATIONS | {
-                'add_api_route'
-            }:
+            if ast.unparse(operation.func) in api_route_types or (
+                isinstance(operation.func, ast.Attribute) and operation.func.attr in HTTP_OPERATIONS | {'add_api_route'}
+            ):
                 errors.extend(route_doc_errors(operation, bindings))
             if isinstance(callback, ast.Name) and callback.id in functions:
                 routes.add(functions[callback.id])
@@ -730,9 +732,12 @@ def inspect_routes(tree: ast.Module) -> tuple[set[ast.AST], list[tuple[int, str]
                 bindings.update((target.id, node.value) for target in targets if isinstance(target, ast.Name))
             elif isinstance(node, DEFINITIONS):
                 for decorator in node.decorator_list:
-                    if router_method(decorator, ROUTE_METHODS, routers):
+                    if (
+                        isinstance(decorator, ast.Call)
+                        and (method := router_method(decorator, routers)) in ROUTE_METHODS
+                    ):
                         routes.add(node)
-                        if decorator.func.attr in HTTP_OPERATIONS:
+                        if method in HTTP_OPERATIONS:
                             errors.extend(route_doc_errors(decorator, bindings))
                 visit(node, functions, routers, bindings)
 
@@ -788,7 +793,7 @@ def test_functions(tree: ast.Module, path: Path) -> set[ast.AST]:
 
 
 @contextmanager
-def sphinx_settings() -> Iterator[frontend.Values]:
+def sphinx_settings() -> Generator[frontend.Values, None, None]:
     """
     初始化一次 Sphinx 内置域和指令，供同一次扫描的文档共用。
 
@@ -799,7 +804,7 @@ def sphinx_settings() -> Iterator[frontend.Values]:
         app = Sphinx(
             root, None, root / 'out', root / 'trees', 'dummy', status=None, warning=None, exception_on_warning=True
         )
-        settings = frontend.get_default_settings(Parser)
+        settings = frontend.get_default_settings(Parser())
         settings.env = app.env
         settings.file_insertion_enabled = settings.raw_enabled = False
         settings.warning_stream = False  # 解析器诊断由 reporter 收集并统一输出源文件行号。
@@ -820,7 +825,7 @@ class Parameters:
     accepts_keywords: bool
 
 
-def parameters_for(owner: ast.AST, methods: set[ast.AST]) -> Parameters | None:
+def parameters_for(owner: ast.AST, methods: set[ast.stmt]) -> Parameters | None:
     """
     取函数或显式构造函数的签名，省略实例和类方法的隐式首参。
 
@@ -828,15 +833,16 @@ def parameters_for(owner: ast.AST, methods: set[ast.AST]) -> Parameters | None:
     :param methods: 类体中声明的方法集合
     :return: ``Parameters`` 实例
     """
-    if isinstance(owner, ast.ClassDef):
-        owner = next(
-            (item for item in owner.body if isinstance(item, ast.FunctionDef) and item.name == '__init__'), None
-        )
-    if not isinstance(owner, (ast.FunctionDef, ast.AsyncFunctionDef)):
+    function = (
+        next((item for item in owner.body if isinstance(item, ast.FunctionDef) and item.name == '__init__'), None)
+        if isinstance(owner, ast.ClassDef)
+        else owner
+    )
+    if not isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return None
-    args = owner.args
+    args = function.args
     positional = [*args.posonlyargs, *args.args]
-    if owner in methods and bound_receiver(owner):
+    if function in methods and bound_receiver(function):
         positional = positional[1:]
     names = {arg.arg for arg in (*positional, *args.kwonlyargs)}
     for prefix, arg in (('*', args.vararg), ('**', args.kwarg)):
@@ -902,7 +908,7 @@ def parameter_error(field: nodes.field, name: str, param: str, parameters: Param
     if parameters.accepts_keywords and identifier == param:
         if name in KEYWORD_FIELDS:
             return ''
-        if FIELD_KINDS[name] == 'parametertype':
+        if FIELD_KINDS[name] == 'parametertype' and field.parent is not None:
             for sibling in field.parent.findall(nodes.field):
                 words = sibling[0].astext().split()
                 if words[0] in KEYWORD_FIELDS and words[-1] == param:
@@ -942,7 +948,7 @@ def comment_language(source: str, tree: ast.Module, path: Path) -> Iterator[tupl
     if path.resolve() == ALEMBIC_ENV:
         return
     router = preserved_router(tree, path)
-    preserved = range(router.lineno, router.end_lineno + 1) if router else ()
+    preserved = range(router.lineno, (router.end_lineno or router.lineno) + 1) if router else ()
     for token in tokenize.generate_tokens(StringIO(source).readline):
         line = token.start[0]
         if token.type != tokenize.COMMENT or line in preserved:
@@ -1137,7 +1143,7 @@ def violations(
         required = {}
         if isinstance(node, ast.ClassDef) and not models[node][0]:
             required = dict.fromkeys(class_attributes(node), 'variable')
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node not in tests and node not in routes:
+        elif not isinstance(node, ast.ClassDef) and parameters is not None and node not in tests and node not in routes:
             required = dict.fromkeys((name for name in parameters.names if name.isidentifier()), 'parameter')
         yield from check_docstring(doc, parameters, start, settings, required, node, node in tests, node in routes)
         for identifier, kind in sorted(required.items()):
@@ -1176,7 +1182,7 @@ def check_docstring(
     if not CHINESE.search(lines[0]):
         yield start, '文档摘要必须使用中文，可混用技术术语'
     document = utils.new_document('<docstring>', settings)
-    messages = []
+    messages: list[nodes.system_message] = []
     document.reporter.attach_observer(messages.append)
     settings.env.prepare_settings('docstring')
     try:
@@ -1186,7 +1192,8 @@ def check_docstring(
         yield start, str(error)
     for message in messages:
         if message['level'] >= utils.Reporter.WARNING_LEVEL:
-            yield start + (message.get('line') or 1) - 1, message[0].astext()
+            description: nodes.Node = message.children[0]
+            yield start + (message.get('line') or 1) - 1, description.astext()
     fields = []
     for block in document.findall(nodes.Element):
         if block.line is None:
@@ -1257,12 +1264,17 @@ def check_prose(block: nodes.Element, start: int) -> Iterator[tuple[int, str]]:
     """
     source = block.rawsource
     parent = block.parent
-    type_field = isinstance(parent, nodes.field_body) and FIELD_KINDS.get(parent.parent[0].astext().split()[0], '') in {
-        'returntype',
-        'parametertype',
-        'variabletype',
-        'meta',
-    }
+    type_field = (
+        isinstance(parent, nodes.field_body)
+        and isinstance(parent.parent, nodes.field)
+        and FIELD_KINDS.get(parent.parent[0].astext().split()[0], '')
+        in {
+            'returntype',
+            'parametertype',
+            'variabletype',
+            'meta',
+        }
+    )
     if (
         not type_field
         and re.search('[a-zA-Z]', source)

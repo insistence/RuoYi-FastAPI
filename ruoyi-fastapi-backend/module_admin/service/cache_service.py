@@ -23,7 +23,7 @@ class CacheService:
         command_stats = [
             {'name': key.split('_')[1], 'value': str(value.get('calls'))} for key, value in command_stats_dict.items()
         ]
-        result = CacheMonitorModel(commandStats=command_stats, dbSize=db_size, info=info)
+        result = CacheMonitorModel(command_stats=command_stats, db_size=db_size, info=info)
 
         return result
 
@@ -36,9 +36,9 @@ class CacheService:
         """
         name_list = [
             CacheInfoModel(
-                cacheKey='',
-                cacheName=key_config.key,
-                cacheValue='',
+                cache_key='',
+                cache_name=key_config.key,
+                cache_value='',
                 remark=key_config.remark,
             )
             for key_config in RedisInitKeyConfig
@@ -74,7 +74,7 @@ class CacheService:
         """
         cache_value = await request.app.state.redis.get(f'{cache_name}:{cache_key}')
 
-        return CacheInfoModel(cacheKey=cache_key, cacheName=cache_name, cacheValue=cache_value, remark='')
+        return CacheInfoModel(cache_key=cache_key, cache_name=cache_name, cache_value=cache_value, remark='')
 
     @classmethod
     async def clear_cache_monitor_cache_name_services(cls, request: Request, cache_name: str) -> CrudResponseModel:

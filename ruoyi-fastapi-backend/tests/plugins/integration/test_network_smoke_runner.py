@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 from types import SimpleNamespace
+from typing import TextIO
 from unittest.mock import AsyncMock
 
 import pytest
@@ -30,16 +31,17 @@ async def test_network_cleanup_preserves_original_failure(
     server.serve = serve
     monkeypatch.setattr(smoke.uvicorn, 'Server', lambda config: server)
 
-    async def start_frontend(*args: object, **kwargs: object) -> SimpleNamespace:
+    async def start_frontend(*args: object, stdout: TextIO, **kwargs: object) -> SimpleNamespace:
         """
         按测试场景模拟前端启动结果。
 
         :param args: 传给被调用对象的位置参数
+        :param stdout: 写入前端启动日志的文本流
         :param kwargs: 传给被调用对象的关键字参数
         :return: ``SimpleNamespace`` 实例
         """
         if failure == 'startup':
-            kwargs['stdout'].write("Cannot find module 'memory-fs'\n")
+            stdout.write("Cannot find module 'memory-fs'\n")
         else:
             (tmp_path / 'frontend-ready.json').write_text('{"port": 12345}', encoding='utf-8')
         return SimpleNamespace(returncode=1)

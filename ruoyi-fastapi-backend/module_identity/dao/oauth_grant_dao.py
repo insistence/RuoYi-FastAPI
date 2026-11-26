@@ -6,9 +6,11 @@ from uuid import uuid4
 from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.database import execute_rowcount
 from module_identity.dao.oauth_access_policy_dao import OAuthAccessPolicyDao
 from module_identity.entity.do.oauth_client_do import SysOAuthClient
 from module_identity.entity.do.oauth_grant_do import SysOAuthAccessPolicy, SysOAuthGrant, SysOAuthRefreshToken
+from module_identity.entity.types import AuthorizationStatus
 from utils.time_util import TimezoneUtil
 
 
@@ -41,7 +43,7 @@ class OAuthGrantSnapshot:
     granted_scopes: tuple[str, ...]
     granted_resources: tuple[str, ...]
     client_policy_version: int
-    status: str
+    status: AuthorizationStatus
     consented_at: datetime
     expires_at: datetime | None
     revoked_at: datetime | None
@@ -332,7 +334,8 @@ class OAuthGrantDao:
             )
             .values(status='revoked', revoked_at=TimezoneUtil.utc_now(), revoke_reason=reason)
         )
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOAuthGrant)
             .where(SysOAuthGrant.grant_id == grant_id, SysOAuthGrant.status == 'active')
             .values(
@@ -341,10 +344,10 @@ class OAuthGrantDao:
                 revoke_reason=reason,
                 remembered_scopes=[],
                 remembered_resources=[],
-            )
+            ),
         )
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @staticmethod
     async def targets(db: AsyncSession, grant_ids: list[str]) -> list[tuple[int, int]]:
@@ -399,13 +402,14 @@ class OAuthGrantDao:
         :param reason: 撤销或标记原因
         :return: 已撤销的 OAuth Grant 数量
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOAuthGrant)
             .where(SysOAuthGrant.user_id == user_id, SysOAuthGrant.status == 'active')
-            .values(status='revoked', revoked_at=TimezoneUtil.utc_now(), revoke_reason=reason)
+            .values(status='revoked', revoked_at=TimezoneUtil.utc_now(), revoke_reason=reason),
         )
 
-        return result.rowcount or 0
+        return affected
 
     @classmethod
     async def list_for_user(cls, db: AsyncSession, user_id: int, status: str | None = None) -> Sequence[SysOAuthGrant]:

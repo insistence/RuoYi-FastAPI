@@ -1,5 +1,6 @@
 import json
 import os
+from collections.abc import AsyncIterator
 from unittest.mock import AsyncMock
 
 os.environ.setdefault(
@@ -54,7 +55,7 @@ def _compile_mysql_tinyint_for_sqlite(_type: TINYINT, _compiler: object, **_kwar
 
 
 @pytest_asyncio.fixture
-async def data_session() -> AsyncSession:
+async def data_session() -> AsyncIterator[AsyncSession]:
     """
     创建只包含认证模块表的独立内存 SQLite 异步会话。
 

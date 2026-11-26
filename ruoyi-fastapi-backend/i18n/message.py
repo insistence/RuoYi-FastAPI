@@ -19,14 +19,14 @@ class I18nMessage(str):
     :ivar msg_key: 完整消息标识
     :ivar msg_params: 消息插值参数
     :ivar domain: 已注册的词库域
-    :ivar count: 本次处理或预期的数量
+    :ivar plural_count: 选择复数译文时使用的数量
     :ivar plural_key: 复数消息标识
     """
 
     msg_key: str
     msg_params: dict | None
     domain: str
-    count: int | None
+    plural_count: int | None
     plural_key: str | None
 
     def __new__(
@@ -55,9 +55,18 @@ class I18nMessage(str):
         instance.msg_key = msg_key
         instance.msg_params = dict(msg_params) if msg_params is not None else None
         instance.domain = domain
-        instance.count = count
+        instance.plural_count = count
         instance.plural_key = plural_key
         return instance
+
+    def __setstate__(self, state: dict[str, object]) -> None:
+        """
+        恢复消息属性，并移除旧格式中遮蔽字符串 count 方法的同名字段。
+
+        :param state: 复制或反序列化时取得的实例属性，复数数量已由构造参数恢复
+        """
+        self.__dict__.update(state)
+        self.__dict__.pop('count', None)
 
     def __getnewargs_ex__(self) -> tuple[tuple[str], dict]:
         """
@@ -69,6 +78,6 @@ class I18nMessage(str):
             'msg_key': self.msg_key,
             'msg_params': self.msg_params,
             'domain': self.domain,
-            'count': self.count,
+            'count': self.plural_count,
             'plural_key': self.plural_key,
         }

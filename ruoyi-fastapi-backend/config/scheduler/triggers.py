@@ -77,8 +77,8 @@ def trigger_timezone(trigger: Any) -> str | None:
     :param trigger: Cron、单次或组合触发器
     :return: 任务时区名称，未携带时区时返回None
     """
-    if hasattr(trigger, 'task_timezone'):
-        return trigger.task_timezone
+    if isinstance(task_timezone := getattr(trigger, 'task_timezone', None), str):
+        return task_timezone
     if hasattr(trigger, 'timezone'):
         return str(trigger.timezone)
     for child in getattr(trigger, 'triggers', ()):

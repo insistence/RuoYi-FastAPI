@@ -1,6 +1,6 @@
 import io
 import re
-from typing import Any
+from typing import Any, Literal, overload
 
 import pandas as pd
 from fastapi import Request, UploadFile
@@ -95,13 +95,14 @@ class UserService:
         redis: aioredis.Redis,
         password: str | None,
         pwd_chrtype: PasswordCharacterType | str | None = None,
-    ) -> None:
+    ) -> str:
         """
         校验密码是否符合系统密码策略。
 
         :param redis: redis对象
         :param password: 明文密码
         :param pwd_chrtype: 指定密码字符范围，未指定时读取系统配置
+        :return: 通过策略校验的密码
         :raises ServiceException: 密码不能为空；密码长度必须介于 6 和 20 之间
         """
         if pwd_chrtype is None:
@@ -119,6 +120,27 @@ class UserService:
 
         if not re.fullmatch(password_character_type.pattern, password):
             raise ServiceException(message=password_character_type.message)
+        return password
+
+    @classmethod
+    @overload
+    async def get_user_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: UserPageQueryModel,
+        data_scope_sql: ColumnElement,
+        is_page: Literal[True],
+    ) -> PageModel[UserRowModel]: ...
+
+    @classmethod
+    @overload
+    async def get_user_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: UserPageQueryModel,
+        data_scope_sql: ColumnElement,
+        is_page: Literal[False] = False,
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_user_list_services(
@@ -136,21 +158,18 @@ class UserService:
         :param data_scope_sql: 数据权限对应的查询sql语句
         :param is_page: 是否开启分页
         :return: 用户列表信息对象
+        :raises ValueError: 用户部门关联行缺少用户记录
         """
         query_result = await UserDao.get_user_list(query_db, query_object, data_scope_sql, is_page)
-        if is_page:
-            user_list_result = PageModel[UserRowModel](
-                **{
-                    **query_result.model_dump(by_alias=True),
-                    'rows': [{**row[0], 'dept': row[1]} for row in query_result.rows],
-                }
-            )
-        else:
-            user_list_result = []
-            if query_result:
-                user_list_result = [{**row[0], 'dept': row[1]} for row in query_result]
-
-        return user_list_result
+        rows = query_result.rows if isinstance(query_result, PageModel) else query_result
+        users = []
+        for user, dept in rows:
+            if user is None:
+                raise ValueError('用户部门关联查询缺少用户记录')
+            users.append({**user, 'dept': dept})
+        if isinstance(query_result, PageModel):
+            return PageModel[UserRowModel].model_validate({**query_result.model_dump(), 'rows': users})
+        return users
 
     @classmethod
     async def check_user_allowed_services(cls, check_user: UserModel) -> CrudResponseModel:
@@ -167,7 +186,7 @@ class UserService:
 
     @classmethod
     async def check_user_data_scope_services(
-        cls, query_db: AsyncSession, user_id: int, data_scope_sql: ColumnElement
+        cls, query_db: AsyncSession, user_id: int | None, data_scope_sql: ColumnElement
     ) -> CrudResponseModel:
         """
         校验用户数据权限service。
@@ -178,7 +197,11 @@ class UserService:
         :return: 校验结果
         :raises ServiceException: 没有权限访问用户数据
         """
-        users = await UserDao.get_user_list(query_db, UserPageQueryModel(userId=user_id), data_scope_sql, is_page=False)
+        if user_id is None:
+            raise ServiceException(message='没有权限访问用户数据', msg_key='user.forbidden')
+        users = await UserDao.get_user_list(
+            query_db, UserPageQueryModel(user_id=user_id), data_scope_sql, is_page=False
+        )
         if users:
             return CrudResponseModel(is_success=True, message='校验通过', msg_key='common.validated')
         raise ServiceException(message='没有权限访问用户数据', msg_key='user.forbidden')
@@ -193,7 +216,7 @@ class UserService:
         :return: 校验结果
         """
         user_id = -1 if page_object.user_id is None else page_object.user_id
-        user = await UserDao.get_user_by_info(query_db, UserModel(userName=page_object.user_name))
+        user = await UserDao.get_user_by_info(query_db, UserModel(user_name=page_object.user_name))
         if user and user.user_id != user_id:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
@@ -239,7 +262,7 @@ class UserService:
         :raises ServiceException: 登录账号、手机号或邮箱已被使用
         :raises Exception: 事务失败并回滚后重新抛出原异常
         """
-        add_user = UserModel(**page_object.model_dump(by_alias=True, exclude={'create_time', 'update_time'}))
+        add_user = UserModel(**page_object.model_dump(exclude={'create_time', 'update_time'}))
         if not await cls.check_user_name_unique_services(query_db, page_object):
             raise ServiceException(
                 message=f'新增用户{page_object.user_name}失败，登录账号已存在',
@@ -268,10 +291,10 @@ class UserService:
             )
             if page_object.role_ids:
                 for role in page_object.role_ids:
-                    await UserDao.add_user_role_dao(query_db, UserRoleModel(userId=user_id, roleId=role))
+                    await UserDao.add_user_role_dao(query_db, UserRoleModel(user_id=user_id, role_id=role))
             if page_object.post_ids:
                 for post in page_object.post_ids:
-                    await UserDao.add_user_post_dao(query_db, UserPostModel(userId=user_id, postId=post))
+                    await UserDao.add_user_post_dao(query_db, UserPostModel(user_id=user_id, post_id=post))
             await query_db.commit()
             return CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
@@ -361,7 +384,7 @@ class UserService:
             exclude={'admin', 'create_time', 'update_time'},
         )
         cls._deal_edit_user(page_object, edit_user)
-        user_info = await cls.user_detail_services(query_db, edit_user.get('user_id'))
+        user_info = await cls.user_detail_services(query_db, page_object.user_id)
         if user_info.data and user_info.data.user_id:
             if page_object.type not in ['status', 'avatar', 'pwd']:
                 if not await cls.check_user_name_unique_services(query_db, page_object):
@@ -385,17 +408,17 @@ class UserService:
             try:
                 await UserDao.edit_user_dao(query_db, edit_user)
                 if page_object.type not in {'status', 'avatar', 'pwd'}:
-                    await UserDao.delete_user_role_dao(query_db, UserRoleModel(userId=page_object.user_id))
-                    await UserDao.delete_user_post_dao(query_db, UserPostModel(userId=page_object.user_id))
+                    await UserDao.delete_user_role_dao(query_db, UserRoleModel(user_id=page_object.user_id))
+                    await UserDao.delete_user_post_dao(query_db, UserPostModel(user_id=page_object.user_id))
                     if page_object.role_ids:
                         for role in page_object.role_ids:
                             await UserDao.add_user_role_dao(
-                                query_db, UserRoleModel(userId=page_object.user_id, roleId=role)
+                                query_db, UserRoleModel(user_id=page_object.user_id, role_id=role)
                             )
                     if page_object.post_ids:
                         for post in page_object.post_ids:
                             await UserDao.add_user_post_dao(
-                                query_db, UserPostModel(userId=page_object.user_id, postId=post)
+                                query_db, UserPostModel(user_id=page_object.user_id, post_id=post)
                             )
                 await cls._handle_edit_identity_security_event(query_db, page_object, user_info.data)
                 await query_db.commit()
@@ -426,9 +449,9 @@ class UserService:
                         'updateBy': page_object.update_by,
                         'updateTime': page_object.update_time,
                     }
-                    await UserDao.delete_user_role_dao(query_db, UserRoleModel(**user_id_dict))
-                    await UserDao.delete_user_post_dao(query_db, UserPostModel(**user_id_dict))
-                    await UserDao.delete_user_dao(query_db, UserModel(**user_id_dict))
+                    await UserDao.delete_user_role_dao(query_db, UserRoleModel.model_validate(user_id_dict))
+                    await UserDao.delete_user_post_dao(query_db, UserPostModel.model_validate(user_id_dict))
+                    await UserDao.delete_user_dao(query_db, UserModel.model_validate(user_id_dict))
                     await IdentitySecurityEventService.handle_user_event(
                         query_db,
                         int(user_id),
@@ -444,7 +467,7 @@ class UserService:
             raise ServiceException(message='传入用户id为空', msg_key='user.idRequired')
 
     @classmethod
-    async def user_detail_services(cls, query_db: AsyncSession, user_id: int | str) -> UserDetailModel:
+    async def user_detail_services(cls, query_db: AsyncSession, user_id: int | str | None) -> UserDetailModel:
         """
         获取用户详细信息service。
 
@@ -454,8 +477,10 @@ class UserService:
         """
         posts = await PostService.get_post_list_services(query_db, PostPageQueryModel(), is_page=False)
         roles = await RoleService.get_role_select_option_services(query_db)
-        if user_id != '':
-            query_user = await UserDao.get_user_detail_by_id(query_db, user_id=user_id)
+        if user_id in ('', None):
+            return UserDetailModel(posts=posts, roles=roles)
+        query_user = await UserDao.get_user_detail_by_id(query_db, user_id=int(user_id))
+        if query_user['user_basic_info'] is not None:
             post_ids = ','.join([str(row.post_id) for row in query_user.get('user_post_info')])
             post_ids_list = [row.post_id for row in query_user.get('user_post_info')]
             role_ids = ','.join([str(row.role_id) for row in query_user.get('user_role_info')])
@@ -464,14 +489,14 @@ class UserService:
             return UserDetailModel(
                 data=UserInfoModel(
                     **CamelCaseUtil.transform_result(query_user.get('user_basic_info')),
-                    postIds=post_ids,
-                    roleIds=role_ids,
+                    post_ids=post_ids,
+                    role_ids=role_ids,
                     dept=CamelCaseUtil.transform_result(query_user.get('user_dept_info')),
                     role=CamelCaseUtil.transform_result(query_user.get('user_role_info')),
                 ),
-                postIds=post_ids_list,
+                post_ids=post_ids_list,
                 posts=posts,
-                roleIds=role_ids_list,
+                role_ids=role_ids_list,
                 roles=roles,
             )
 
@@ -537,6 +562,8 @@ class UserService:
         :return: 用户id对应的信息
         """
         query_user = await UserDao.get_user_detail_by_id(query_db, user_id=user_id)
+        if query_user['user_basic_info'] is None:
+            return UserProfileModel(data=None, post_group='', role_group='')
         post_ids = ','.join([str(row.post_id) for row in query_user.get('user_post_info')])
         post_group = ','.join([row.post_name for row in query_user.get('user_post_info')])
         role_ids = ','.join([str(row.role_id) for row in query_user.get('user_role_info')])
@@ -545,13 +572,13 @@ class UserService:
         return UserProfileModel(
             data=UserInfoModel(
                 **CamelCaseUtil.transform_result(query_user.get('user_basic_info')),
-                postIds=post_ids,
-                roleIds=role_ids,
+                post_ids=post_ids,
+                role_ids=role_ids,
                 dept=CamelCaseUtil.transform_result(query_user.get('user_dept_info')),
                 role=CamelCaseUtil.transform_result(query_user.get('user_role_info')),
             ),
-            postGroup=post_group,
-            roleGroup=role_group,
+            post_group=post_group,
+            role_group=role_group,
         )
 
     @classmethod
@@ -565,13 +592,17 @@ class UserService:
         :raises ServiceException: 修改密码失败，旧密码错误；新密码不能与旧密码相同
         :raises Exception: 事务失败并回滚后重新抛出原异常
         """
+        if page_object.user_id is None:
+            raise ServiceException(message='用户不存在', msg_key='user.notFound')
+        if not page_object.password:
+            raise ServiceException(message='密码不能为空', msg_key='auth.passwordRequired')
         reset_user = page_object.model_dump(
             exclude_unset=True,
             exclude={'admin', 'create_time', 'update_time'},
         )
         if page_object.old_password:
             user = (await UserDao.get_user_detail_by_id(query_db, user_id=page_object.user_id)).get('user_basic_info')
-            if not PwdUtil.verify_password(page_object.old_password, user.password):
+            if not user or not user.password or not PwdUtil.verify_password(page_object.old_password, user.password):
                 raise ServiceException(message='修改密码失败，旧密码错误', msg_key='user.oldPasswordIncorrect')
             if PwdUtil.verify_password(page_object.password, user.password):
                 raise ServiceException(message='新密码不能与旧密码相同', msg_key='user.passwordUnchanged')
@@ -637,6 +668,7 @@ class UserService:
         :raises ServiceException: 导入文件为空
         :raises Exception: 事务失败并回滚后重新抛出原异常
         """
+        actor = current_user.user
         contents = await file.read()
         await file.close()
         df = pd.read_excel(io.BytesIO(contents), header=None, dtype=object)
@@ -659,34 +691,34 @@ class UserService:
                 cls._set_row_sex_value(row)
                 cls._set_row_status_value(row)
                 add_user = UserModel(
-                    deptId=row['dept_id'],
-                    userName=row['user_name'],
+                    dept_id=row['dept_id'],
+                    user_name=row['user_name'],
                     password=PwdUtil.get_password_hash(init_password),
-                    nickName=row['nick_name'],
+                    nick_name=row['nick_name'],
                     email=row['email'],
                     phonenumber=str(row['phonenumber']) if row['phonenumber'] is not None else None,
                     sex=row['sex'],
                     status=row['status'],
-                    createBy=current_user.user.user_name,
-                    updateBy=current_user.user.user_name,
+                    create_by=actor.user_name,
+                    update_by=actor.user_name,
                 )
-                user_info = await UserDao.get_user_by_info(query_db, UserModel(userName=row['user_name']))
+                user_info = await UserDao.get_user_by_info(query_db, UserModel(user_name=row['user_name']))
                 if user_info:
                     if update_support:
                         edit_user_model = UserModel(
-                            userId=user_info.user_id,
-                            deptId=row['dept_id'],
-                            userName=row['user_name'],
-                            nickName=row['nick_name'],
+                            user_id=user_info.user_id,
+                            dept_id=row['dept_id'],
+                            user_name=row['user_name'],
+                            nick_name=row['nick_name'],
                             email=row['email'],
                             phonenumber=str(row['phonenumber']) if row['phonenumber'] is not None else None,
                             sex=row['sex'],
                             status=row['status'],
-                            updateBy=current_user.user.user_name,
+                            update_by=actor.user_name,
                         )
                         edit_user_model.validate_fields()
                         await cls.check_user_allowed_services(edit_user_model)
-                        if not current_user.user.admin:
+                        if not actor.admin:
                             await cls.check_user_data_scope_services(
                                 query_db, edit_user_model.user_id, user_data_scope_sql
                             )
@@ -703,21 +735,21 @@ class UserService:
                                 query_db,
                                 user_info.user_id,
                                 'user_disabled',
-                                actor=current_user.user.user_name,
+                                actor=actor.user_name,
                             )
                         if edit_user_model.dept_id != user_info.dept_id:
                             await IdentitySecurityEventService.handle_user_event(
                                 query_db,
                                 user_info.user_id,
                                 'department_changed',
-                                actor=current_user.user.user_name,
+                                actor=actor.user_name,
                             )
                     else:
                         add_error_result.append(f'{count}.用户账号{row["user_name"]}已存在')
                         duplicate_accounts.append(f'{count}. {row["user_name"]}')
                 else:
                     add_user.validate_fields()
-                    if not current_user.user.admin:
+                    if not actor.admin:
                         await DeptService.check_dept_data_scope_services(
                             query_db, add_user.dept_id, dept_data_scope_sql
                         )
@@ -725,7 +757,7 @@ class UserService:
                     await IdentitySubjectService.create_for_new_user(
                         query_db,
                         user_id=added_user.user_id,
-                        create_by=current_user.user.user_name,
+                        create_by=actor.user_name,
                     )
             await query_db.commit()
             return CrudResponseModel(
@@ -830,23 +862,28 @@ class UserService:
         :param query_db: orm对象
         :param page_object: 用户关联角色对象
         :return: 已分配角色列表
+        :raises ServiceException: 未提供用户标识
         """
+        if page_object.user_id is None:
+            raise ServiceException(message='用户不存在', msg_key='user.notFound')
         query_user = await UserDao.get_user_detail_by_id(query_db, page_object.user_id)
+        query_role_list = [
+            SelectedRoleModel(**row) for row in await RoleService.get_role_select_option_services(query_db)
+        ]
+        if query_user['user_basic_info'] is None:
+            return UserRoleResponseModel(roles=query_role_list, user=None)
         post_ids = ','.join([str(row.post_id) for row in query_user.get('user_post_info')])
         role_ids = ','.join([str(row.role_id) for row in query_user.get('user_role_info')])
         user = UserInfoModel(
             **CamelCaseUtil.transform_result(query_user.get('user_basic_info')),
-            postIds=post_ids,
-            roleIds=role_ids,
+            post_ids=post_ids,
+            role_ids=role_ids,
             dept=CamelCaseUtil.transform_result(query_user.get('user_dept_info')),
             role=CamelCaseUtil.transform_result(query_user.get('user_role_info')),
         )
-        query_role_list = [
-            SelectedRoleModel(**row) for row in await RoleService.get_role_select_option_services(query_db)
-        ]
         for model_a in query_role_list:
-            for model_b in user.role:
-                if model_a.role_id == model_b.role_id:
+            for model_b in user.role or []:
+                if model_b is not None and model_a.role_id == model_b.role_id:
                     model_a.flag = True
         result = UserRoleResponseModel(roles=query_role_list, user=user)
 
@@ -873,9 +910,13 @@ class UserService:
                 if await cls._current_role_ids(query_db, page_object.user_id) == requested_role_ids:
                     await query_db.commit()
                     return CrudResponseModel(is_success=True, message='分配成功', msg_key='common.assigned')
-                await UserDao.delete_user_role_by_user_and_role_dao(query_db, UserRoleModel(userId=page_object.user_id))
+                await UserDao.delete_user_role_by_user_and_role_dao(
+                    query_db, UserRoleModel(user_id=page_object.user_id)
+                )
                 for role_id in role_id_list:
-                    await UserDao.add_user_role_dao(query_db, UserRoleModel(userId=page_object.user_id, roleId=role_id))
+                    await UserDao.add_user_role_dao(
+                        query_db, UserRoleModel(user_id=page_object.user_id, role_id=role_id)
+                    )
                 await IdentitySecurityEventService.handle_user_event(
                     query_db,
                     page_object.user_id,
@@ -892,7 +933,9 @@ class UserService:
                 if not await cls._current_role_ids(query_db, page_object.user_id):
                     await query_db.commit()
                     return CrudResponseModel(is_success=True, message='分配成功', msg_key='common.assigned')
-                await UserDao.delete_user_role_by_user_and_role_dao(query_db, UserRoleModel(userId=page_object.user_id))
+                await UserDao.delete_user_role_by_user_and_role_dao(
+                    query_db, UserRoleModel(user_id=page_object.user_id)
+                )
                 await IdentitySecurityEventService.handle_user_event(
                     query_db,
                     page_object.user_id,
@@ -910,11 +953,13 @@ class UserService:
                 changed_user_ids: list[int] = []
                 for user_id in user_id_list:
                     user_role = await cls.detail_user_role_services(
-                        query_db, UserRoleModel(userId=user_id, roleId=page_object.role_id)
+                        query_db, UserRoleModel(user_id=user_id, role_id=page_object.role_id)
                     )
                     if user_role:
                         continue
-                    await UserDao.add_user_role_dao(query_db, UserRoleModel(userId=user_id, roleId=page_object.role_id))
+                    await UserDao.add_user_role_dao(
+                        query_db, UserRoleModel(user_id=user_id, role_id=page_object.role_id)
+                    )
                     changed_user_ids.append(int(user_id))
                 await cls._handle_role_assignment_changes(query_db, changed_user_ids, actor)
                 await query_db.commit()
@@ -944,10 +989,10 @@ class UserService:
                 try:
                     existing = await cls.detail_user_role_services(
                         query_db,
-                        UserRoleModel(userId=page_object.user_id, roleId=page_object.role_id),
+                        UserRoleModel(user_id=page_object.user_id, role_id=page_object.role_id),
                     )
                     await UserDao.delete_user_role_by_user_and_role_dao(
-                        query_db, UserRoleModel(userId=page_object.user_id, roleId=page_object.role_id)
+                        query_db, UserRoleModel(user_id=page_object.user_id, role_id=page_object.role_id)
                     )
                     if existing is not None:
                         await IdentitySecurityEventService.handle_user_event(
@@ -968,10 +1013,10 @@ class UserService:
                     for user_id in user_id_list:
                         existing = await cls.detail_user_role_services(
                             query_db,
-                            UserRoleModel(userId=user_id, roleId=page_object.role_id),
+                            UserRoleModel(user_id=user_id, role_id=page_object.role_id),
                         )
                         await UserDao.delete_user_role_by_user_and_role_dao(
-                            query_db, UserRoleModel(userId=user_id, roleId=page_object.role_id)
+                            query_db, UserRoleModel(user_id=user_id, role_id=page_object.role_id)
                         )
                         if existing is not None:
                             changed_user_ids.append(int(user_id))

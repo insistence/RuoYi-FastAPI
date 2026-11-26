@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -46,7 +47,7 @@ class GenCommandController:
         self,
         table_names: list[str],
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -76,7 +77,7 @@ class GenCommandController:
     def list_tables(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         table_name: str,
         table_comment: str,
@@ -116,7 +117,7 @@ class GenCommandController:
     def list_db_tables(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         table_name: str,
         table_comment: str,
@@ -153,7 +154,7 @@ class GenCommandController:
             text_condition=lambda data: data.get('ok', False),
         )
 
-    def show_detail(self, table_id: int, env: str, output: str) -> None:
+    def show_detail(self, table_id: int, env: str, output: OutputFormat) -> None:
         """
         查看单个代码生成业务表详情。
 
@@ -174,7 +175,7 @@ class GenCommandController:
     def create_table(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -205,7 +206,7 @@ class GenCommandController:
         payload['env'] = ctx.env
         self.execution_service.complete_payload(ctx, payload)
 
-    def preview(self, table_id: int, env: str, output: str) -> None:
+    def preview(self, table_id: int, env: str, output: OutputFormat) -> None:
         """
         预览指定业务表的代码生成结果。
 
@@ -227,7 +228,7 @@ class GenCommandController:
         self,
         table_names: list[str],
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -270,7 +271,7 @@ class GenCommandController:
         self,
         table_name: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
     ) -> None:

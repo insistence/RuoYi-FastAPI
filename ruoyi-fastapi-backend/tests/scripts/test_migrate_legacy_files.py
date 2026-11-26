@@ -141,6 +141,7 @@ def test_migrate_legacy_files_writes_file_info_model_and_commits(tmp_path: Path)
         result = asyncio.run(migrate_legacy_files(batch_size=1, maintenance_confirmed=True))
 
     assert result == (1, 0)
+    assert add_file_info.await_args is not None
     file_info = add_file_info.await_args.args[1]
     assert isinstance(file_info, FileInfoModel)
     assert file_info.storage_type == 'local'

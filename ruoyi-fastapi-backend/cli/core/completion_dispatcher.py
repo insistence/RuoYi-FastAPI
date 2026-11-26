@@ -2,10 +2,10 @@ import os
 from dataclasses import dataclass, field
 
 import typer
-from click.shell_completion import shell_complete as click_shell_complete
+from typer.completion import completion_init
 from typer.completion import shell_complete as typer_shell_complete
 
-from cli.completion.shells import ensure_custom_completion_classes_registered
+from cli.completion.shells import dispatch_click_completion, ensure_custom_completion_classes_registered
 
 
 @dataclass(frozen=True)
@@ -101,11 +101,10 @@ class CompletionDispatcher:
         if not instruction:
             return
 
+        completion_init()
         click_command = typer.main.get_command(cli)
         if self.support.is_click_style_instruction(instruction):
-            raise SystemExit(
-                click_shell_complete(click_command, {}, 'ruoyi', self.support.complete_env_var, instruction)
-            )
+            raise SystemExit(dispatch_click_completion(click_command, instruction, self.support.complete_env_var))
         if self.support.is_typer_style_instruction(instruction):
             raise SystemExit(
                 typer_shell_complete(click_command, {}, 'ruoyi', self.support.complete_env_var, instruction)

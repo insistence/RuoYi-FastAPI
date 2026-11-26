@@ -1,13 +1,11 @@
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import Field
 
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 
 
-class CpuInfo(BaseModel):
+class CpuInfo(CamelModel):
     """描述处理器的核心数量和使用情况。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     cpu_num: int | None = Field(default=None, description='核心数')
     used: float | None = Field(default=None, description='CPU用户使用率')
@@ -15,10 +13,8 @@ class CpuInfo(BaseModel):
     free: float | None = Field(default=None, description='CPU当前空闲率')
 
 
-class MemoryInfo(BaseModel):
+class MemoryInfo(CamelModel):
     """描述服务器内存的容量和占用情况。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     total: str | None = Field(default=None, description='内存总量')
     used: str | None = Field(default=None, description='已用内存')
@@ -26,10 +22,8 @@ class MemoryInfo(BaseModel):
     usage: float | None = Field(default=None, description='使用率')
 
 
-class SysInfo(BaseModel):
+class SysInfo(CamelModel):
     """描述服务器主机及操作系统信息。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     computer_ip: str | None = Field(default=None, description='服务器IP')
     computer_name: str | None = Field(default=None, description='服务器名称')
@@ -41,8 +35,6 @@ class SysInfo(BaseModel):
 class PyInfo(MemoryInfo):
     """描述 Python 运行环境及进程信息。"""
 
-    model_config = ConfigDict(alias_generator=to_camel)
-
     name: str | None = Field(default=None, description='Python名称')
     version: str | None = Field(default=None, description='Python版本')
     start_time: ApiUtcDateTime | None = Field(default=None, description='启动时间')
@@ -50,10 +42,8 @@ class PyInfo(MemoryInfo):
     home: str | None = Field(default=None, description='安装路径')
 
 
-class SysFiles(BaseModel):
+class SysFiles(CamelModel):
     """描述文件系统挂载点及磁盘空间用量。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     dir_name: str | None = Field(default=None, description='盘符路径')
     sys_type_name: str | None = Field(default=None, description='盘符类型')
@@ -64,10 +54,8 @@ class SysFiles(BaseModel):
     usage: str | None = Field(default=None, description='资源的使用率')
 
 
-class ServerMonitorModel(BaseModel):
+class ServerMonitorModel(CamelModel):
     """服务监控对应pydantic模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     cpu: CpuInfo | None = Field(description='CPU相关信息')
     py: PyInfo | None = Field(description='Python相关信息')

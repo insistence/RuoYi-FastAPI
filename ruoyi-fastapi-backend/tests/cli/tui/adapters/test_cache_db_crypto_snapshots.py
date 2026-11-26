@@ -9,7 +9,7 @@ from pytest import MonkeyPatch
 async def test_collect_cache_page_snapshot_builds_cache_browser_records(
     monkeypatch: MonkeyPatch,
     cache_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """缓存快照生成可浏览的记录。"""
     calls: list[tuple[str, ...]] = []
@@ -105,7 +105,7 @@ async def test_collect_cache_page_snapshot_builds_cache_browser_records(
 async def test_cache_browser_adapter_collect_snapshot_exposes_search_context(
     monkeypatch: MonkeyPatch,
     cache_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """缓存浏览器快照提供搜索上下文。"""
 
@@ -150,7 +150,7 @@ async def test_cache_browser_adapter_collect_snapshot_exposes_search_context(
 async def test_collect_database_page_snapshot_builds_check_heads_and_history_sections(
     monkeypatch: MonkeyPatch,
     database_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """数据库快照包含检查、迁移头和历史分区。"""
 
@@ -263,7 +263,7 @@ async def test_collect_database_page_snapshot_builds_check_heads_and_history_sec
 async def test_collect_database_page_snapshot_surfaces_failed_heads(
     monkeypatch: MonkeyPatch,
     database_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """数据库快照显示异常迁移头。"""
 
@@ -313,7 +313,7 @@ async def test_collect_database_page_snapshot_surfaces_failed_heads(
 async def test_collect_database_page_snapshot_applies_query_filter(
     monkeypatch: MonkeyPatch,
     database_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """数据库快照按查询条件过滤。"""
 
@@ -355,7 +355,7 @@ async def test_collect_database_page_snapshot_applies_query_filter(
 async def test_collect_crypto_page_snapshot_builds_validate_and_public_key_sections(
     monkeypatch: MonkeyPatch,
     crypto_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """加密快照显示校验结果和公钥。"""
 

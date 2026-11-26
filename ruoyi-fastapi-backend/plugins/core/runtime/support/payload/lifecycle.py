@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Protocol, TypeAlias, cast
 
 from pydantic import Field
@@ -12,44 +12,20 @@ from plugins.core.validation.menus import PluginMenuConflictItem
 
 from . import PluginPayloadBuilder
 from .base import PluginPayloadModel
-from .plan import ActionPayload, VersionStatePayload
-from .validation import MenuConflictItemPayload
+from .validation import PluginRuntimePrecheckProtocol
 
 
-class SupportsOk(Protocol):
-    """
-    支持 ok 属性的检查结果协议。
+class PluginLifecyclePrecheckProtocol(PluginRuntimePrecheckProtocol, Protocol):
+    """生命周期响应所需的预检结果。"""
 
-    :ivar ok: 操作或检查是否成功
-    """
+    @property
+    def menu_conflicts(self) -> Sequence[dict[str, object]]:
+        """
+        获取菜单冲突明细。
 
-    ok: bool
-
-
-class PluginLifecyclePrecheckProtocol(Protocol):
-    """
-    lifecycle payload 所需的预检上下文协议。
-
-    :ivar ok: 操作或检查是否成功
-    :ivar dependency_result: 依赖检查结果
-    :ivar manifest_result: manifest 非阻断检查结果
-    :ivar plugin_dependency_result: 插件间依赖检查结果
-    :ivar structure_result: 插件结构检查结果
-    :ivar menu_conflict_result: 菜单冲突检查结果
-    :ivar operation_payload: 描述当前操作的结构化数据
-    :ivar check_payload: 预检结果的结构化数据
-    :ivar menu_conflicts: 菜单冲突负载
-    """
-
-    ok: bool
-    dependency_result: SupportsOk
-    manifest_result: SupportsOk
-    plugin_dependency_result: SupportsOk
-    structure_result: SupportsOk
-    menu_conflict_result: SupportsOk
-    operation_payload: Mapping[str, object]
-    check_payload: Mapping[str, object]
-    menu_conflicts: list[MenuConflictItemPayload]
+        :return: 菜单冲突明细
+        """
+        ...
 
 
 class PluginLifecyclePayload(PluginPayloadModel):
@@ -135,7 +111,7 @@ class PluginLifecyclePayloadBuilder:
     @staticmethod
     def build_install_dry_run_payload(
         plugin_id: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
     ) -> PluginLifecyclePayloadDict:
         """
@@ -164,7 +140,7 @@ class PluginLifecyclePayloadBuilder:
         plugin_id: str,
         *,
         message: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         dry_run: bool = False,
         extra_payload: Mapping[str, object] | None = None,
@@ -198,7 +174,7 @@ class PluginLifecyclePayloadBuilder:
         plugin_id: str,
         *,
         operation: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         extra_payload: Mapping[str, object] | None = None,
     ) -> PluginLifecyclePayloadDict | None:
@@ -247,7 +223,7 @@ class PluginLifecyclePayloadBuilder:
         cls,
         plugin_id: str,
         *,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         dependency_install_payload: Mapping[str, object],
     ) -> PluginLifecyclePayloadDict | None:
@@ -277,7 +253,7 @@ class PluginLifecyclePayloadBuilder:
         *,
         operation: str,
         message: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         extra_payload: Mapping[str, object] | None = None,
         ok_from_precheck: bool = True,
@@ -318,7 +294,7 @@ class PluginLifecyclePayloadBuilder:
         plugin_id: str,
         *,
         message: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         installed_menu_conflicts: list[PluginMenuConflictItem],
         extra_payload: Mapping[str, object] | None = None,
@@ -355,7 +331,7 @@ class PluginLifecyclePayloadBuilder:
     @staticmethod
     def build_upgrade_latest_payload(
         plugin_id: str,
-        version_state: VersionStatePayload,
+        version_state: dict[str, object],
         precheck: PluginLifecyclePrecheckProtocol,
     ) -> PluginLifecyclePayloadDict:
         """
@@ -383,10 +359,10 @@ class PluginLifecyclePayloadBuilder:
         plugin_id: str,
         *,
         message: str,
-        actions: list[ActionPayload],
+        actions: list[dict[str, object]],
         precheck: PluginLifecyclePrecheckProtocol,
         plugin: SupportsModelDump,
-        installed_configs: list[SupportsModelDump],
+        installed_configs: Sequence[SupportsModelDump],
         migration_results: list[PluginMigrationResult],
         seed_results: list[PluginSeedResult],
         hook_result: PluginHookResult | None,

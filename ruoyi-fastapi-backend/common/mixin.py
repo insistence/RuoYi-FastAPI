@@ -1,9 +1,8 @@
 from datetime import date, datetime
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from pydantic import field_validator, model_validator
-from sqlalchemy import Column
-from sqlalchemy.orm import Mapped, declared_attr
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from common.types import DbUtcDateTime
 from utils.time_util import TimezoneUtil
@@ -11,7 +10,7 @@ from utils.time_util import TimezoneUtil
 
 class CreateTimeMixin:
     """
-    创建时间字段Mixin。
+    创建时间字段混入类。
 
     :cvar __create_time_nullable__: 创建时间列是否允许空值
     :cvar __create_time_comment__: 创建时间列的数据库注释
@@ -21,23 +20,26 @@ class CreateTimeMixin:
     __create_time_comment__ = '创建时间'
 
     @declared_attr
-    def create_time(cls) -> Mapped[datetime]:  # noqa: N805
+    def create_time(cls) -> Mapped[datetime | None]:  # noqa: N805
         """
         声明记录创建时间的 ORM 字段。
 
-        :return: ``Column`` 实例
+        :return: 创建时间的映射列
         """
-        return Column(
-            DbUtcDateTime(),
-            nullable=cls.__create_time_nullable__,
-            default=TimezoneUtil.utc_now,
-            comment=cls.__create_time_comment__,
+        return cast(
+            'Mapped[datetime | None]',
+            mapped_column(
+                DbUtcDateTime(),
+                nullable=cls.__create_time_nullable__,
+                default=TimezoneUtil.utc_now,
+                comment=cls.__create_time_comment__,
+            ),
         )
 
 
 class UpdateTimeMixin:
     """
-    更新时间字段Mixin。
+    更新时间字段混入类。
 
     :cvar __update_time_nullable__: 更新时间列是否允许空值
     :cvar __update_time_insert_default__: 新增记录时是否填充默认更新时间
@@ -49,27 +51,39 @@ class UpdateTimeMixin:
     __update_time_comment__ = '更新时间'
 
     @declared_attr
-    def update_time(cls) -> Mapped[datetime]:  # noqa: N805
+    def update_time(cls) -> Mapped[datetime | None]:  # noqa: N805
         """
         声明记录更新时间的 ORM 字段。
 
-        :return: ``Column`` 实例
+        :return: 更新时间的映射列
         """
-        return Column(
-            DbUtcDateTime(),
-            nullable=cls.__update_time_nullable__,
-            default=TimezoneUtil.utc_now if cls.__update_time_insert_default__ else None,
-            onupdate=TimezoneUtil.utc_now,
-            comment=cls.__update_time_comment__,
+        return cast(
+            'Mapped[datetime | None]',
+            mapped_column(
+                DbUtcDateTime(),
+                nullable=cls.__update_time_nullable__,
+                default=TimezoneUtil.utc_now if cls.__update_time_insert_default__ else None,
+                onupdate=TimezoneUtil.utc_now,
+                comment=cls.__update_time_comment__,
+            ),
         )
 
 
 class AuditTimeMixin(CreateTimeMixin, UpdateTimeMixin):
-    """创建时间和更新时间字段Mixin。"""
+    """创建和更新时间字段混入类。"""
 
 
 class DateRangeQueryMixin:
-    """业务日期范围查询校验混入类。"""
+    """
+    业务时区日期范围查询混入类。
+
+    :ivar begin_time: 查询起始日期
+    :ivar end_time: 查询结束日期
+    """
+
+    if TYPE_CHECKING:
+        begin_time: str | None
+        end_time: str | None
 
     @field_validator('begin_time', 'end_time', mode='before', check_fields=False)
     @classmethod
@@ -101,7 +115,16 @@ class DateRangeQueryMixin:
 
 
 class InstantRangeQueryMixin:
-    """RFC 3339时刻范围查询校验混入类。"""
+    """
+    RFC 3339 时刻范围查询混入类。
+
+    :ivar begin_time: 带时区的查询起始时刻
+    :ivar end_time: 带时区的查询结束时刻
+    """
+
+    if TYPE_CHECKING:
+        begin_time: str | None
+        end_time: str | None
 
     @field_validator('begin_time', 'end_time', mode='before', check_fields=False)
     @classmethod
@@ -132,7 +155,7 @@ class InstantRangeQueryMixin:
 
 class GeneratedTimeRangeQueryMixin:
     """
-    代码生成器命名时间范围校验混入类。
+    代码生成器命名时间范围查询混入类。
 
     :cvar time_range_fields: 参与区间查询的字段及其时间语义
     """

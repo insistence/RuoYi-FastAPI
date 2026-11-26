@@ -1,12 +1,12 @@
 from collections.abc import Awaitable, Callable, Mapping
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from common.constant import OidcAuditEvent
 from config.database import DataSourceRegistry
 from exceptions.exception import OidcInteractionException
-from module_identity.dao.oauth_audit_dao import OAuthAuditDao
+from module_identity.dao.oauth_audit_dao import AuditFilters, OAuthAuditDao
 from module_identity.entity.do.oauth_audit_do import SysOAuthAuditLog
 from module_identity.entity.vo.oauth_session_vo import AuditModel, AuditPageQueryModel
 from utils.excel_util import ExcelUtil
@@ -197,7 +197,7 @@ class AuditService:
         return await OAuthAuditDao.append(db, row)
 
     @staticmethod
-    def _admin_filters(query: AuditPageQueryModel) -> dict[str, object]:
+    def _admin_filters(query: AuditPageQueryModel) -> AuditFilters:
         """
         构造管理端审计查询条件。
 
@@ -222,7 +222,7 @@ class AuditService:
         :param row: 审计日志实体
         :return: 不含详情敏感字段的管理端模型字典
         """
-        return AuditModel(
+        model = AuditModel(
             audit_id=row.event_id,
             event_type=row.event_type,
             result=row.result,
@@ -236,7 +236,8 @@ class AuditService:
             ip_address=getattr(row, 'ip_address', None),
             failure_code=getattr(row, 'failure_code', None),
             create_time=row.create_time,
-        ).model_dump(by_alias=True)
+        )
+        return cast('dict[str, object]', model.model_dump(by_alias=True))
 
     @classmethod
     async def list_admin_page(cls, db: AsyncSession, query: AuditPageQueryModel) -> tuple[list[dict[str, object]], int]:

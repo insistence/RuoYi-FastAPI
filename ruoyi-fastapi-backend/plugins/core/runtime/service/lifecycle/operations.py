@@ -1,6 +1,9 @@
 from collections.abc import Mapping
 from typing import Protocol
 
+from plugins.core.discovery.scanner import DiscoveredPlugin
+from plugins.core.validation.dependencies import DependencyCheckResult
+
 from ..context import PluginRuntimeContextService
 from ..dependency_container import PluginRuntimeDependencies
 from ..responses import PluginDependencyInstallResponse
@@ -43,10 +46,10 @@ class PluginLifecycleRuntimeOperations(Protocol):
     def install_plugin_dependencies_from_result(
         self,
         plugin_id: str,
-        dependency_result: object,
+        dependency_result: DependencyCheckResult,
         *,
         dry_run: bool = False,
-        discovered_plugin: object | None = None,
+        discovered_plugin: DiscoveredPlugin | None = None,
     ) -> PluginDependencyInstallResponse:
         """
         根据既有依赖检查结果生成计划并执行依赖安装。
@@ -61,10 +64,10 @@ class PluginLifecycleRuntimeOperations(Protocol):
     async def install_plugin_dependencies_from_result_async(
         self,
         plugin_id: str,
-        dependency_result: object,
+        dependency_result: DependencyCheckResult,
         *,
         dry_run: bool = False,
-        discovered_plugin: object | None = None,
+        discovered_plugin: DiscoveredPlugin | None = None,
     ) -> PluginDependencyInstallResponse:
         """
         根据既有依赖检查结果异步生成计划并执行依赖安装。

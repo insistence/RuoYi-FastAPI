@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Mapping
 from datetime import timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from plugins.core.environment import PLUGIN_RUNTIME_ENVIRONMENT
 from plugins.core.lifecycle.jobs import PluginJobInstaller, PluginJobRepository
 from plugins.core.lifecycle.purge import PluginPurgePlan, PluginPurgePlanner
 from plugins.core.management.dao.dao import PluginDao
+from plugins.core.management.entity.do.models import SysPlugin
 from plugins.core.management.entity.vo.schemas import (
     PluginConfigModel,
     PluginConfigUpdateModel,
@@ -74,6 +75,30 @@ class PluginService:
         """
         plugin = await PluginDao.get_plugin_by_id(query_db, plugin_id)
         return PluginModel(**CamelCaseUtil.transform_result(plugin)) if plugin is not None else None
+
+    @classmethod
+    @overload
+    async def get_plugin_page_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: PluginPageQueryModel,
+        is_page: Literal[True] = True,
+        *,
+        backend_root: Path | None = None,
+        frontend_root: Path | None = None,
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_plugin_page_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: PluginPageQueryModel,
+        is_page: Literal[False],
+        *,
+        backend_root: Path | None = None,
+        frontend_root: Path | None = None,
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_plugin_page_list_services(
@@ -159,7 +184,7 @@ class PluginService:
 
     @classmethod
     async def _build_artifact_plugin_models(
-        cls, query_db: AsyncSession, plugins: Iterable[object], backend_root: Path, frontend_root: Path | None
+        cls, query_db: AsyncSession, plugins: Iterable[SysPlugin], backend_root: Path, frontend_root: Path | None
     ) -> dict[str, PluginModel]:
         """
         筛选制品来源的插件记录，并构建包含发布状态的展示模型。
@@ -288,16 +313,16 @@ class PluginService:
             plugin = await PluginDao.get_plugin_by_id(query_db, manifest.id)
 
         return PluginModel(
-            pluginId=manifest.id,
-            pluginName=manifest.name,
+            plugin_id=manifest.id,
+            plugin_name=manifest.name,
             version=manifest.version,
-            installedVersion=manifest.version,
+            installed_version=manifest.version,
             enabled=enabled,
             status=status,
             source='local',
-            backendPath=str(discovered_plugin.backend_path),
+            backend_path=str(discovered_plugin.backend_path),
             description=manifest.description,
-            updateTime=getattr(plugin, 'update_time', None),
+            update_time=getattr(plugin, 'update_time', None),
         )
 
     @classmethod
@@ -516,6 +541,24 @@ class PluginService:
         return PluginOperationLogModel(**CamelCaseUtil.transform_result(db_operation_log))
 
     @classmethod
+    @overload
+    async def get_plugin_operation_log_page_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: PluginOperationLogPageQueryModel,
+        is_page: Literal[True] = True,
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_plugin_operation_log_page_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: PluginOperationLogPageQueryModel,
+        is_page: Literal[False],
+    ) -> list[dict[str, Any]]: ...
+
+    @classmethod
     async def get_plugin_operation_log_page_list_services(
         cls,
         query_db: AsyncSession,
@@ -559,7 +602,7 @@ class PluginService:
     def export_plugin_operation_log_list_services(
         cls,
         operation_log_list: list[PluginOperationLogDetailModel],
-        operation_dict: dict[str, str] | None = None,
+        operation_dict: Mapping[str, str | None] | None = None,
     ) -> bytes:
         """
         导出插件批量操作审计日志。
@@ -606,11 +649,11 @@ class PluginService:
             deleted_count = await PluginDao.delete_plugin_operation_logs_before(query_db, cutoff_time)
 
         return PluginOperationLogRetentionResultModel(
-            retentionDays=retention_model.retention_days,
-            cutoffTime=cutoff_time,
-            matchedCount=matched_count,
-            deletedCount=deleted_count,
-            dryRun=retention_model.dry_run,
+            retention_days=retention_model.retention_days,
+            cutoff_time=cutoff_time,
+            matched_count=matched_count,
+            deleted_count=deleted_count,
+            dry_run=retention_model.dry_run,
         )
 
     @classmethod
@@ -908,7 +951,7 @@ class PluginService:
         :return: 插件菜单关联对象
         """
         existing_plugin_menu = await PluginDao.get_plugin_menu_by_key(query_db, plugin_id, menu_key)
-        plugin_menu_model = PluginMenuModel(pluginId=plugin_id, menuId=menu_id, menuKey=menu_key)
+        plugin_menu_model = PluginMenuModel(plugin_id=plugin_id, menu_id=menu_id, menu_key=menu_key)
 
         if existing_plugin_menu and existing_plugin_menu.menu_id != menu_id:
             await PluginDao.update_plugin_menu_by_key(query_db, plugin_menu_model)
@@ -1036,7 +1079,9 @@ class PluginService:
         status = PluginService._resolve_status(manifest.version, installed_version, enabled, current_status)
         if is_artifact_plugin(discovered_plugin) and current_status is not None:
             status = current_status
-        frontend_path = frontend_root / manifest.frontend.plugin_id if frontend_root else None
+        frontend_path = (
+            frontend_root / manifest.frontend.plugin_id if frontend_root and manifest.frontend.plugin_id else None
+        )
         frontend_menus = PluginMenuTree.flatten(manifest.frontend.menus)
         frontend_framework = (
             PLUGIN_RUNTIME_ENVIRONMENT.get_frontend_framework(
@@ -1048,22 +1093,22 @@ class PluginService:
         frontend_dependencies = manifest.dependencies.resolve_frontend(frontend_framework or 'vue3')
 
         return PluginModel(
-            pluginId=manifest.id,
-            pluginName=manifest.name,
+            plugin_id=manifest.id,
+            plugin_name=manifest.name,
             version=manifest.version,
-            installedVersion=installed_version,
+            installed_version=installed_version,
             enabled=enabled,
             status=status,
             source='artifact' if is_artifact_plugin(discovered_plugin) else 'local',
-            backendPath=(
+            backend_path=(
                 f'artifact:{discovered_plugin.artifact_digest}'
                 if is_artifact_plugin(discovered_plugin)
                 else str(discovered_plugin.backend_path.relative_to(backend_root))
             ),
-            frontendPath=str(frontend_path.relative_to(frontend_root)) if frontend_path and frontend_root else None,
-            lastError=last_error,
+            frontend_path=str(frontend_path.relative_to(frontend_root)) if frontend_path and frontend_root else None,
+            last_error=last_error,
             description=manifest.description,
-            updateTime=TimezoneUtil.utc_now(),
+            update_time=TimezoneUtil.utc_now(),
             capability=capability.to_payload(),
             metadata=manifest.metadata.model_dump(by_alias=True),
             backend={
@@ -1099,7 +1144,7 @@ class PluginService:
                     else {}
                 ),
             },
-            pluginDependencies=[dependency.model_dump(by_alias=True) for dependency in manifest.dependencies.plugins],
+            plugin_dependencies=[dependency.model_dump(by_alias=True) for dependency in manifest.dependencies.plugins],
         )
 
     @classmethod

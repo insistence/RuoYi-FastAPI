@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from cli.tui.actions.builders import TuiActionTemplate, TuiActionTemplateSupport
+from cli.tui.actions.models import ActionParameters
 from cli.tui.adapters.models import BrowserRecordSnapshot
 from cli.tui.copy import TUI_COPY
 
@@ -19,7 +20,7 @@ class StaticActionTemplateFactory:
     support: TuiActionTemplateSupport
 
     @staticmethod
-    def build_job_sync_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_job_sync_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建任务同步命令参数。
 
@@ -31,7 +32,7 @@ class StaticActionTemplateFactory:
         return {}
 
     @staticmethod
-    def build_config_sync_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_config_sync_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建配置同步命令参数。
 
@@ -43,7 +44,7 @@ class StaticActionTemplateFactory:
         return {}
 
     @staticmethod
-    def build_cache_warmup_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_cache_warmup_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建缓存预热命令参数。
 
@@ -55,7 +56,7 @@ class StaticActionTemplateFactory:
         return {}
 
     @staticmethod
-    def build_db_upgrade_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_db_upgrade_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建数据库升级预演参数。
 
@@ -67,7 +68,7 @@ class StaticActionTemplateFactory:
         return {'revision': 'head', 'dry_run': True}
 
     @staticmethod
-    def build_db_init_dry_run_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_db_init_dry_run_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建数据库初始化预演命令参数。
 
@@ -79,7 +80,7 @@ class StaticActionTemplateFactory:
         return {'dry_run': True}
 
     @staticmethod
-    def build_app_precheck_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_app_precheck_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建应用启动前检查参数。
 
@@ -91,7 +92,7 @@ class StaticActionTemplateFactory:
         return {'include_config': True}
 
     @staticmethod
-    def build_completion_install_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_completion_install_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建补全安装命令参数。
 
@@ -103,7 +104,7 @@ class StaticActionTemplateFactory:
         return {'activate': True}
 
     @staticmethod
-    def build_prod_check_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_prod_check_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建综合运行巡检参数。
 
@@ -115,7 +116,7 @@ class StaticActionTemplateFactory:
         return {'include_config': True}
 
     @staticmethod
-    def build_crypto_rotate_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_crypto_rotate_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建加密轮换预演命令参数。
 
@@ -127,7 +128,7 @@ class StaticActionTemplateFactory:
         return {'key_size': 2048}
 
     @staticmethod
-    def build_crypto_keygen_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_crypto_keygen_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建加密密钥生成命令参数。
 
@@ -139,7 +140,7 @@ class StaticActionTemplateFactory:
         return {'key_size': 2048}
 
     @staticmethod
-    def build_ops_ping_db_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_ops_ping_db_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建数据库探活命令参数。
 
@@ -151,7 +152,7 @@ class StaticActionTemplateFactory:
         return {}
 
     @staticmethod
-    def build_ops_ping_redis_parameters(record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_ops_ping_redis_parameters(record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建 Redis 探活命令参数。
 

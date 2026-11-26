@@ -5,6 +5,7 @@ from sqlalchemy import Column, MetaData, Table, create_engine, select
 from sqlalchemy.dialects import mysql, postgresql, sqlite
 from sqlalchemy.engine import Dialect
 
+from config.database import Base
 from module_admin.entity.do.dict_do import SysDictData, SysDictType
 from module_admin.entity.do.menu_do import SysMenu
 
@@ -23,7 +24,7 @@ TRANSLATION_FIELDS = (
 def test_translation_columns_compile_to_comparable_postgres_jsonb(dialect: Dialect, expected: str) -> None:
     """菜单和字典的整行 DISTINCT 查询要求 PostgreSQL 译文列具备相等运算。"""
     for model, field, _ in TRANSLATION_FIELDS:
-        column = model.__table__.c[f'{field}_i18n']
+        column = model.get_table().c[f'{field}_i18n']
         assert column.type.compile(dialect=dialect) == expected
 
 
@@ -38,10 +39,12 @@ def test_fresh_database_user_locale_defaults() -> None:
 
 
 @pytest.mark.parametrize('model,field,example', TRANSLATION_FIELDS)
-def test_fresh_database_scripts_insert_matching_translations(model: type, field: str, example: tuple[str, str]) -> None:
+def test_fresh_database_scripts_insert_matching_translations(
+    model: type[Base], field: str, example: tuple[str, str]
+) -> None:
     """按两套脚本各自的建表顺序插入，逐行核对内置记录的原文和译文。"""
     name = model.__tablename__
-    model_table = model.__table__
+    model_table = model.get_table()
     translation = f'{field}_i18n'
     primary_key = next(iter(model_table.primary_key)).name
     results = []

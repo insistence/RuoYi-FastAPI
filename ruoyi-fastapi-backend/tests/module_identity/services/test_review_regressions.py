@@ -150,8 +150,10 @@ async def test_rotation_with_real_foreign_keys_and_replay_revocation(
     result = await refresh(data_session, old)
     await data_session.commit()
     old_row = await OAuthTokenDao.get_by_token_id(data_session, parse_opaque_token(old, 'rt1').token_id)
+    assert result.refresh_token is not None
     new_id = parse_opaque_token(result.refresh_token, 'rt1').token_id
     successor = await OAuthTokenDao.get_by_token_id(data_session, new_id)
+    assert old_row is not None and successor is not None
     assert old_row.status == 'used'
     assert old_row.replaced_by_token_id == new_id
     assert successor.parent_token_id == old_row.token_id
@@ -174,6 +176,7 @@ async def test_failed_signing_rolls_back_both_rotation_rows(
     await data_session.rollback()
     assert await data_session.scalar(select(func.count()).select_from(SysOAuthRefreshToken)) == 1
     old_row = await OAuthTokenDao.get_by_token_id(data_session, parse_opaque_token(old, 'rt1').token_id)
+    assert old_row is not None
     assert old_row.status == 'active'
     assert old_row.replaced_by_token_id is None
 
@@ -200,8 +203,8 @@ async def test_real_key_list_readiness_and_client_response_are_rfc3339(monkeypat
         'module_identity.controller.oidc_key_controller.OidcKeyManagementService.list_page',
         AsyncMock(return_value=([], 0)),
     )
-    response = await list_oidc_keys(object(), status=None, page_num=1, page_size=10)
-    assert json.loads(response.body)['readinessCheckedAt'].endswith('Z')
+    response = await list_oidc_keys(AsyncSession(), status=None, page_num=1, page_size=10)
+    assert json.loads(bytes(response.body))['readinessCheckedAt'].endswith('Z')
     model = ClientViewModel(
         client_id='public',
         client_name='Public',
@@ -210,7 +213,10 @@ async def test_real_key_list_readiness_and_client_response_are_rfc3339(monkeypat
         redirect_uris=['https://client.example/callback'],
         update_time=NOW,
     )
-    assert json.loads(ResponseUtil.success(rows=[model]).body)['rows'][0]['updateTime'] == '2026-09-12T10:00:00.000Z'
+    assert (
+        json.loads(bytes(ResponseUtil.success(rows=[model]).body))['rows'][0]['updateTime']
+        == '2026-09-12T10:00:00.000Z'
+    )
 
 
 def test_role_values_require_an_explicit_client_allowlist() -> None:
@@ -240,6 +246,7 @@ async def test_confirmed_logout_revokes_offline_grant_with_expired_owned_cookie(
     sid = '99010000-0000-4000-8000-000000000001'
     session = await SsoSessionDao.get_by_sid(data_session, sid)
     secret = 's' * 43
+    assert session is not None
     session.session_secret_hash = OidcUtil.session_secret_digest(secret, PEPPER)
     await data_session.commit()
     result = await LogoutService.execute_logout(
@@ -250,7 +257,9 @@ async def test_confirmed_logout_revokes_offline_grant_with_expired_owned_cookie(
         now=NOW,
     )
     assert result.session_revoked is True
-    assert (await SsoSessionDao.get_by_sid(data_session, sid)).status == 'revoked'
-    assert (
-        await OAuthTokenDao.get_by_token_id(data_session, parse_opaque_token(old, 'rt1').token_id)
-    ).status == 'revoked'
+    stored_session = await SsoSessionDao.get_by_sid(data_session, sid)
+    assert stored_session is not None
+    assert stored_session.status == 'revoked'
+    stored_token = await OAuthTokenDao.get_by_token_id(data_session, parse_opaque_token(old, 'rt1').token_id)
+    assert stored_token is not None
+    assert stored_token.status == 'revoked'

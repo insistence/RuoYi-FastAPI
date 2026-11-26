@@ -163,7 +163,7 @@ async def delete_system_menu(
     menu_ids: Annotated[str, Path(description='需要删除的菜单ID')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_menu = DeleteMenuModel(menuIds=menu_ids)
+    delete_menu = DeleteMenuModel(menu_ids=menu_ids)
     delete_menu_result = await MenuService.delete_menu_services(query_db, delete_menu)
     logger.info(delete_menu_result.message)
 

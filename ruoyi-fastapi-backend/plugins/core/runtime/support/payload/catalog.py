@@ -7,14 +7,15 @@ from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.manifest.menu_tree import PluginMenuTree
 from plugins.core.manifest.schema import (
     PluginConfigItemManifest,
-    PluginJobManifest,
     PluginMenuManifest,
     PluginPermissionManifest,
 )
+from plugins.core.manifest.v2 import VersionedPluginJobManifest
 from plugins.core.types import PluginStateRecord, SupportsToPayload
 from plugins.core.validation.dependencies import DependencyCheckItem
 
 from .base import PluginPayloadModel
+from .validation import PluginValidationPayloadMixin
 
 
 class PluginCatalogSummaryPayload(PluginPayloadModel):
@@ -264,7 +265,7 @@ class PluginCatalogPayloadMixin:
                 }
                 for dependency in manifest.dependencies.plugins
             ],
-            'dependencies': [cls.build_dependency_item(item) for item in dependency_items],
+            'dependencies': [PluginValidationPayloadMixin.build_dependency_item(item) for item in dependency_items],
         }
 
     @staticmethod
@@ -352,16 +353,16 @@ class PluginCatalogPayloadMixin:
             perms=menu.perms,
             type=menu.type,
             query=menu.query,
-            routeName=menu.route_name,
-            isFrame=menu.is_frame,
-            isCache=menu.is_cache,
+            route_name=menu.route_name,
+            is_frame=menu.is_frame,
+            is_cache=menu.is_cache,
             visible=menu.visible,
             status=menu.status,
             children=len(menu.children),
         ).to_payload()
 
     @staticmethod
-    def build_manifest_job_item(job: PluginJobManifest) -> dict[str, object]:
+    def build_manifest_job_item(job: VersionedPluginJobManifest) -> dict[str, object]:
         """
         构建 manifest 定时任务声明负载。
 

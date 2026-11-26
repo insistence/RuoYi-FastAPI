@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from babel.messages.pofile import read_po, write_po
 from jinja2 import StrictUndefined
+from sqlalchemy.ext.asyncio import AsyncSession
 from test_generated_time_contract import column, make_table
 
 from common.context import LocaleContext
@@ -44,7 +45,7 @@ def render_files(table: GenTableModel) -> tuple[list[Any], dict[str, str]]:
     info = render_info(table)
     env = TemplateInitializer.init_jinja2()
     env.undefined = StrictUndefined
-    return info, GenTableService._GenTableService__render_files(env, info)
+    return info, GenTableService._render_files(env, info)
 
 
 def flatten(value: dict, prefix: str = '') -> dict:
@@ -72,6 +73,7 @@ def test_generated_sources_register_literal_module_keys_and_compile(
 ) -> None:
     """生成代码注册字面模块键并可编译。"""
     table = make_table('mysql', category, web_type)
+    assert table.columns
     table.columns[1].is_required = '1'
     table.columns[1].column_comment = '名称“业务”'
     info, files = render_files(table)
@@ -133,6 +135,7 @@ for (const [name, source] of Object.entries(files)) {
 def test_generator_uses_configured_locales_and_reports_unknown_translations() -> None:
     """生成器采用配置的语言并报告未知译文。"""
     table = make_table('mysql', 'crud', 'element-ui')
+    assert table.options
     options = json.loads(table.options)
     options.update(
         i18nLocales=['en-US', 'fr-FR'],
@@ -195,10 +198,11 @@ async def test_generation_failure_keeps_internal_paths_out_of_messages(locale: s
         patch.object(
             GenTableService, '_GenTableService__get_gen_render_info', AsyncMock(return_value=render_info(table))
         ),
-        patch.object(GenTableService, '_GenTableService__get_output_root', side_effect=PermissionError(secret)),
+        patch.object(GenTableService, '_get_output_root', side_effect=PermissionError(secret)),
         pytest.raises(ServiceException) as error,
     ):
-        await GenTableService.generate_code_services(object(), table.table_name)
+        assert table.table_name is not None
+        await GenTableService.generate_code_services(AsyncMock(spec=AsyncSession), table.table_name)
     fields = I18nUtil.message_fields(
         error.value.message,
         msg_key=error.value.msg_key,
@@ -221,6 +225,7 @@ async def test_generation_failure_keeps_internal_paths_out_of_messages(locale: s
 def test_generator_rejects_conflicting_sources_and_invalid_locale_options(options: dict[str, Any]) -> None:
     """生成器拒绝冲突的数据源和无效语言选项。"""
     table = make_table('mysql', 'crud', 'element-ui')
+    assert table.options
     table.options = json.dumps({**json.loads(table.options), **options})
     with pytest.raises(ServiceWarning):
         TemplateUtils.prepare_context(table)
@@ -229,7 +234,7 @@ def test_generator_rejects_conflicting_sources_and_invalid_locale_options(option
 def test_generator_parameter_model_keeps_explicit_language_options() -> None:
     """生成参数模型保留显式语言选项。"""
     value = GenTableParamsModel(
-        i18nSourceLocale='zh-CN', i18nLocales=['en-US', 'fr-FR'], i18nTranslations={'fr-FR': {'title': 'Titre'}}
+        i18n_source_locale='zh-CN', i18n_locales=['en-US', 'fr-FR'], i18n_translations={'fr-FR': {'title': 'Titre'}}
     ).model_dump(by_alias=True, exclude_unset=True)
     assert value['i18nSourceLocale'] == 'zh-CN'
     assert value['i18nLocales'] == ['en-US', 'fr-FR']
@@ -241,6 +246,7 @@ def test_field_keys_are_stable_when_comments_change() -> None:
     table = make_table('mysql', 'crud', 'element-ui')
     first, first_files = render_files(table)
     table.function_name = '另一个显示名称'
+    assert table.columns
     table.columns[1].column_comment = '另一个字段名'
     second, second_files = render_files(table)
     path = 'frontend/src/i18n/locales/zh-CN/generated.test.item.json'
@@ -259,7 +265,8 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
         '_GenTableService__get_gen_render_info',
         new=AsyncMock(side_effect=lambda *_: render_info(table)),
     ):
-        await GenTableService.generate_code_services(object(), table.table_name)
+        assert table.table_name is not None
+        await GenTableService.generate_code_services(AsyncMock(spec=AsyncSession), table.table_name)
         path = tmp_path / 'frontend/src/i18n/locales/en-US/generated.test.item.json'
         english = json.loads(path.read_text(encoding='utf-8'))
         english['fields']['itemName']['label'] = 'Handwritten name'
@@ -273,8 +280,9 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
             ),
             encoding='utf-8',
         )
+        assert table.columns
         table.columns.append(column('new_label', 'varchar(64)', 'str'))
-        await GenTableService.generate_code_services(object(), table.table_name)
+        await GenTableService.generate_code_services(AsyncMock(spec=AsyncSession), table.table_name)
         english = json.loads(path.read_text(encoding='utf-8'))
         assert english['fields']['itemName']['label'] == 'Handwritten name'
         assert english['custom']['kept'] == 'Manual text'
@@ -291,7 +299,7 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
             'module_generator.service.gen_service.GenTableDao.get_gen_table_names',
             new=AsyncMock(return_value={table.table_name}),
         ):
-            content = await GenTableService.batch_gen_code_services(object(), [table.table_name])
+            content = await GenTableService.batch_gen_code_services(AsyncMock(spec=AsyncSession), [table.table_name])
     with zipfile.ZipFile(io.BytesIO(content)) as archive:
         assert 'frontend/src/views/test/item/index.vue' in archive.namelist()
         assert 'frontend/src/i18n/locales/zh-CN/generated.test.item.json' in archive.namelist()
@@ -308,7 +316,7 @@ async def test_preview_zip_and_disk_include_resources_without_overwriting_transl
         patch.object(GenTableService, 'set_pk_column', new=AsyncMock()),
         patch('module_generator.service.gen_service.TemplateUtils.prepare_context', return_value=info[2]),
     ):
-        preview = await GenTableService.preview_code_services(object(), 1)
+        preview = await GenTableService.preview_code_services(AsyncMock(spec=AsyncSession), 1)
     assert 'vue/index.vue.jinja2' in preview
     assert 'frontend/src/i18n/locales/zh-CN/generated.test.item.json' in preview
     assert 'backend/i18n/catalogs/zh-CN/LC_MESSAGES/core/generated.test.item.po' in preview
@@ -340,7 +348,8 @@ async def test_invalid_existing_catalog_stops_before_overwriting_generated_sourc
         ),
         pytest.raises(ServiceWarning) as caught,
     ):
-        await GenTableService.generate_code_services(object(), table.table_name)
+        assert table.table_name is not None
+        await GenTableService.generate_code_services(AsyncMock(spec=AsyncSession), table.table_name)
     assert caught.value.msg_key == 'generator.i18nCatalogInvalid'
     assert source.read_text(encoding='utf-8') == 'Keep the existing source'
     assert catalog.read_text(encoding='utf-8') == invalid
@@ -374,6 +383,7 @@ async def test_batch_generation_writes_one_backend_catalog_per_business_module()
     second.table_name = 'second_table'
     second.business_name = 'second'
     second.class_name = 'Second'
+    assert first.table_name is not None
     tables = {first.table_name: first, second.table_name: second}
     with (
         patch.object(
@@ -386,7 +396,7 @@ async def test_batch_generation_writes_one_backend_catalog_per_business_module()
             new=AsyncMock(return_value=set(tables)),
         ),
     ):
-        content = await GenTableService.batch_gen_code_services(object(), list(tables))
+        content = await GenTableService.batch_gen_code_services(AsyncMock(spec=AsyncSession), list(tables))
     with zipfile.ZipFile(io.BytesIO(content)) as archive:
         assert len(archive.namelist()) == len(set(archive.namelist()))
         for locale in ('zh-CN', 'en-US'):
@@ -395,7 +405,11 @@ async def test_batch_generation_writes_one_backend_catalog_per_business_module()
                 path = f'backend/i18n/catalogs/{locale}/LC_MESSAGES/core/{namespace}.po'
                 catalog = read_po(io.BytesIO(archive.read(path)))
                 assert f'{namespace}.fields.itemName.label' in catalog
-                assert all(message.id.startswith(f'{namespace}.') for message in catalog if message.id)
+                assert all(
+                    isinstance(message.id, str) and message.id.startswith(f'{namespace}.')
+                    for message in catalog
+                    if message.id
+                )
 
 
 def test_generated_output_does_not_write_directly_into_an_existing_application() -> None:
@@ -403,7 +417,7 @@ def test_generated_output_does_not_write_directly_into_an_existing_application()
     table = make_table('mysql', 'crud', 'element-ui')
     table.gen_path = str(GenI18nUtil.PROJECT_ROOT / 'ruoyi-fastapi-frontend/vue2/web/src')
     with pytest.raises(ServiceWarning) as caught:
-        GenTableService._GenTableService__get_output_root(table)
+        GenTableService._get_output_root(table)
     assert caught.value.msg_key == 'generator.outputMustBeBundleRoot'
 
 

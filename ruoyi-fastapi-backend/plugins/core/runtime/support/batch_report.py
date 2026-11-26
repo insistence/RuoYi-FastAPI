@@ -188,13 +188,16 @@ class PluginBatchReportBuilder:
             return []
         requested_plugin_ids = plan.get('requestedPluginIds')
         ordered_plugin_ids = plan.get('orderedPluginIds')
-        if not isinstance(requested_plugin_ids, list) or not requested_plugin_ids:
-            return ordered_plugin_ids if isinstance(ordered_plugin_ids, list) else []
         if not isinstance(ordered_plugin_ids, list):
-            return requested_plugin_ids
-
-        requested_plugin_id_set = set(requested_plugin_ids)
-        return [plugin_id for plugin_id in ordered_plugin_ids if plugin_id in requested_plugin_id_set]
+            ordered_plugin_ids = requested_plugin_ids
+        if not isinstance(ordered_plugin_ids, list):
+            return []
+        requested = set(requested_plugin_ids) if isinstance(requested_plugin_ids, list) else set()
+        return [
+            plugin_id
+            for plugin_id in ordered_plugin_ids
+            if isinstance(plugin_id, str) and (not requested or plugin_id in requested)
+        ]
 
     @classmethod
     def build_plan_blocked_payload(

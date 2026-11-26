@@ -6,13 +6,16 @@ from unittest.mock import AsyncMock
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from jwt.algorithms import RSAAlgorithm
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from exceptions.exception import OAuthProtocolException
 from module_identity.controller import token_controller as controller
 from module_identity.security.principal import OAuthClientPrincipal
 from module_identity.service.token_service import RefreshTokenReuseDetected, TokenResult, TokenService
+from tests.module_identity.support.http import make_request
+from tests.module_identity.support.sessions import RecordingSession
 
 _OK = 200
 _BAD_REQUEST = 400
@@ -42,29 +45,7 @@ def _disable_rate_limit_for_controller_unit_tests(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(controller.OidcRateLimiter, 'enforce', allow)
 
 
-class _Db:
-    """
-    记录 Controller 事务边界的最小异步会话替身。
-
-    :ivar commits: 测试中记录的提交次数
-    :ivar rollbacks: 测试中记录的回滚次数
-    """
-
-    def __init__(self) -> None:
-        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
-        self.commits = 0
-        self.rollbacks = 0
-
-    async def commit(self) -> None:
-        """累加 ``commits`` 供后续断言检查。"""
-        self.commits += 1
-
-    async def rollback(self) -> None:
-        """累加 ``rollbacks`` 供后续断言检查。"""
-        self.rollbacks += 1
-
-
-class _FailCommitDb(_Db):
+class _FailCommitDb(RecordingSession):
     """提交失败并允许回滚的会话替身。"""
 
     async def commit(self) -> None:
@@ -77,22 +58,20 @@ class _FailCommitDb(_Db):
         raise RuntimeError('commit failed')
 
 
-def _request() -> SimpleNamespace:
+def _request(*, basic: bool = True) -> Request:
     """
     构造携带应用 Redis 状态的请求替身。
 
+    :param basic: 是否使用 Basic 认证头
     :return: 携带应用 Redis 状态的请求替身
     """
-    return SimpleNamespace(
-        headers={'authorization': 'Basic test'},
-        app=SimpleNamespace(state=SimpleNamespace(redis=object())),
-    )
+    return make_request(object(), headers={'authorization': 'Basic test'} if basic else {})
 
 
 @pytest.mark.asyncio
 async def test_token_success_is_bare_json_and_commits(monkeypatch: pytest.MonkeyPatch) -> None:
     """Token 成功响应提交事务且带 no-store。"""
-    db = _Db()
+    db = RecordingSession()
     monkeypatch.setattr(controller, 'read_form', lambda request: _async(_form()))
     monkeypatch.setattr(
         TokenService,
@@ -114,7 +93,7 @@ async def test_token_success_is_bare_json_and_commits(monkeypatch: pytest.Monkey
 @pytest.mark.asyncio
 async def test_token_invalid_client_has_basic_challenge(monkeypatch: pytest.MonkeyPatch) -> None:
     """Token invalid_client 必须返回 RFC Basic challenge。"""
-    db = _Db()
+    db = RecordingSession()
     monkeypatch.setattr(controller, 'read_form', lambda request: _async(_form()))
 
     async def invalid(*args: object, **kwargs: object) -> object:
@@ -138,7 +117,7 @@ async def test_token_rejects_oversized_or_basic_plus_body_secret_before_issue(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Token Endpoint 不允许绕过 Secret 长度、位置和互斥边界。"""
-    db = _Db()
+    db = RecordingSession()
     authenticate = AsyncMock(side_effect=OAuthProtocolException('invalid_client', 'Client authentication failed', 401))
     issue = AsyncMock()
     monkeypatch.setattr(TokenService, 'authenticate_client', authenticate)
@@ -164,20 +143,19 @@ async def test_token_rejects_oversized_or_basic_plus_body_secret_before_issue(
     issue.assert_not_awaited()
 
     authenticate.reset_mock()
-    request_without_basic = _request()
-    request_without_basic.headers = {}
+    request_without_basic = _request(basic=False)
     response = await controller.token(request_without_basic, db)
     assert response.status_code == _UNAUTHORIZED
     authenticate.assert_awaited_once()
-    assert authenticate.await_args.kwargs['authorization'] is None
-    assert authenticate.await_args.kwargs['client_secret'] == 'body'
+    assert authenticate.await_args_list[-1].kwargs['authorization'] is None
+    assert authenticate.await_args_list[-1].kwargs['client_secret'] == 'body'
     issue.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 async def test_refresh_reuse_commits_family_before_invalid_grant(monkeypatch: pytest.MonkeyPatch) -> None:
     """Refresh 重放异常必须提交 Family 撤销，而非回滚。"""
-    db = _Db()
+    db = RecordingSession()
     monkeypatch.setattr(controller, 'read_form', lambda request: _async(_form()))
     monkeypatch.setattr(
         TokenService,
@@ -198,7 +176,7 @@ async def test_refresh_reuse_commits_family_before_invalid_grant(monkeypatch: py
     monkeypatch.setattr(TokenService, 'issue_token', reuse)
     response = await controller.token(_request(), db)
     assert response.status_code == _BAD_REQUEST
-    assert response.body.startswith(b'{"error":"invalid_grant"')
+    assert bytes(response.body).startswith(b'{"error":"invalid_grant"')
     assert db.commits == 1
     assert db.rollbacks == 0
 
@@ -234,7 +212,7 @@ async def test_refresh_reuse_commit_failure_is_server_error_and_rolls_back(monke
 @pytest.mark.asyncio
 async def test_introspect_rejects_public_client_with_basic_challenge(monkeypatch: pytest.MonkeyPatch) -> None:
     """Introspection 在 Controller 边界拒绝公共 Client。"""
-    db = _Db()
+    db = RecordingSession()
     monkeypatch.setattr(controller, 'read_form', lambda request: _async({'client_id': 'c', 'token': 'x'}))
     monkeypatch.setattr(
         TokenService,
@@ -253,7 +231,7 @@ async def test_introspect_rejects_public_client_with_basic_challenge(monkeypatch
 @pytest.mark.parametrize('status_code', [_BAD_REQUEST, _UNSUPPORTED_MEDIA])
 async def test_introspect_form_boundary_preserves_http_error(monkeypatch: pytest.MonkeyPatch, status_code: int) -> None:
     """Introspection 的重复字段和媒体类型错误不得被转换为 500。"""
-    db = _Db()
+    db = RecordingSession()
 
     async def invalid_form(request: object) -> dict[str, str]:
         """
@@ -284,18 +262,6 @@ async def test_revoke_and_introspect_receive_database_rsa_verification_key(monke
         public_jwk=json.loads(RSAAlgorithm.to_jwk(key.public_key())),
     )
 
-    class KeyDb(_Db):
-        """提供令牌校验时的密钥查询结果。"""
-
-        async def scalar(self, statement: object) -> object:
-            """
-            向调用方返回 ``record``。
-
-            :param statement: 即将执行的数据库语句
-            :return: 与当前标识匹配的记录
-            """
-            return record
-
     token = jwt.encode(
         {
             'iss': 'https://issuer.example',
@@ -311,7 +277,8 @@ async def test_revoke_and_introspect_receive_database_rsa_verification_key(monke
         algorithm='RS256',
         headers={'kid': 'kid-route', 'typ': 'at+jwt'},
     )
-    db = KeyDb()
+    db = AsyncMock(spec=AsyncSession)
+    db.scalar.return_value = record
     captured: list[object] = []
     monkeypatch.setattr('module_identity.dependencies.OidcKeyDao.get_verifying', lambda *args: _async(record))
     monkeypatch.setattr(controller, 'read_form', lambda request: _async({'client_id': 'c', 'token': token}))
@@ -337,7 +304,8 @@ async def test_revoke_and_introspect_receive_database_rsa_verification_key(monke
 
     monkeypatch.setattr(controller.RevocationService, 'revoke', revoke_service)
     await controller.revoke(_request(), db)
-    assert captured and captured[0].public_numbers() == key.public_key().public_numbers()
+    assert captured and isinstance(captured[0], rsa.RSAPublicKey)
+    assert captured[0].public_numbers() == key.public_key().public_numbers()
 
     captured.clear()
 
@@ -354,8 +322,9 @@ async def test_revoke_and_introspect_receive_database_rsa_verification_key(monke
 
     monkeypatch.setattr(controller.IntrospectionService, 'introspect', introspect_service)
     await controller.introspect(_request(), db)
-    assert captured and captured[0].public_numbers() == key.public_key().public_numbers()
-    assert db.commits == _EXPECTED_CONTROLLER_COMMITS
+    assert captured and isinstance(captured[0], rsa.RSAPublicKey)
+    assert captured[0].public_numbers() == key.public_key().public_numbers()
+    assert db.commit.await_count == _EXPECTED_CONTROLLER_COMMITS
 
 
 def _form() -> dict[str, str]:

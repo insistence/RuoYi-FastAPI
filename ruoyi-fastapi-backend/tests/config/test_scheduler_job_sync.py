@@ -67,10 +67,13 @@ async def test_timezone_only_update_rebuilds_trigger_and_failure_remains_retryab
         jobs.update_job(job_id, changed, original, changed_at)
 
     assert jobs.get_job(job_id) is original
+    assert original is not None
     assert str(original.trigger.timezone) == 'Asia/Shanghai'
     jobs.update_job(job_id, changed, original, changed_at)
-    assert str(jobs.get_job(job_id).trigger.timezone) == 'UTC'
-    assert jobs.is_config_current(jobs.get_job(job_id), changed)
+    updated = jobs.get_job(job_id)
+    assert updated is not None
+    assert str(updated.trigger.timezone) == 'UTC'
+    assert jobs.is_config_current(updated, changed)
 
 
 @pytest.mark.asyncio
@@ -81,12 +84,14 @@ async def test_non_leader_only_notifies_ids_and_tolerates_notification_failure(
 ) -> None:
     """非主节点仅通知任务标识，并容忍通知失败。"""
     monkeypatch.setattr(SchedulerManager, '_is_leader', False)
-    publish = SchedulerManager._redis.publish
+    publish = runtime.publish
     publish.side_effect = RuntimeError('offline') if publish_fails else None
     sync = AsyncMock()
     monkeypatch.setattr(SchedulerManager, '_sync_jobs_from_database', sync)
     result = await SchedulerManager.request_scheduler_sync({42, 43}, immediate=immediate)
     assert result['syncStatus'] == 'pending'
+    publish.assert_awaited_once()
+    assert publish.await_args is not None
     assert json.loads(publish.await_args.args[1]) == {'jobIds': [42, 43]}
     sync.assert_not_awaited()
     assert SchedulerManager._sync_task is None
@@ -109,7 +114,8 @@ async def test_immediate_sync_notifies_new_leader_if_lease_is_lost_waiting_for_l
     result = await asyncio.wait_for(task, timeout=1)
     assert result['syncStatus'] == 'pending'
     sync.assert_not_awaited()
-    assert json.loads(SchedulerManager._redis.publish.await_args.args[1]) == {'jobIds': [42]}
+    assert runtime.publish.await_args is not None
+    assert json.loads(runtime.publish.await_args.args[1]) == {'jobIds': [42]}
 
 
 @pytest.mark.asyncio
@@ -135,4 +141,5 @@ async def test_immediate_sync_stops_local_updates_if_lease_is_lost_during_read(
     result = await SchedulerManager.request_scheduler_sync(immediate=True)
     assert result['syncStatus'] == 'pending'
     assert runtime.scheduler.get_job('42') is original
-    assert json.loads(SchedulerManager._redis.publish.await_args.args[1]) == {'jobIds': None}
+    assert runtime.publish.await_args is not None
+    assert json.loads(runtime.publish.await_args.args[1]) == {'jobIds': None}

@@ -1,7 +1,15 @@
-from typing import Literal
+from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, field_validator, model_validator
 
+from module_identity.entity.types import (
+    CodeChallengeMethod,
+    ResponseMode,
+    ResponseType,
+    SigningAlgorithm,
+    SubjectType,
+    TokenEndpointAuthMethod,
+)
 from utils.oidc_util import OidcUtil
 
 
@@ -12,7 +20,7 @@ class ProtocolModel(BaseModel):
     标准端点字段保持 snake_case，并拒绝未定义参数。
     """
 
-    model_config = ConfigDict(extra='forbid', populate_by_name=True, str_strip_whitespace=True)
+    model_config = ConfigDict(extra='forbid', validate_by_name=True, validate_by_alias=True, str_strip_whitespace=True)
 
 
 class AuthorizeRequest(ProtocolModel):
@@ -23,7 +31,7 @@ class AuthorizeRequest(ProtocolModel):
     """
 
     response_type: str = Field(min_length=1, max_length=100, description='授权响应类型')
-    response_mode: Literal['query'] = Field(default='query', description='授权响应参数传递方式')
+    response_mode: ResponseMode = Field(default='query', description='授权响应参数传递方式')
     client_id: str = Field(min_length=1, max_length=64, description='客户端标识')
     redirect_uri: str = Field(min_length=1, max_length=1000, description='已注册的授权回调地址')
     scope: str = Field(min_length=1, max_length=2000, description='空格分隔的权限范围')
@@ -147,7 +155,12 @@ class ErrorResponse(ProtocolModel):
 
         :return: 排除 None 字段的标准错误字典
         """
-        return self.model_dump(exclude_none=True)
+        fields = {'error': self.error}
+        if self.error_description is not None:
+            fields['error_description'] = self.error_description
+        if self.error_uri is not None:
+            fields['error_uri'] = self.error_uri
+        return fields
 
 
 class Jwk(ProtocolModel):
@@ -160,7 +173,7 @@ class Jwk(ProtocolModel):
     kty: Literal['RSA'] = Field(default='RSA', description='公钥类型')
     use: Literal['sig'] = Field(default='sig', description='公钥用途')
     kid: str = Field(min_length=1, max_length=100, description='签名密钥标识')
-    alg: Literal['RS256'] = Field(default='RS256', description='签名算法')
+    alg: SigningAlgorithm = Field(default='RS256', description='签名算法')
     n: str = Field(min_length=1, description='RSA公钥模数的Base64URL编码')
     e: str = Field(min_length=1, description='RSA公钥指数的Base64URL编码')
 
@@ -191,26 +204,26 @@ class DiscoveryResponse(ProtocolModel):
     introspection_endpoint: str = Field(description='令牌内省端点地址')
     end_session_endpoint: str = Field(description='退出端点地址')
     scopes_supported: list[str] = Field(default_factory=list, description='支持的权限列表')
-    response_types_supported: list[Literal['code']] = Field(
-        default_factory=lambda: ['code'], description='支持的授权响应类型列表'
+    response_types_supported: list[ResponseType] = Field(
+        default_factory=lambda: list(get_args(ResponseType)), description='支持的授权响应类型列表'
     )
-    response_modes_supported: list[Literal['query']] = Field(
-        default_factory=lambda: ['query'], description='支持的授权响应模式列表'
+    response_modes_supported: list[ResponseMode] = Field(
+        default_factory=lambda: list(get_args(ResponseMode)), description='支持的授权响应模式列表'
     )
     grant_types_supported: list[str] = Field(
         default_factory=lambda: ['authorization_code', 'refresh_token'], description='支持的授权类型列表'
     )
-    subject_types_supported: list[Literal['public']] = Field(
-        default_factory=lambda: ['public'], description='支持的主体标识类型列表'
+    subject_types_supported: list[SubjectType] = Field(
+        default_factory=lambda: list(get_args(SubjectType)), description='支持的主体标识类型列表'
     )
-    id_token_signing_alg_values_supported: list[Literal['RS256']] = Field(
-        default_factory=lambda: ['RS256'], description='支持的ID Token签名算法列表'
+    id_token_signing_alg_values_supported: list[SigningAlgorithm] = Field(
+        default_factory=lambda: list(get_args(SigningAlgorithm)), description='支持的ID Token签名算法列表'
     )
-    token_endpoint_auth_methods_supported: list[Literal['none', 'client_secret_basic']] = Field(
-        default_factory=lambda: ['none', 'client_secret_basic'], description='支持的令牌端点认证方式列表'
+    token_endpoint_auth_methods_supported: list[TokenEndpointAuthMethod] = Field(
+        default_factory=lambda: list(get_args(TokenEndpointAuthMethod)), description='支持的令牌端点认证方式列表'
     )
-    code_challenge_methods_supported: list[Literal['S256']] = Field(
-        default_factory=lambda: ['S256'], description='支持的PKCE挑战方法列表'
+    code_challenge_methods_supported: list[CodeChallengeMethod] = Field(
+        default_factory=lambda: list(get_args(CodeChallengeMethod)), description='支持的PKCE挑战方法列表'
     )
     claims_supported: list[str] = Field(default_factory=list, description='支持的声明字段列表')
     authorization_response_iss_parameter_supported: bool = Field(
@@ -234,17 +247,17 @@ class OAuthServerMetadata(ProtocolModel):
     revocation_endpoint: str | None = Field(default=None, description='令牌撤销端点地址')
     introspection_endpoint: str | None = Field(default=None, description='令牌内省端点地址')
     scopes_supported: list[str] = Field(default_factory=list, description='支持的权限列表')
-    response_types_supported: list[Literal['code']] = Field(
-        default_factory=lambda: ['code'], description='支持的授权响应类型列表'
+    response_types_supported: list[ResponseType] = Field(
+        default_factory=lambda: list(get_args(ResponseType)), description='支持的授权响应类型列表'
     )
     grant_types_supported: list[str] = Field(
         default_factory=lambda: ['authorization_code', 'refresh_token'], description='支持的授权类型列表'
     )
-    token_endpoint_auth_methods_supported: list[Literal['none', 'client_secret_basic']] = Field(
-        default_factory=lambda: ['none', 'client_secret_basic'], description='支持的令牌端点认证方式列表'
+    token_endpoint_auth_methods_supported: list[TokenEndpointAuthMethod] = Field(
+        default_factory=lambda: list(get_args(TokenEndpointAuthMethod)), description='支持的令牌端点认证方式列表'
     )
-    code_challenge_methods_supported: list[Literal['S256']] = Field(
-        default_factory=lambda: ['S256'], description='支持的PKCE挑战方法列表'
+    code_challenge_methods_supported: list[CodeChallengeMethod] = Field(
+        default_factory=lambda: list(get_args(CodeChallengeMethod)), description='支持的PKCE挑战方法列表'
     )
 
 

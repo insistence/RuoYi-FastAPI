@@ -1,12 +1,13 @@
 import importlib
 import json
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING
 
 import click
 import typer
 
+from cli.context import CliContext, OutputFormat
 from cli.core import DEFAULT_CORE_SERVICES, CliContextFactory, CliExecutionService
 from cli.exit_codes import ARGUMENT_ERROR, DEPENDENCY_ERROR, RUNTIME_ERROR, SUCCESS
 from plugins.core.validation.dependency_policy import DependencyInstallPolicyConfig
@@ -17,6 +18,8 @@ from .options import (
     PluginDependencyAllowlistExampleCommandOptions,
     PluginDependencyInstallCommandOptions,
     PluginDependencyLockCommandOptions,
+    PluginPlanOperation,
+    PluginPrecheckOperation,
 )
 from .payload import PluginCommandPayloadAdapter
 from .presenter import PluginCommandPresenter
@@ -24,6 +27,7 @@ from .presenter import PluginCommandPresenter
 if TYPE_CHECKING:
     from cli.runtime.plugin.service import CliPluginRuntimeService
     from plugins.core.runtime.service import PluginRuntimeService
+    from plugins.core.types import PluginConfigValue
 
 PluginDependencyOutputCallback = Callable[[str, str], None]
 
@@ -79,7 +83,7 @@ class PluginCommandController:
         """
         return self.plugin_runtime.core_runtime
 
-    def list_plugins(self, env: str, output: str) -> None:
+    def list_plugins(self, env: str, output: OutputFormat) -> None:
         """
         查看插件列表。
 
@@ -97,10 +101,10 @@ class PluginCommandController:
 
     def _complete_plugin_payload(
         self,
-        ctx: object,
+        ctx: CliContext,
         payload: dict[str, object],
         *,
-        text_builder: object,
+        text_builder: Callable[[dict[str, object]], str],
         success_exit_code: int = SUCCESS,
         failure_exit_code: int = DEPENDENCY_ERROR,
     ) -> None:
@@ -127,7 +131,7 @@ class PluginCommandController:
 
     @staticmethod
     def _resolve_plugin_exit_code(
-        payload: dict[str, object],
+        payload: Mapping[str, object],
         *,
         success_exit_code: int,
         failure_exit_code: int,
@@ -147,7 +151,7 @@ class PluginCommandController:
 
         return failure_exit_code
 
-    def plugin_info(self, plugin_id: str, env: str, output: str) -> None:
+    def plugin_info(self, plugin_id: str, env: str, output: OutputFormat) -> None:
         """
         查看插件详情。
 
@@ -164,7 +168,7 @@ class PluginCommandController:
             failure_exit_code=RUNTIME_ERROR,
         )
 
-    def check_plugin(self, plugin_id: str | None, env: str, output: str) -> None:
+    def check_plugin(self, plugin_id: str | None, env: str, output: OutputFormat) -> None:
         """
         检查插件依赖状态。
 
@@ -180,7 +184,7 @@ class PluginCommandController:
             text_builder=self.presenter.build_check_text,
         )
 
-    def check_plugin_dependencies(self, plugin_id: str, env: str, output: str) -> None:
+    def check_plugin_dependencies(self, plugin_id: str, env: str, output: OutputFormat) -> None:
         """
         检查插件依赖。
 
@@ -196,7 +200,9 @@ class PluginCommandController:
             text_builder=self.presenter.build_dependency_text,
         )
 
-    def precheck_plugin(self, operation: str, plugin_id: str, env: str, output: str) -> None:
+    def precheck_plugin(
+        self, operation: PluginPrecheckOperation, plugin_id: str, env: str, output: OutputFormat
+    ) -> None:
         """
         执行插件操作预检。
 
@@ -213,7 +219,7 @@ class PluginCommandController:
             text_builder=self.presenter.build_precheck_text,
         )
 
-    def health_plugin(self, plugin_id: str, env: str, output: str) -> None:
+    def health_plugin(self, plugin_id: str, env: str, output: OutputFormat) -> None:
         """
         执行插件健康检查。
 
@@ -229,7 +235,7 @@ class PluginCommandController:
             text_builder=self.presenter.build_health_text,
         )
 
-    def diagnose_plugin(self, plugin_id: str, env: str, output: str, *, output_file: str = '') -> None:
+    def diagnose_plugin(self, plugin_id: str, env: str, output: OutputFormat, *, output_file: str = '') -> None:
         """
         生成插件诊断包。
 
@@ -252,7 +258,7 @@ class PluginCommandController:
             text_builder=self.presenter.build_diagnose_text,
         )
 
-    def generate_plugin_docs(self, plugin_id: str, env: str, output: str, *, output_file: str = '') -> None:
+    def generate_plugin_docs(self, plugin_id: str, env: str, output: OutputFormat, *, output_file: str = '') -> None:
         """
         生成插件 Markdown 文档片段。
 
@@ -280,7 +286,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         keyword: str = '',
         maxfail: int = 0,
@@ -312,7 +318,9 @@ class PluginCommandController:
             text_builder=self.presenter.build_test_text,
         )
 
-    def plan_plugins(self, operation: str, plugin_ids: list[str], env: str, output: str) -> None:
+    def plan_plugins(
+        self, operation: PluginPlanOperation, plugin_ids: list[str], env: str, output: OutputFormat
+    ) -> None:
         """
         生成插件批量操作拓扑计划。
 
@@ -331,10 +339,10 @@ class PluginCommandController:
 
     def batch_plugins(
         self,
-        operation: str,
+        operation: PluginPlanOperation,
         plugin_ids: list[str],
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         allow_prod: bool,
         yes: bool,
@@ -380,7 +388,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         options: PluginDependencyInstallCommandOptions,
     ) -> None:
@@ -462,14 +470,14 @@ class PluginCommandController:
         )
 
     @staticmethod
-    def _build_dependency_install_output_callback(ctx: object) -> PluginDependencyOutputCallback | None:
+    def _build_dependency_install_output_callback(ctx: CliContext) -> PluginDependencyOutputCallback | None:
         """
         为文本输出模式构建依赖安装实时输出回调。
 
         :param ctx: CLI上下文
         :return: 实时输出回调；非文本模式返回 None
         """
-        if getattr(ctx, 'output', 'text') != 'text':
+        if ctx.output != 'text':
             return None
 
         def output_callback(kind: str, text: str) -> None:
@@ -488,7 +496,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         options: PluginDependencyLockCommandOptions,
     ) -> None:
@@ -524,7 +532,7 @@ class PluginCommandController:
     def generate_plugin_dependency_allowlist_example(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         options: PluginDependencyAllowlistExampleCommandOptions,
     ) -> None:
@@ -556,7 +564,7 @@ class PluginCommandController:
 
     @staticmethod
     def _should_interactive_confirm_dependency_install(
-        ctx: object,
+        ctx: CliContext,
         options: PluginDependencyInstallCommandOptions,
     ) -> bool:
         """
@@ -566,9 +574,7 @@ class PluginCommandController:
         :param options: 依赖安装命令选项
         :return: 是否进入交互确认
         """
-        return (
-            not options.yes and not options.dry_run and getattr(ctx, 'output', 'text') == 'text' and sys.stdin.isatty()
-        )
+        return not options.yes and not options.dry_run and ctx.output == 'text' and bool(sys.stdin.isatty())
 
     @staticmethod
     def _dependency_install_policy_blocked(payload: dict[str, object]) -> bool:
@@ -621,7 +627,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         options: PluginCreateCommandOptions,
     ) -> None:
         """
@@ -669,7 +675,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         allow_prod: bool,
         yes: bool,
@@ -705,7 +711,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         allow_prod: bool,
         yes: bool,
@@ -741,7 +747,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         enabled: bool,
         allow_prod: bool,
@@ -782,7 +788,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         allow_prod: bool,
         yes: bool,
@@ -818,7 +824,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         allow_prod: bool,
         yes: bool,
@@ -850,7 +856,7 @@ class PluginCommandController:
             text_builder=self.presenter.build_purge_text,
         )
 
-    def list_plugin_migrations(self, plugin_id: str, status: str | None, env: str, output: str) -> None:
+    def list_plugin_migrations(self, plugin_id: str, status: str | None, env: str, output: OutputFormat) -> None:
         """
         查看插件 migration 历史。
 
@@ -872,7 +878,7 @@ class PluginCommandController:
         plugin_id: str,
         migration_path: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         note: str,
         allow_prod: bool,
@@ -912,7 +918,7 @@ class PluginCommandController:
         plugin_id: str,
         migration_path: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         note: str,
         allow_prod: bool,
@@ -953,7 +959,7 @@ class PluginCommandController:
         action: str,
         pairs: list[str],
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         allow_prod: bool,
         yes: bool,
@@ -1025,7 +1031,7 @@ class PluginCommandController:
             yes=yes,
         )
 
-    def _get_plugin_config(self, plugin_id: str, env: str, output: str) -> None:
+    def _get_plugin_config(self, plugin_id: str, env: str, output: OutputFormat) -> None:
         """
         读取插件配置。
 
@@ -1045,7 +1051,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         allow_prod: bool,
         yes: bool,
@@ -1095,7 +1101,7 @@ class PluginCommandController:
         self,
         plugin_id: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         allow_prod: bool,
         yes: bool,
@@ -1143,7 +1149,7 @@ class PluginCommandController:
         plugin_id: str,
         pairs: list[str],
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         allow_prod: bool,
         yes: bool,
@@ -1185,7 +1191,7 @@ class PluginCommandController:
         )
 
     @staticmethod
-    def _parse_config_pairs(pairs: list[str]) -> dict[str, str]:
+    def _parse_config_pairs(pairs: list[str]) -> dict[str, 'PluginConfigValue']:
         """
         解析配置键值参数。
 
@@ -1193,7 +1199,7 @@ class PluginCommandController:
         :return: 配置键值字典
         :raises ValueError: 配置项未按 key=value 提供
         """
-        values = {}
+        values: dict[str, PluginConfigValue] = {}
         for pair in pairs:
             if '=' not in pair:
                 raise ValueError(f'配置参数必须使用 key=value 格式：{pair}')

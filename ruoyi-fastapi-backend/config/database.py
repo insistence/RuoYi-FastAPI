@@ -10,7 +10,7 @@ from typing import Any, TypeVar, cast
 import anyio
 import anyio.lowlevel
 from pydantic import SecretStr
-from sqlalchemy import URL, Engine, create_engine, event, inspect, text
+from sqlalchemy import URL, CursorResult, Delete, Engine, Table, Update, create_engine, event, inspect, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
@@ -93,6 +93,8 @@ def _error_details(exc: BaseException) -> tuple[str, int | None]:
     if isinstance(exc, DataSourceException):
         return exc.error_type or type(exc).__name__, exc.error_code
     original = exc.orig if isinstance(exc, DBAPIError) else exc
+    if original is None:
+        return type(exc).__name__, None
     error_code = original.args[0] if original.args and isinstance(original.args[0], int) else None
     return type(original).__name__, error_code
 
@@ -408,16 +410,58 @@ class CurrentUserCacheSession(Session):
         ):
             return None
         parameter_sets = parameters if isinstance(parameters, (list, tuple)) else [parameters or {}]
-        user_ids = set()
+        user_ids: set[int] = set()
         for item in parameter_sets:
             if not isinstance(item, Mapping):
                 return None
             raw = item.get(value.key, value.value)
             values = raw if clause.operator is operators.in_op and isinstance(raw, (list, tuple, set)) else [raw]
-            if not all(isinstance(user_id, int) and not isinstance(user_id, bool) for user_id in values):
-                return None
-            user_ids.update(values)
+            for user_id in values:
+                if not isinstance(user_id, int) or isinstance(user_id, bool):
+                    return None
+                user_ids.add(user_id)
         return user_ids
+
+    @classmethod
+    def _dml_user_ids(cls, state: ORMExecuteState, statement: UpdateBase, table_name: str) -> set[int] | None:
+        """
+        从写入条件或 ORM 批量更新的主键提取需要失效的用户。
+
+        :param state: 当前 SQL 执行状态
+        :param statement: 直接写入用户数据表的语句
+        :param table_name: 写入目标的表名
+        :return: 受影响的用户 ID，主键被改写或无法确定范围时返回 ``None``
+        """
+        parameters = state.parameters
+        if state.is_update:
+            assigned = list(getattr(statement, '_values', None) or {})
+            assigned.extend(column for column, _value in getattr(statement, '_ordered_values', None) or ())
+            if any(getattr(column, 'key', column) == 'user_id' for column in assigned):
+                return None
+            if (
+                state.is_orm_statement
+                and isinstance(parameters, list)
+                and state.execution_options.get('dml_strategy') in (None, 'auto', 'bulk')
+            ):
+                try:
+                    entity = statement.entity_description.get('entity')
+                except (AttributeError, KeyError):
+                    entity = None
+                if entity is not None:
+                    # ORM 会为每组参数自动附加主键条件。
+                    ids: set[int] = set()
+                    for row in parameters:
+                        user_id = row.get('user_id')
+                        if not isinstance(user_id, int) or isinstance(user_id, bool):
+                            return None
+                        ids.add(user_id)
+                    return ids
+            rows = parameters if isinstance(parameters, (list, tuple)) else [parameters]
+            if 'user_id' in statement.compile().params or any(
+                isinstance(row, Mapping) and 'user_id' in row for row in rows
+            ):
+                return None
+        return cls._where_user_ids(getattr(statement, 'whereclause', None), table_name, parameters)
 
     async def _invalidate_cache(self, user_ids: set[int] | None) -> None:
         """
@@ -462,12 +506,13 @@ def _track_current_user_statement(state: ORMExecuteState) -> Any:
     :return: 原语句执行结果
     """
     result = state.invoke_statement()
-    if not AppConfig.app_current_user_cache_enabled:
+    session = state.session
+    if not AppConfig.app_current_user_cache_enabled or not isinstance(session, CurrentUserCacheSession):
         return result
     try:
         statement = state.statement
         if CurrentUserCacheSession._has_unscoped_write(statement):
-            state.session._record_cache_change(None)
+            session._record_cache_change(None)
         elif state.is_insert or state.is_update or state.is_delete:
             target = getattr(statement, 'table', None)
             table_names = CurrentUserCacheSession._table_names(target)
@@ -476,51 +521,14 @@ def _track_current_user_statement(state: ORMExecuteState) -> Any:
                 isinstance(target, (Alias, Join)) and table_names & CurrentUserCacheSession._USER_TABLES
             ):
                 # 别名及多表写入的WHERE可能引用其他表，不能据此缩小目标用户范围。
-                state.session._record_cache_change(None)
+                session._record_cache_change(None)
             elif table_name in CurrentUserCacheSession._USER_TABLES:
-                ids = CurrentUserCacheSession._where_user_ids(
-                    getattr(statement, 'whereclause', None), table_name, state.parameters
-                )
-                bulk_entity = None
-                if (
-                    state.is_update
-                    and state.is_orm_statement
-                    and isinstance(state.parameters, list)
-                    and state.execution_options.get('dml_strategy') in (None, 'auto', 'bulk')
-                ):
-                    try:
-                        bulk_entity = statement.entity_description.get('entity')
-                    except (AttributeError, KeyError):
-                        pass
-                assigned_columns = list(getattr(statement, '_values', None) or {})
-                assigned_columns.extend(column for column, _value in getattr(statement, '_ordered_values', None) or ())
-                if state.is_update and any(getattr(column, 'key', column) == 'user_id' for column in assigned_columns):
-                    # 用户归属变更需覆盖新旧用户，自定义绑定及表达式不能只按参数名判断。
-                    ids = None
-                elif bulk_entity is not None:
-                    # ORM批量更新会自动附加主键条件，用户资料和登录时间更新走此路径。
-                    values = [item.get('user_id') for item in state.parameters]
-                    ids = (
-                        set(values)
-                        if all(isinstance(value, int) and not isinstance(value, bool) for value in values)
-                        else None
-                    )
-                elif state.is_update and (
-                    'user_id' in statement.compile().params
-                    or any(
-                        isinstance(parameters, Mapping) and 'user_id' in parameters
-                        for parameters in (
-                            state.parameters if isinstance(state.parameters, (list, tuple)) else [state.parameters]
-                        )
-                    )
-                ):
-                    # 修改主键或未知用户范围时不能只失效原用户。
-                    ids = None
-                state.session._record_cache_change(ids)
+                ids = session._dml_user_ids(state, statement, table_name) if isinstance(statement, UpdateBase) else None
+                session._record_cache_change(ids)
     except Exception as exc:
         # SQL已执行成功，范围分析失败不能改变业务结果。
         logger.warning(f'当前用户缓存变更范围分析失败，将失效全部快照：{type(exc).__name__}')
-        state.session._record_cache_change(None)
+        session._record_cache_change(None)
     return result
 
 
@@ -561,7 +569,7 @@ def _invalidate_current_user_cache(session: CurrentUserCacheSession) -> None:
     try:
         transaction = session.get_nested_transaction() or session.get_transaction()
         changes = session.info.get(session._CHANGE_KEY, {})
-        if transaction not in changes:
+        if transaction is None or transaction not in changes:
             return
         user_ids = changes.pop(transaction)
         if transaction.nested:
@@ -593,6 +601,21 @@ def _discard_current_user_changes(session: CurrentUserCacheSession, transaction:
         changes.pop(transaction, None)
         if not changes:
             session.info.pop(session._CHANGE_KEY, None)
+
+
+async def execute_rowcount(db: AsyncSession, statement: Update | Delete) -> int:
+    """
+    在当前 ORM 会话中执行更新或删除，返回驱动报告的匹配行数。
+
+    :param db: 执行语句的数据库会话
+    :param statement: 无需返回数据行的更新或删除语句
+    :return: 驱动报告的匹配行数，驱动无法确定时为 -1
+    :raises TypeError: 执行结果未提供游标行数
+    """
+    result = await db.execute(statement)
+    if not isinstance(result, CursorResult):
+        raise TypeError('更新或删除语句未返回游标结果')
+    return result.rowcount
 
 
 def create_async_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
@@ -776,34 +799,28 @@ class _DataSourceRegistry:
         for name, result in zip(names, results, strict=True):
             config = self._configs[name]
             required = config.db_required or name == default_name
-            healthy = not isinstance(result, BaseException)
-            error_type = None
-            error_code = None
-            if not healthy:
-                error_type, error_code = _error_details(result)
+            if not isinstance(result, BaseException):
+                if log_enabled:
+                    timezone = self._runtime(name).session_timezone
+                    logger.bind(
+                        data_source=name, database_type=config.db_type, required=required, session_timezone=timezone
+                    ).info(f'✅ 数据源 {name} 初始化成功，sessionTimeZone={timezone}')
+                continue
             if log_enabled:
-                log_context: dict[str, Any] = {
-                    'data_source': name,
-                    'database_type': config.db_type,
-                    'required': required,
-                }
-                if error_type is not None:
-                    log_context['error_type'] = error_type
-                    log_context['error_code'] = error_code
-                elif healthy:
-                    log_context['session_timezone'] = self._runtime(name).session_timezone
-                source_logger = logger.bind(**log_context)
-                if healthy:
-                    source_logger.info(
-                        f'✅ 数据源 {name} 初始化成功，sessionTimeZone={self._runtime(name).session_timezone}'
-                    )
-                elif required:
-                    source_logger.error(f'❌ 必需数据源 {name} 连接检查失败{_error_log_suffix(error_type, error_code)}')
+                error_type, error_code = _error_details(result)
+                source_logger = logger.bind(
+                    data_source=name,
+                    database_type=config.db_type,
+                    required=required,
+                    error_type=error_type,
+                    error_code=error_code,
+                )
+                suffix = _error_log_suffix(error_type, error_code)
+                if required:
+                    source_logger.error(f'❌ 必需数据源 {name} 连接检查失败{suffix}')
                 else:
-                    source_logger.warning(
-                        f'⚠️ 非必需数据源 {name} 连接检查失败，应用将降级启动{_error_log_suffix(error_type, error_code)}'
-                    )
-            if not healthy and required and required_failure is None:
+                    source_logger.warning(f'⚠️ 非必需数据源 {name} 连接检查失败，应用将降级启动{suffix}')
+            if required and required_failure is None:
                 required_failure = (name, result)
         if required_failure is not None:
             name, result = required_failure
@@ -992,6 +1009,19 @@ DataSourceRegistry = _DataSourceRegistry()
 
 class Base(AsyncAttrs, DeclarativeBase):
     """默认数据源的 SQLAlchemy 声明式模型基类。"""
+
+    @classmethod
+    def get_table(cls) -> Table:
+        """
+        获取建表、索引和约束操作使用的映射表。
+
+        :return: 当前 ORM 模型实际绑定的表
+        :raises TypeError: 模型映射到联接或子查询
+        """
+        table = cls.__table__
+        if not isinstance(table, Table):
+            raise TypeError(f'{cls.__name__} 未映射到数据库表')
+        return table
 
 
 @cache

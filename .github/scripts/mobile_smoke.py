@@ -20,10 +20,11 @@ ROOT = Path(__file__).resolve().parents[2]
 TOKEN = 'isolated-mobile-smoke-token'
 LOGIN_BUTTON_MIN_WIDTH = 250
 LOGIN_BUTTON_MIN_HEIGHT = 44
+NICKNAME = '移动端 CI'
 USER = {
     'userId': 7,
     'userName': 'ci-user',
-    'nickName': '移动端 CI',
+    'nickName': NICKNAME,
     'avatar': '',
     'phonenumber': '13800000000',
     'email': 'mobile-ci@example.test',
@@ -179,9 +180,7 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
 
     async with async_playwright() as playwright:
         executable = os.environ.get('RUOYI_SMOKE_BROWSER_EXECUTABLE')
-        browser = await playwright.chromium.launch(
-            headless=True, **({'executable_path': executable} if executable else {})
-        )
+        browser = await playwright.chromium.launch(headless=True, executable_path=executable or None)
         context = await browser.new_context(viewport={'width': 390, 'height': 844}, timezone_id='UTC')
         await context.tracing.start(screenshots=True, snapshots=True, sources=True)
         await context.route('http://localhost:9099/**', api)
@@ -203,7 +202,7 @@ async def run_smoke(framework: str, base_url: str, output: Path) -> None:
             await login_button.click()
             await expect(page).to_have_url(re.compile(r'/pages/index'), timeout=30000)
             await page.goto(f'{base_url}/#/pages/mine/info/index')
-            await expect(page.get_by_text(USER['nickName'], exact=True)).to_be_visible(timeout=30000)
+            await expect(page.get_by_text(NICKNAME, exact=True)).to_be_visible(timeout=30000)
             await expect(page.get_by_text('Nickname', exact=True)).to_be_visible(timeout=15000)
             created_at = await page.evaluate(
                 """({locale, timeZone, createTime}) => new Intl.DateTimeFormat(locale, {

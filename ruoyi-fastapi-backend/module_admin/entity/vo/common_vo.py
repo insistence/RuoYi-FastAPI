@@ -1,13 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import Field
+
+from common.vo import CamelModel
 
 
-class UploadResponseModel(BaseModel):
+class UploadResponseModel(CamelModel):
     """上传响应模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     file_name: str | None = Field(default=None, description='新文件映射路径')
     new_file_name: str | None = Field(default=None, description='新文件名称')

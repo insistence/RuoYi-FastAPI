@@ -2,7 +2,7 @@ import hmac
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Never
 from uuid import uuid4
 
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
@@ -186,7 +186,7 @@ class TokenService:
                 authorization,
                 client_id=client_id,
                 client_secret=client_secret,
-                secret_hashes=secrets,
+                secret_hashes=(secret.secret_hash for secret in secrets),
                 secret_match_callback=capture_secret_match,
             )
         except (ClientAuthenticationError, TypeError, ValueError):
@@ -295,11 +295,13 @@ class TokenService:
             raise
         except (OAuthProtocolException, OpaqueTokenError, RedisError) as exc:
             cls._map_oauth_failure(exc, 'invalid_grant')
-        if code_payload.get('clientPk') != client_row.client_pk:
-            cls._invalid_grant()
-        if parsed.get('redirect_uri') != code_payload.get('redirectUri'):
+        if code_payload.get('clientPk') != client_row.client_pk or parsed.get('redirect_uri') != code_payload.get(
+            'redirectUri'
+        ):
             cls._invalid_grant()
         verifier = parsed.get('code_verifier')
+        if not isinstance(verifier, str):
+            cls._invalid_grant()
         try:
             if not verify_code_challenge(verifier, code_payload['codeChallenge'], code_payload['codeChallengeMethod']):
                 cls._invalid_grant()
@@ -1029,7 +1031,7 @@ class TokenService:
             or grant.client_pk != client_pk
             or grant.status != cls._ACTIVE_GRANT_STATUS
             or grant.client_policy_version != client.policy_version
-            or (grant.expires_at is not None and TimezoneUtil.to_optional_utc(grant.expires_at) <= now)
+            or (grant.expires_at is not None and TimezoneUtil.to_utc(grant.expires_at) <= now)
             or not set(scopes).issubset(set(grant.granted_scopes or []))
             or not set(resources).issubset(set(grant.granted_resources or []))
         ):
@@ -1321,7 +1323,7 @@ class TokenService:
         return int(current.timestamp())
 
     @staticmethod
-    def _map_oauth_failure(error: Exception, fallback: str) -> None:
+    def _map_oauth_failure(error: Exception, fallback: str) -> Never:
         """
         将底层异常映射为 OAuth 协议错误。
 
@@ -1334,7 +1336,7 @@ class TokenService:
         raise OAuthProtocolException(fallback, 'The authorization grant is invalid or expired', 400) from None
 
     @staticmethod
-    def _invalid_request() -> None:
+    def _invalid_request() -> Never:
         """
         抛出 invalid_request 协议错误。
 
@@ -1343,7 +1345,7 @@ class TokenService:
         raise OAuthProtocolException('invalid_request', 'Invalid token request', 400)
 
     @staticmethod
-    def _invalid_client() -> None:
+    def _invalid_client() -> Never:
         """
         抛出 invalid_client 协议错误。
 
@@ -1352,7 +1354,7 @@ class TokenService:
         raise OAuthProtocolException('invalid_client', 'Client authentication failed', 401)
 
     @staticmethod
-    def _invalid_grant() -> None:
+    def _invalid_grant() -> Never:
         """
         抛出 invalid_grant 协议错误。
 
@@ -1361,7 +1363,7 @@ class TokenService:
         raise OAuthProtocolException('invalid_grant', 'The authorization grant is invalid or expired', 400)
 
     @staticmethod
-    def _invalid_scope() -> None:
+    def _invalid_scope() -> Never:
         """
         抛出 invalid_scope 协议错误。
 
@@ -1370,7 +1372,7 @@ class TokenService:
         raise OAuthProtocolException('invalid_scope', 'Requested scope is not authorized', 400)
 
     @staticmethod
-    def _server_error() -> None:
+    def _server_error() -> Never:
         """
         抛出 server_error 协议错误。
 

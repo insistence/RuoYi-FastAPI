@@ -2,10 +2,11 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import delete, func, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
+from config.database import execute_rowcount
 from i18n.translation import TranslationUtil
 from module_admin.entity.do.menu_do import SysMenu
 from module_admin.entity.do.role_do import SysRoleMenu
@@ -90,11 +91,11 @@ class PluginDao:
         query = (
             select(SysPlugin)
             .where(
-                SysPlugin.plugin_id.like(f'%{query_object.plugin_id}%') if query_object.plugin_id else True,
-                SysPlugin.plugin_name.like(f'%{query_object.plugin_name}%') if query_object.plugin_name else True,
-                SysPlugin.enabled == query_object.enabled if query_object.enabled else True,
-                SysPlugin.status == query_object.status if query_object.status else True,
-                SysPlugin.source == query_object.source if query_object.source else True,
+                SysPlugin.plugin_id.like(f'%{query_object.plugin_id}%') if query_object.plugin_id else true(),
+                SysPlugin.plugin_name.like(f'%{query_object.plugin_name}%') if query_object.plugin_name else true(),
+                SysPlugin.enabled == query_object.enabled if query_object.enabled else true(),
+                SysPlugin.status == query_object.status if query_object.status else true(),
+                SysPlugin.source == query_object.source if query_object.source else true(),
             )
             .order_by(SysPlugin.plugin_id)
             .distinct()
@@ -380,7 +381,7 @@ class PluginDao:
                     select(SysPluginMigration)
                     .where(
                         SysPluginMigration.plugin_id == plugin_id,
-                        SysPluginMigration.status == status if status else True,
+                        SysPluginMigration.status == status if status else true(),
                     )
                     .order_by(SysPluginMigration.migration_path)
                 )
@@ -698,8 +699,8 @@ class PluginDao:
         :return: SQLAlchemy 查询对象
         """
         return select(SysPluginOperationLog).where(
-            SysPluginOperationLog.operation == query_object.operation if query_object.operation else True,
-            SysPluginOperationLog.status == query_object.status if query_object.status else True,
+            SysPluginOperationLog.operation == query_object.operation if query_object.operation else true(),
+            SysPluginOperationLog.status == query_object.status if query_object.status else true(),
             cls._build_plugin_ids_filter(query_object.plugin_id),
             cls._build_operation_log_time_filter(query_object),
         )
@@ -738,7 +739,10 @@ class PluginDao:
         if not query_object.begin_time or not query_object.end_time:
             return True
 
-        start, end = TimezoneUtil.local_date_strings_to_utc(query_object.begin_time, query_object.end_time)
+        time_range = TimezoneUtil.local_date_strings_to_utc(query_object.begin_time, query_object.end_time)
+        if time_range is None:
+            return True
+        start, end = time_range
         return (SysPluginOperationLog.create_time >= start) & (SysPluginOperationLog.create_time < end)
 
     @classmethod
@@ -798,11 +802,9 @@ class PluginDao:
         :param cutoff_time: 清理截止时间
         :return: 删除的插件批量操作审计日志数量
         """
-        delete_result = await db.execute(
-            delete(SysPluginOperationLog).where(SysPluginOperationLog.create_time < cutoff_time)
+        return await execute_rowcount(
+            db, delete(SysPluginOperationLog).where(SysPluginOperationLog.create_time < cutoff_time)
         )
-
-        return int(delete_result.rowcount or 0)
 
     @classmethod
     async def get_sys_menu_by_id(cls, db: AsyncSession, menu_id: int) -> SysMenu | None:

@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.database import execute_rowcount
 from plugins.core.management.entity.do.models import SysPlugin
 from plugins.core.management.entity.do.release_models import SysPluginArtifact, SysPluginRelease, SysPluginWorker
 from utils.time_util import TimezoneUtil
@@ -255,8 +256,8 @@ class PluginReleaseDao:
                 update_by=actor,
             )
         )
-        result = await db.execute(statement.execution_options(synchronize_session=False))
-        if result.rowcount != 1:
+        matched = await execute_rowcount(db, statement.execution_options(synchronize_session=False))
+        if matched != 1:
             raise PluginReleaseConflictError('发布代际已变化，维护准备结果未写入')
         await db.flush()
         await db.refresh(release)
@@ -326,8 +327,8 @@ class PluginReleaseDao:
                 last_error=None,
             )
         )
-        result = await db.execute(statement.execution_options(synchronize_session=False))
-        if result.rowcount != 1:
+        matched = await execute_rowcount(db, statement.execution_options(synchronize_session=False))
+        if matched != 1:
             raise PluginReleaseConflictError('发布代际或维护准备状态已变化，目标未切换')
         await db.flush()
         await db.refresh(release)

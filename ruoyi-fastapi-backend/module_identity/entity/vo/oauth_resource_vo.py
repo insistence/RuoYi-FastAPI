@@ -1,15 +1,15 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
+from common.vo import CamelModel
 from utils.oidc_util import OidcUtil
 
 
-class ResourceModel(BaseModel):
+class ResourceModel(CamelModel):
     """Resource 与 Scope 管理模型基类。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True, extra='forbid')
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
 
 
 class ScopeModel(ResourceModel):

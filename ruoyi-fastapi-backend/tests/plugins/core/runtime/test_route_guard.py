@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from exceptions.exception import PermissionException
 from plugins.core.runtime.route_guard import CheckPluginEnabled
@@ -36,7 +37,7 @@ class FakePluginRouteStateGateway:
 @pytest.mark.asyncio
 async def test_plugin_route_guard_allows_enabled_plugin() -> None:
     """校验插件路由状态依赖允许启用插件访问。"""
-    db = object()
+    db = AsyncSession()
     state_gateway = FakePluginRouteStateGateway(enabled=True)
 
     assert await CheckPluginEnabled('demo', state_gateway)(db) is True
@@ -49,5 +50,5 @@ async def test_plugin_route_guard_rejects_disabled_plugin() -> None:
     state_gateway = FakePluginRouteStateGateway(enabled=False)
 
     with pytest.raises(PermissionException) as exc_info:
-        await CheckPluginEnabled('demo', state_gateway)(object())
+        await CheckPluginEnabled('demo', state_gateway)(AsyncSession())
     assert exc_info.value.message == '插件未启用，接口不可访问'

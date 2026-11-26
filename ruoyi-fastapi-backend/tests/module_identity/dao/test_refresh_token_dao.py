@@ -89,7 +89,9 @@ async def test_refresh_family_lock_rotation_and_reuse_distribution(data_session:
     assert [token.token_id for token in family] == ['token-1', 'token-2']
     injected_now = datetime(2026, 8, 24, 5, 6, 7, tzinfo=UTC)
     assert await OAuthTokenDao.mark_used(data_session, 'token-1', 'token-2', now=injected_now)
-    assert (await OAuthTokenDao.get_by_token_id(data_session, 'token-1')).last_used_at == injected_now
+    stored_token = await OAuthTokenDao.get_by_token_id(data_session, 'token-1')
+    assert stored_token is not None
+    assert stored_token.last_used_at == injected_now
     changed = await OAuthTokenDao.refresh_token_family_reuse(data_session, 'family-1', 'token-1', now=injected_now)
     assert changed == _REUSED_TOKEN_COUNT
     await data_session.flush()
@@ -141,4 +143,6 @@ async def test_refresh_expire_due_handles_idle_and_absolute_expiry(data_session:
     )
     await data_session.flush()
     assert await OAuthTokenDao.expire_due(data_session) == 1
-    assert (await OAuthTokenDao.get_by_token_id(data_session, 'token-idle')).status == 'expired'
+    stored_token = await OAuthTokenDao.get_by_token_id(data_session, 'token-idle')
+    assert stored_token is not None
+    assert stored_token.status == 'expired'

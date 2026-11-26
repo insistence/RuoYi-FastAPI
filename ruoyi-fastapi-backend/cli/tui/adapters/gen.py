@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any
 
-from cli.tui.adapters.base import BaseBrowserAdapter
+from cli.tui.adapters.base import BaseBrowserAdapter, get_dict_field, get_list_field
 from cli.tui.adapters.models import (
     TUI_ADAPTER_MODEL_RENDERER,
     BrowserPageSnapshot,
@@ -68,9 +68,8 @@ class GenSectionBuilder:
         :param payload: ``gen detail`` JSON 负载
         :return: 分区快照
         """
-        detail = payload.get('detail') if isinstance(payload, dict) else None
-        info = detail.get('info') if isinstance(detail, dict) else None
-        if not isinstance(info, dict):
+        detail = get_dict_field(payload, 'detail')
+        if not isinstance(payload, dict) or not isinstance(detail.get('info'), dict):
             return DetailSectionSnapshot(
                 title='业务表摘要',
                 status='fail',
@@ -93,9 +92,8 @@ class GenSectionBuilder:
         :param payload: ``gen detail`` JSON 负载
         :return: 分区快照
         """
-        detail = payload.get('detail') if isinstance(payload, dict) else None
-        info = detail.get('info') if isinstance(detail, dict) else None
-        if not isinstance(info, dict):
+        detail = get_dict_field(payload, 'detail')
+        if not isinstance(payload, dict) or not isinstance(info := detail.get('info'), dict):
             return DetailSectionSnapshot(
                 title='生成配置',
                 status='fail',
@@ -124,9 +122,8 @@ class GenSectionBuilder:
         :param payload: ``gen detail`` JSON 负载
         :return: 分区快照
         """
-        detail = payload.get('detail') if isinstance(payload, dict) else None
-        rows = detail.get('rows') if isinstance(detail, dict) else None
-        if not isinstance(rows, list):
+        detail = get_dict_field(payload, 'detail')
+        if not isinstance(payload, dict) or not isinstance(rows := detail.get('rows'), list):
             return DetailSectionSnapshot(
                 title='字段摘要',
                 status='fail',
@@ -155,9 +152,8 @@ class GenSectionBuilder:
         :param payload: ``gen detail`` JSON 负载
         :return: 分区快照
         """
-        detail = payload.get('detail') if isinstance(payload, dict) else None
-        rows = detail.get('rows') if isinstance(detail, dict) else None
-        if not isinstance(rows, list) or not rows:
+        detail = get_dict_field(payload, 'detail')
+        if not isinstance(payload, dict) or not isinstance(rows := detail.get('rows'), list) or not rows:
             return DetailSectionSnapshot(
                 title='字段列表',
                 status='fail',
@@ -204,7 +200,7 @@ class GenSectionBuilder:
         """
         detail = detail_payload.get('detail') if isinstance(detail_payload, dict) else None
         info = detail.get('info') if isinstance(detail, dict) else None
-        rows = detail.get('rows') if isinstance(detail, dict) and isinstance(detail.get('rows'), list) else []
+        rows = get_list_field(detail, 'rows')
         preview = preview_payload.get('preview') if isinstance(preview_payload, dict) else None
         preview_templates = preview if isinstance(preview, dict) else {}
         row_dicts = [row for row in rows if isinstance(row, dict)]
@@ -317,7 +313,7 @@ class GenSectionBuilder:
                     payload, empty_label='代码预览', empty_value='不可用'
                 ),
             )
-        preview_payload = payload.get('preview') if isinstance(payload.get('preview'), dict) else {}
+        preview_payload = get_dict_field(payload, 'preview')
         lines = [
             '## 模板规模',
             f'模板数量: {payload.get("templateCount", len(preview_payload))}',
@@ -365,7 +361,7 @@ class GenSectionBuilder:
                 ),
             )
 
-        results = payload.get('results') if isinstance(payload.get('results'), list) else []
+        results = get_list_field(payload, 'results')
         lines = [
             '## 预演结果',
             f'执行模式: {payload.get("mode", "-")}',

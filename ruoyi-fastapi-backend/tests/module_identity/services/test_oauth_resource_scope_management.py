@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 
 import pytest
@@ -41,7 +42,7 @@ _EXPECTED_PAGE_TOTAL = 3
 
 
 @pytest_asyncio.fixture
-async def resource_session() -> AsyncSession:
+async def resource_session() -> AsyncIterator[AsyncSession]:
     """
     创建只包含 Resource/Scope/Client 管理表的真实 SQLite 会话。
 
@@ -49,17 +50,17 @@ async def resource_session() -> AsyncSession:
     """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [
-        SysOAuthClient.__table__,
-        SysOAuthResource.__table__,
-        SysOAuthScope.__table__,
-        SysOAuthClientSecret.__table__,
-        SysOAuthClientUri.__table__,
-        SysOAuthClientScope.__table__,
-        SysOAuthClientResource.__table__,
-        SysOAuthGrant.__table__,
-        SysSsoSession.__table__,
-        SysOAuthRefreshToken.__table__,
-        SysOAuthAuditLog.__table__,
+        SysOAuthClient.get_table(),
+        SysOAuthResource.get_table(),
+        SysOAuthScope.get_table(),
+        SysOAuthClientSecret.get_table(),
+        SysOAuthClientUri.get_table(),
+        SysOAuthClientScope.get_table(),
+        SysOAuthClientResource.get_table(),
+        SysOAuthGrant.get_table(),
+        SysSsoSession.get_table(),
+        SysOAuthRefreshToken.get_table(),
+        SysOAuthAuditLog.get_table(),
     ]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync_connection: Base.metadata.create_all(sync_connection, tables=tables))
@@ -174,7 +175,9 @@ async def test_resource_crud_introspection_policy_and_invalidation_snapshot(reso
         resource_session, ResourceStatusModel(resource_id='orders-api', status='1'), actor='admin'
     )
     assert disabled.status == '1'
-    assert (await resource_session.get(SysOAuthClient, 1)).policy_version == _SECOND_POLICY_CHANGE
+    stored_client = await resource_session.get(SysOAuthClient, 1)
+    assert stored_client is not None
+    assert stored_client.policy_version == _SECOND_POLICY_CHANGE
 
 
 @pytest.mark.asyncio
@@ -245,7 +248,9 @@ async def test_scope_binding_claim_whitelist_and_builtin_openid(resource_session
         actor='admin',
     )
     assert changed.claims == ['sub']
-    assert (await resource_session.get(SysOAuthClient, 1)).policy_version == _FIRST_POLICY_CHANGE
+    stored_client = await resource_session.get(SysOAuthClient, 1)
+    assert stored_client is not None
+    assert stored_client.policy_version == _FIRST_POLICY_CHANGE
     with pytest.raises(OAuthClientManagementError, match='不允许发布的声明'):
         await OAuthResourceManagementService.create_scope(
             resource_session,
@@ -321,7 +326,9 @@ async def test_display_only_client_resource_scope_updates_do_not_bump_policy_ver
         actor='admin',
     )
     assert changed_resource.resource_name == '新的 Resource 展示名'
-    assert (await resource_session.get(SysOAuthClient, 1)).policy_version == 1
+    stored_client = await resource_session.get(SysOAuthClient, 1)
+    assert stored_client is not None
+    assert stored_client.policy_version == 1
 
     changed_scope = await OAuthResourceManagementService.update_scope(
         resource_session,
@@ -336,7 +343,9 @@ async def test_display_only_client_resource_scope_updates_do_not_bump_policy_ver
         actor='admin',
     )
     assert changed_scope.scope_name == '新的 Scope 展示名'
-    assert (await resource_session.get(SysOAuthClient, 1)).policy_version == 1
+    stored_client = await resource_session.get(SysOAuthClient, 1)
+    assert stored_client is not None
+    assert stored_client.policy_version == 1
 
 
 @pytest.mark.asyncio

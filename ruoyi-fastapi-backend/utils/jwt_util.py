@@ -2,6 +2,7 @@ from typing import Any
 
 import jwt
 from jwt.exceptions import PyJWTError
+from jwt.types import Options
 
 from config.env import JwtConfig
 from exceptions.exception import AuthException
@@ -27,7 +28,7 @@ class JwtUtil:
             raise AuthException(data='', message='用户token生成失败', msg_key='auth.tokenGenerationFailed') from exc
 
     @classmethod
-    def decode(cls, token: str | bytes, options: dict[str, Any] | None = None) -> dict[str, Any]:
+    def decode(cls, token: str | bytes, options: Options | None = None) -> dict[str, Any]:
         """
         解析JWT并将PyJWT异常转换为认证异常。
 

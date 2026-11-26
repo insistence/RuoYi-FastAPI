@@ -9,7 +9,9 @@ from pathlib import Path
 from uuid import uuid4
 
 from dotenv import dotenv_values
-from sqlalchemy import Column, Integer, MetaData, Table, inspect, select, text
+from sqlalchemy import Column, Integer, MetaData, String, Table, inspect, select, text
+from sqlalchemy.dialects.mysql import DATETIME
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 
 from common.types import DbUtcDateTime
 from config.database import Base, create_async_db_engine, create_sync_db_engine
@@ -31,11 +33,15 @@ def load_source(args: argparse.Namespace) -> DataSourceSettings:
 
     :param args: 命令行参数
     :return: 数据源连接配置
+    :raises ValueError: DB_SOURCES 缺少数据库配置
     """
     if args.config:
         return DataSourceSettings.model_validate_json(Path(args.config).read_text(encoding='utf-8'))
     values = dotenv_values(args.env_file)
-    sources = json.loads(values['DB_SOURCES'])
+    raw_sources = values.get('DB_SOURCES')
+    if raw_sources is None:
+        raise ValueError('DB_SOURCES 缺少数据库配置')
+    sources = json.loads(raw_sources)
     return DataSourceSettings.model_validate(sources[args.source or values['DB_DEFAULT_SOURCE']])
 
 
@@ -136,6 +142,7 @@ def inspect_schema(source: DataSourceSettings, report: dict) -> None:
     try:
         catalog = inspect(engine)
         columns = []
+        plugin_count = 0
         for table in Base.metadata.tables.values():
             instants = [column for column in table.columns if isinstance(column.type, DbUtcDateTime)]
             if not instants:
@@ -144,14 +151,18 @@ def inspect_schema(source: DataSourceSettings, report: dict) -> None:
             for column in instants:
                 found = actual[column.name]
                 assert found['nullable'] == column.nullable, f'{table.name}.{column.name}: nullable mismatch'
+                column_type = found['type']
                 if source.db_type == 'mysql':
-                    assert type(found['type']).__name__ == 'DATETIME' and found['type'].fsp == MILLISECOND_PRECISION
+                    assert isinstance(column_type, DATETIME) and column_type.fsp == MILLISECOND_PRECISION
                 else:
-                    assert found['type'].timezone is True and found['type'].precision == MILLISECOND_PRECISION
+                    assert isinstance(column_type, TIMESTAMP) and column_type.timezone is True
+                    assert column_type.precision == MILLISECOND_PRECISION
                 default = found['default']
                 assert default is None or re.fullmatch(r'NULL(?:::[\w ()]+)?', default), (
                     f'{table.name}.{column.name}: unexpected server default'
                 )
+                if table.name.startswith('ai_'):
+                    plugin_count += 1
                 columns.append(
                     {
                         'table': table.name,
@@ -163,15 +174,15 @@ def inspect_schema(source: DataSourceSettings, report: dict) -> None:
                         'server_default': found['default'],
                     }
                 )
-        main = [column for column in columns if not column['table'].startswith('ai_')]
-        plugin = [column for column in columns if column['table'].startswith('ai_')]
-        assert len(main) == MAIN_INSTANT_COLUMNS and len(plugin) == PLUGIN_INSTANT_COLUMNS, (len(main), len(plugin))
+        main_count = len(columns) - plugin_count
+        assert (main_count, plugin_count) == (MAIN_INSTANT_COLUMNS, PLUGIN_INSTANT_COLUMNS), (main_count, plugin_count)
         logs = {column['name']: column for column in catalog.get_columns('sys_job_log')}
         assert type(logs['run_duration_ms']['type']).__name__ == 'BIGINT'
         assert logs['run_duration_ms']['nullable'] and logs['time_zone']['nullable']
-        assert logs['time_zone']['type'].length == TIMEZONE_LENGTH
+        zone_type = logs['time_zone']['type']
+        assert isinstance(zone_type, String) and zone_type.length == TIMEZONE_LENGTH
         report['schema_columns'] = columns
-        report['main_instant_columns'], report['plugin_instant_columns'] = len(main), len(plugin)
+        report['main_instant_columns'], report['plugin_instant_columns'] = main_count, plugin_count
     finally:
         engine.dispose()
 
@@ -275,7 +286,7 @@ async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict
     try:
         async with async_sessionmaker(async_engine)() as session:
             rows = await GenTableDao.get_gen_db_table_list(session, GenTablePageQueryModel(), source_config=source)
-            assert rows
+            assert isinstance(rows, list) and rows
             for row in rows:
                 for key in ['createTime', 'updateTime']:
                     value = row.get(key)
@@ -285,7 +296,7 @@ async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict
                         assert TimezoneUtil.parse_rfc3339(value) <= TimezoneUtil.utc_now() + timedelta(seconds=1)
             if source.db_type == 'mysql':
                 filtered = await GenTableDao.get_gen_db_table_list(
-                    session, GenTablePageQueryModel(beginTime='2000-01-01'), source_config=source
+                    session, GenTablePageQueryModel(begin_time='2000-01-01'), source_config=source
                 )
                 assert filtered
         report['metadata_time_contract'] = 'passed'

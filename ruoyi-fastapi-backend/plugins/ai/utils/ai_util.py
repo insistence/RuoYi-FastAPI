@@ -1,13 +1,16 @@
 import ipaddress
 from importlib import import_module
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from urllib.parse import urlparse
 
 from config.database import DataSourceRegistry
 from config.env import DataBaseConfig
 
 if TYPE_CHECKING:
-    from agno.db.base import AsyncBaseDb
+    from collections.abc import Callable
+
+    from agno.db.mysql import AsyncMySQLDb
+    from agno.db.postgres import AsyncPostgresDb
     from agno.models.base import Model
 
 # 提供商名称 -> (模块路径, 类名) 的映射，延迟导入避免启动时加载所有AI SDK
@@ -58,15 +61,15 @@ _STORAGE_ENGINE_REGISTRY: dict[str, tuple[str, str]] = {
 }
 
 # 已加载的提供商类缓存，避免重复import_module
-_provider_class_cache: dict[str, 'type[Model]'] = {}
-_storage_class_cache: dict[str, 'type[AsyncBaseDb]'] = {}
+_provider_class_cache: dict[str, 'Callable[..., Model]'] = {}
+_storage_class_cache: dict[str, 'type[AsyncMySQLDb] | type[AsyncPostgresDb]'] = {}
 
 
 class AiUtil:
     """AI工具类。"""
 
     @classmethod
-    def _resolve_provider_class(cls, provider: str) -> 'type[Model] | None':
+    def _resolve_provider_class(cls, provider: str) -> 'Callable[..., Model] | None':
         """
         按需加载并缓存提供商模型类。
 
@@ -84,7 +87,7 @@ class AiUtil:
         return provider_cls
 
     @classmethod
-    def _resolve_storage_class(cls, db_type: str) -> 'type[AsyncBaseDb]':
+    def _resolve_storage_class(cls, db_type: str) -> 'type[AsyncMySQLDb] | type[AsyncPostgresDb]':
         """
         按需加载并缓存存储引擎类。
 
@@ -98,12 +101,14 @@ class AiUtil:
             # 默认使用MySQL
             entry = _STORAGE_ENGINE_REGISTRY['mysql']
         module_path, class_name = entry
-        storage_cls = getattr(import_module(module_path), class_name)
+        storage_cls = cast(
+            'type[AsyncMySQLDb] | type[AsyncPostgresDb]', getattr(import_module(module_path), class_name)
+        )
         _storage_class_cache[db_type] = storage_cls
         return storage_cls
 
     @classmethod
-    def get_storage_engine(cls) -> 'AsyncBaseDb':
+    def get_storage_engine(cls) -> 'AsyncMySQLDb | AsyncPostgresDb':
         """
         获取存储引擎实例。
 

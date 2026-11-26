@@ -19,7 +19,7 @@ from module_admin.dao.file_info_dao import FileInfoDao
 from module_admin.entity.do.file_do import SysFileInfo
 from module_admin.entity.vo.common_vo import UploadResponseModel
 from module_admin.entity.vo.file_vo import FileInfoModel
-from module_admin.entity.vo.user_vo import CurrentUserModel
+from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
 from module_admin.service.file_access_service import FileAuditService
 from utils.file_util import FileByteRange, FileDownloadResult, FileUtil
 from utils.time_util import TimezoneUtil
@@ -90,22 +90,22 @@ class CommonService:
 
         try:
             file_info = FileInfoModel(
-                fileId=file_id,
-                originalName=original_filename,
-                storedName=filename,
-                storageKey=storage_key,
-                accessType=access_type,
-                uploadUserId=user.user_id,
-                ownerUserId=user.user_id,
-                deptId=user.dept_id,
+                file_id=file_id,
+                original_name=original_filename,
+                stored_name=filename,
+                storage_key=storage_key,
+                access_type=access_type,
+                upload_user_id=user.user_id,
+                owner_user_id=user.user_id,
+                dept_id=user.dept_id,
                 extension=extension,
-                contentType=file.content_type,
-                fileSize=total_size,
-                fileHash=file_hash,
-                createBy=user.user_name,
-                createTime=now,
-                updateBy=user.user_name,
-                updateTime=now,
+                content_type=file.content_type,
+                file_size=total_size,
+                file_hash=file_hash,
+                create_by=user.user_name,
+                create_time=now,
+                update_by=user.user_name,
+                update_time=now,
             )
             await FileInfoDao.add_file_info_dao(query_db, file_info)
             await query_db.commit()
@@ -143,13 +143,13 @@ class CommonService:
         return CrudResponseModel(
             is_success=True,
             result=UploadResponseModel(
-                fileName=file_name,
-                newFileName=filename,
-                originalFilename=original_filename,
+                file_name=file_name,
+                new_file_name=filename,
+                original_filename=original_filename,
                 url=file_url,
-                fileId=file_id,
-                accessType=access_type,
-                downloadUrl=download_path,
+                file_id=file_id,
+                access_type=access_type,
+                download_url=download_path,
             ),
             message='上传成功',
             msg_key='file.uploaded',
@@ -360,34 +360,30 @@ class CommonService:
         return 'allow' in matched_effects
 
     @staticmethod
-    def _get_current_user_role_ids(user: object) -> set[int]:
+    def _get_current_user_role_ids(user: UserInfoModel) -> set[int]:
         """
         获取当前用户角色ID集合。
 
         :param user: 当前用户对象
         :return: 角色ID集合
         """
-        role_ids = {
-            role.role_id
-            for role in (getattr(user, 'role', None) or [])
-            if role is not None and getattr(role, 'role_id', None) is not None
-        }
-        role_ids_text = getattr(user, 'role_ids', None)
+        role_ids = {role.role_id for role in (user.role or []) if role is not None and role.role_id is not None}
+        role_ids_text = user.role_ids
         if role_ids_text:
             role_ids.update(int(role_id) for role_id in role_ids_text.split(',') if role_id.strip().isdigit())
         return role_ids
 
     @staticmethod
-    def _get_current_user_dept_ids(user: object) -> tuple[int | None, set[int]]:
+    def _get_current_user_dept_ids(user: UserInfoModel) -> tuple[int | None, set[int]]:
         """
         获取当前用户部门及祖级部门ID。
 
         :param user: 当前用户对象
         :return: 当前部门ID和祖级部门ID集合
         """
-        dept = getattr(user, 'dept', None)
-        dept_id = getattr(user, 'dept_id', None) or getattr(dept, 'dept_id', None)
-        ancestors = getattr(dept, 'ancestors', None) or ''
+        dept = user.dept
+        dept_id = user.dept_id or (dept.dept_id if dept else None)
+        ancestors = (dept.ancestors if dept else None) or ''
         ancestor_dept_ids = {int(ancestor_id) for ancestor_id in ancestors.split(',') if ancestor_id.strip().isdigit()}
         return dept_id, ancestor_dept_ids
 

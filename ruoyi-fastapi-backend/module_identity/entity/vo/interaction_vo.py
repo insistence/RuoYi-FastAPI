@@ -1,19 +1,19 @@
-from typing import Literal
+from pydantic import ConfigDict, Field, model_validator
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pydantic.alias_generators import to_camel
+from common.vo import CamelModel
+from module_identity.entity.types import InteractionAction
 
 _MAX_INTERACTION_SCOPE_LENGTH = 100
 
 
-class InteractionModel(BaseModel):
+class InteractionModel(CamelModel):
     """
     认证交互 API 模型基类。
 
     交互字段使用 camelCase，并拒绝未定义字段。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(extra='forbid')
 
 
 class InteractionLoginModel(InteractionModel):
@@ -105,7 +105,7 @@ class InteractionViewModel(InteractionModel):
     interaction_id: str = Field(description='认证交互标识')
     client: InteractionClientModel = Field(description='发起认证的客户端摘要')
     requested_scopes: list[RequestedScopeModel] = Field(default_factory=list, description='客户端请求的权限列表')
-    next_action: Literal['login', 'consent', 'redirect', 'changePassword'] = Field(description='认证交互的下一步动作')
+    next_action: InteractionAction = Field(description='认证交互的下一步动作')
     captcha_enabled: bool = Field(default=False, description='是否启用验证码')
     expires_in: int = Field(description='剩余有效时间，单位为秒')
 
@@ -113,7 +113,7 @@ class InteractionViewModel(InteractionModel):
 class InteractionResultModel(InteractionModel):
     """登录、同意或改密后的下一步动作模型。"""
 
-    next_action: Literal['login', 'consent', 'redirect', 'changePassword'] = Field(description='认证交互的下一步动作')
+    next_action: InteractionAction = Field(description='认证交互的下一步动作')
     interaction_id: str | None = Field(default=None, description='认证交互标识')
     redirect_url: str | None = Field(default=None, description='服务端返回的下一步跳转地址')
     reason: str | None = Field(default=None, description='下一步动作的原因')

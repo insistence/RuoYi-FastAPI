@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -65,9 +65,9 @@ class JobDao:
         query = (
             select(SysJob)
             .where(
-                SysJob.job_name.like(f'%{query_object.job_name}%') if query_object.job_name else True,
-                SysJob.job_group == query_object.job_group if query_object.job_group else True,
-                SysJob.status == query_object.status if query_object.status else True,
+                SysJob.job_name.like(f'%{query_object.job_name}%') if query_object.job_name else true(),
+                SysJob.job_group == query_object.job_group if query_object.job_group else true(),
+                SysJob.status == query_object.status if query_object.status else true(),
             )
             .order_by(SysJob.job_id)
         )

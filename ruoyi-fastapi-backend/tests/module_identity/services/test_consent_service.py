@@ -178,6 +178,7 @@ async def test_remember_consent_merges_grant_without_commit(data_session: AsyncS
         user_id=8001,
         subject_id='subject-8001',
     )
+    assert updated.grant is not None and result.grant is not None
     assert updated.grant.grant_id == result.grant.grant_id
     assert set(updated.grant.granted_scopes) == set(context.scopes)
     assert ConsentService.consent_is_satisfied(context, updated.grant) is remembered
@@ -281,7 +282,8 @@ async def test_compensation_does_not_revoke_concurrently_updated_new_grant(data_
     session_factory = async_sessionmaker(data_session.bind, expire_on_commit=False)
     async with session_factory() as concurrent_session:
         await concurrent_session.execute(
-            SysOAuthGrant.__table__.update()
+            SysOAuthGrant.get_table()
+            .update()
             .where(SysOAuthGrant.grant_id == grant.grant_id)
             .values(granted_scopes=['openid', 'admin'], subject_id='concurrent-subject')
         )

@@ -68,7 +68,7 @@ class IntrospectionService:
         now: datetime | None = None,
         token_type_hint: str | None = None,
         pepper: str | bytes | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         验证 Token 并生成 OAuth Introspection 响应。
 
@@ -117,7 +117,7 @@ class IntrospectionService:
         now: datetime | None = None,
         token_type_hint: str | None = None,
         pepper: str | bytes | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         在事务边界内执行 Token 内省。
 
@@ -164,7 +164,7 @@ class IntrospectionService:
         verification_key: Any = None,
         verification_key_loader: Callable[[AsyncSession, str], Awaitable[Any]] | None = None,
         token_type_hint: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         认证调用 Client 并处理内省请求。
 
@@ -237,7 +237,7 @@ class IntrospectionService:
         now: datetime,
         verification_keys: Any,
         verification_key: Any,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         验证 Access Token 并生成内省声明。
 
@@ -287,7 +287,7 @@ class IntrospectionService:
             user_state = await cls._access_user_state(db, claims, issuer_client, resources, now)
             if user_state is None:
                 return {'active': False}
-        result: dict[str, Any] = {'active': True, 'token_type': 'Bearer'}
+        result: dict[str, object] = {'active': True, 'token_type': 'Bearer'}
         for name in cls._STANDARD_CLAIMS:
             if name in claims:
                 result[name] = claims[name]
@@ -400,7 +400,7 @@ class IntrospectionService:
         caller: Any,
         now: datetime,
         pepper: str | bytes | None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         验证 Refresh Token 并生成内省声明。
 
@@ -420,10 +420,7 @@ class IntrospectionService:
         issuer_client = await OAuthClientDao.get_by_pk(db, row.client_pk, active_only=True)
         if issuer_client is None or issuer_client.status != cls._ACTIVE_CLIENT_STATUS:
             return {'active': False}
-        if (
-            TimezoneUtil.to_optional_utc(row.idle_expires_at) <= now
-            or TimezoneUtil.to_optional_utc(row.absolute_expires_at) <= now
-        ):
+        if TimezoneUtil.to_utc(row.idle_expires_at) <= now or TimezoneUtil.to_utc(row.absolute_expires_at) <= now:
             return {'active': False}
         if not await cls._refresh_family_active(db, row.family_id):
             return {'active': False}
@@ -462,7 +459,7 @@ class IntrospectionService:
         resources = OidcUtil.normalize_audiences(row.resources)
         if not resources or not await cls._resources_owned_by_caller(db, resources, caller.client_pk):
             return {'active': False}
-        result: dict[str, Any] = {
+        result: dict[str, object] = {
             'active': True,
             'client_id': issuer_client.client_id,
             'token_type': 'refresh_token',
@@ -519,7 +516,7 @@ class IntrospectionService:
             and grant.client_pk == client.client_pk
             and grant.status == cls._ACTIVE_GRANT_STATUS
             and grant.client_policy_version == client.policy_version
-            and (grant.expires_at is None or TimezoneUtil.to_optional_utc(grant.expires_at) > now)
+            and (grant.expires_at is None or TimezoneUtil.to_utc(grant.expires_at) > now)
             and set(scopes).issubset(set(OidcUtil.json_list(grant.granted_scopes)))
             and set(resources).issubset(set(OidcUtil.json_list(grant.granted_resources)))
         )

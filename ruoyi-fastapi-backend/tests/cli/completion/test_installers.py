@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import typer
-from pytest import MonkeyPatch
+from click.shell_completion import ShellComplete
 
 from cli.completion.installers import (
     CompletionInstallerService,
@@ -37,22 +37,13 @@ def test_make_bash_completion_script_compatible_wraps_legacy_instructions() -> N
     assert 'complete -o nosort -F _ruoyi_completion ruoyi 2>/dev/null' in compatible_script
 
 
-def test_render_completion_script_uses_runtime_policy_transformer(monkeypatch: MonkeyPatch) -> None:
+def test_render_completion_script_uses_runtime_policy_transformer() -> None:
     """校验脚本渲染会通过 shell 运行时策略执行脚本后处理。"""
 
-    class DummyComplete:
+    class DummyComplete(ShellComplete):
         """模拟 Click completion 生成器。"""
 
-        def __init__(self, *args, **kwargs) -> None:
-            """
-            初始化模拟生成器。
-
-            :param args: 位置参数
-            :param kwargs: 关键字参数
-            """
-
-        @staticmethod
-        def source() -> str:
+        def source(self) -> str:
             """
             返回原始脚本文本。
 
@@ -71,9 +62,9 @@ def test_render_completion_script_uses_runtime_policy_transformer(monkeypatch: M
         }
     )
     installer = CompletionInstallerService(shell_runtime_policy_registry=runtime_policy_registry)
-    monkeypatch.setattr(installer, 'build_completion_click_command', lambda root_cli: object())
+    root_cli = typer.Typer(callback=lambda: None)
 
-    rendered_script = installer.render_completion_script(typer.Typer(), 'bash')
+    rendered_script = installer.render_completion_script(root_cli, 'bash')
 
     assert rendered_script == 'transformed::raw-script'
 

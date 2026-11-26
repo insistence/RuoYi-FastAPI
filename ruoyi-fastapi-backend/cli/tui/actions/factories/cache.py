@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from cli.tui.actions.builders import TuiActionTemplate, TuiActionTemplateSupport
+from cli.tui.actions.models import ActionParameters
 from cli.tui.adapters.models import BrowserRecordSnapshot
 from cli.tui.copy import TUI_COPY
 
@@ -18,7 +19,7 @@ class CacheActionTemplateFactory:
 
     support: TuiActionTemplateSupport
 
-    def build_clear_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> dict[str, object]:
+    def build_clear_parameters(self, record: BrowserRecordSnapshot | None, env: str) -> ActionParameters:
         """
         构建缓存清理预演参数。
 

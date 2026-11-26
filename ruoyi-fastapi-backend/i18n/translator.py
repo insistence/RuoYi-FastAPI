@@ -63,7 +63,11 @@ class I18nUtil:
         """
         try:
             catalog = cls._load_catalog(code, domain)
-            value = catalog.gettext(msg_key) if count is None else catalog.ngettext(msg_key, plural_key, count)
+            value = (
+                catalog.ngettext(msg_key, plural_key, count)
+                if count is not None and plural_key is not None
+                else catalog.gettext(msg_key)
+            )
             if value not in (msg_key, plural_key):
                 return value % ({**(params or {}), 'count': count} if count is not None else params or {})
             logger.warning(
@@ -151,7 +155,7 @@ class I18nUtil:
             msg_params = msg.msg_params if msg_params is None else msg_params
             domain = msg.domain if domain is None else domain
             if count is None and plural_key is None:
-                count, plural_key = msg.count, msg.plural_key
+                count, plural_key = msg.plural_count, msg.plural_key
         domain = domain or 'core'
         validate_plural(count, plural_key)
         context = context or RequestContext.get_current_locale()

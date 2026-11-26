@@ -12,6 +12,8 @@ from .gateway import (
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
+    from plugins.core.management.entity.vo.schemas import PluginMigrationModel
+
 
 class PluginDatabaseMigrationHistoryStore(PluginMigrationHistoryStore):
     """
@@ -185,7 +187,7 @@ class PluginDatabaseMigrationHistoryStore(PluginMigrationHistoryStore):
             ),
         )
 
-    async def _add_plugin_migration(self, query_db: 'AsyncSession', plugin_migration: object) -> None:
+    async def _add_plugin_migration(self, query_db: 'AsyncSession', plugin_migration: 'PluginMigrationModel') -> None:
         """
         写入 migration 历史，优先使用独立会话提交。
 

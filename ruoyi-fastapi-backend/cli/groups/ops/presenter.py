@@ -140,7 +140,7 @@ class OpsCommandPresenter:
         return '\n'.join(lines)
 
     @staticmethod
-    def _build_check_status_line(name: str, status_payload: dict[str, object] | None) -> str:
+    def _build_check_status_line(name: str, status_payload: object) -> str:
         """
         构建单项检查结果摘要行。
 

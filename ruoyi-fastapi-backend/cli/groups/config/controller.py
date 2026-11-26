@@ -1,5 +1,6 @@
 from typing import Literal
 
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -47,7 +48,7 @@ class ConfigCommandController:
     def list_configs(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         config_name: str,
         config_key: str,
@@ -97,7 +98,7 @@ class ConfigCommandController:
         self,
         config_key: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         source: Literal['db', 'cache', 'both'],
     ) -> None:
@@ -123,7 +124,7 @@ class ConfigCommandController:
         self,
         config_key: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -171,7 +172,7 @@ class ConfigCommandController:
     def sync_cache(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
     ) -> None:
@@ -198,7 +199,7 @@ class ConfigCommandController:
     def doctor(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         sample_limit: int,
     ) -> None:

@@ -13,34 +13,13 @@ from module_identity.controller.oauth_client_controller import (
     get_system_oauth_client_list,
     oauth_client_controller,
 )
-from module_identity.entity.vo.oauth_client_vo import ClientSecretResponseModel
+from module_identity.entity.vo.oauth_client_vo import ClientPageQueryModel, ClientSecretResponseModel
 from module_identity.service.oauth_management_service import (
     OAuthClientManagementError,
     OAuthClientManagementService,
 )
 from module_identity.service.runtime_service import OidcRuntimeService
-
-
-class _FakeSession:
-    """
-    记录 Controller 的 commit/rollback 边界。
-
-    :ivar commits: 测试中记录的提交次数
-    :ivar rollbacks: 测试中记录的回滚次数
-    """
-
-    def __init__(self) -> None:
-        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
-        self.commits = 0
-        self.rollbacks = 0
-
-    async def commit(self) -> None:
-        """累加 ``commits`` 供后续断言检查。"""
-        self.commits += 1
-
-    async def rollback(self) -> None:
-        """累加 ``rollbacks`` 供后续断言检查。"""
-        self.rollbacks += 1
+from tests.module_identity.support.sessions import RecordingSession
 
 
 @pytest.fixture(autouse=True)
@@ -139,7 +118,7 @@ def test_client_router_paths_methods_permissions_and_pre_auth() -> None:
         ('/system/oauth/client/{client_id}/uri', 'POST'): 'system:oauthClient:edit',
         ('/system/oauth/client/{client_id}/uri/{uri_id}', 'DELETE'): 'system:oauthClient:edit',
     }
-    routes = {(route.path, method): route for route in _routes() for method in route.methods}
+    routes = {(route.path, method): route for route in _routes() for method in route.methods or ()}
     assert set(routes) == set(expected)
     for key, permission in expected.items():
         dependency_calls = [getattr(item.call, 'perm', None) for item in routes[key].dependant.dependencies]
@@ -154,7 +133,7 @@ async def test_client_create_commits_and_secret_is_only_in_rotation_response(
     oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
 ) -> None:
     """写操作由服务层管理事务，轮换响应含明文而普通错误不包含敏感字段。"""
-    session = _FakeSession()
+    session = RecordingSession()
 
     async def fake_create(*args: object, **kwargs: object) -> object:
         """
@@ -227,7 +206,7 @@ async def test_client_batch_failure_rolls_back_all_items(
     oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
 ) -> None:
     """批量停用任一项失败时整体回滚，不提前提交。"""
-    session = _FakeSession()
+    session = RecordingSession()
     calls: list[str] = []
 
     async def fake_disable(*args: object, **kwargs: object) -> object:
@@ -240,6 +219,7 @@ async def test_client_batch_failure_rolls_back_all_items(
         :return: ``SimpleNamespace`` 实例
         """
         client_id = args[1]
+        assert isinstance(client_id, str)
         calls.append(client_id)
         if client_id == 'cli_bad':
             raise OAuthClientManagementError('client not found')
@@ -282,7 +262,7 @@ async def test_client_list_uses_real_total_and_actor_failure_is_mapped(
     oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
 ) -> None:
     """列表返回服务层全量计数，actor 缺失时稳定返回业务失败。"""
-    session = _FakeSession()
+    session = RecordingSession()
 
     async def fake_rows(*args: object, **kwargs: object) -> list[str]:
         """
@@ -306,7 +286,7 @@ async def test_client_list_uses_real_total_and_actor_failure_is_mapped(
 
     monkeypatch.setattr(OAuthClientManagementService, 'list_clients', fake_rows)
     monkeypatch.setattr(OAuthClientManagementService, 'count_clients', fake_count)
-    response = await get_system_oauth_client_list(SimpleNamespace(), session)
+    response = await get_system_oauth_client_list(ClientPageQueryModel(), session)
     assert b'"total":37' in response.body
     assert b'"rows":["row-1","row-2"]' in response.body
 

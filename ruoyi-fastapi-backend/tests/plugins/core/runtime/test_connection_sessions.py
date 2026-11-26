@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -224,7 +224,7 @@ async def test_recheck_uses_fresh_closed_db_sessions_and_does_not_refresh_bearer
     checked = asyncio.Event()
 
     @asynccontextmanager
-    async def session() -> AsyncIterator[object]:
+    async def session() -> AsyncGenerator[object, None]:
         """
         统计独立数据库会话在复核之间全部关闭。
 
@@ -259,6 +259,6 @@ async def test_recheck_uses_fresh_closed_db_sessions_and_does_not_refresh_bearer
         assert sessions.active == 0 and sessions.opened > 1
         initial.assert_awaited_once()
         assert readonly.await_count > 0
-        assert readonly.await_args.kwargs['token'] == browser.token
+        assert readonly.await_args_list[-1].kwargs['token'] == browser.token
     finally:
         await finish_stream(stream)

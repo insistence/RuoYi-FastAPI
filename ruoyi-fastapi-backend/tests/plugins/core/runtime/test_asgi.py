@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -105,7 +106,7 @@ async def test_gateway_rejects_http_and_websocket_without_invoking_plugin(failur
         """
         messages.append(message)
 
-    await gateway({'type': 'websocket', 'path': '/ws'}, None, send)
+    await gateway({'type': 'websocket', 'path': '/ws'}, AsyncMock(), send)
     assert messages[0]['type'] == 'websocket.close'
     assert not reached
 
@@ -219,6 +220,7 @@ async def test_lifespan_timeout_is_bounded_and_retry_uses_fresh_protocol_state(p
         with pytest.raises(RuntimeError, match='尚未退出'):
             await manager.startup()
         release.set()
+        assert manager._task is not None
         await asyncio.wait({manager._task}, timeout=1)
         await manager.startup()
         assert manager.ready and manager.state == {'attempt': 2}
@@ -327,9 +329,9 @@ async def test_host_cancellation_propagates_and_releases_lifespan_task() -> None
 def test_lifespan_rejects_invalid_time_limits(timeout: float) -> None:
     """生命周期拒绝无效的时间限制。"""
     with pytest.raises(ValueError, match='大于零'):
-        PluginLifespanManager(None, timeout=timeout)
+        PluginLifespanManager(AsyncMock(), timeout=timeout)
     with pytest.raises(ValueError, match='大于零'):
-        PluginLifespanManager(None, cancel_timeout=timeout)
+        PluginLifespanManager(AsyncMock(), cancel_timeout=timeout)
 
 
 @pytest.mark.asyncio

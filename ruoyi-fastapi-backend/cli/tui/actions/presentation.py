@@ -81,10 +81,9 @@ class TuiActionPresentationService:
         """
         lines: list[str] = []
         for capability in self.capability_registry.get_browser_capabilities(view_key):
-            slot = capability.slot  # type: ignore[assignment]
             action = self.action_registry.resolve_browser_action(
                 view_key=view_key,
-                slot=slot,
+                slot=capability.slot,
                 record=record,
                 env=env,
             )

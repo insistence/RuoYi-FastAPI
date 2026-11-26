@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -33,12 +34,13 @@ from module_identity.service.oauth_management_service import (
     OAuthClientManagementService,
     OAuthManagementBaseService,
 )
+from tests.module_identity.support.sessions import RecordingSession
 
 _EXPECTED_PAGE_TOTAL = 3
 
 
 @pytest_asyncio.fixture
-async def management_session() -> AsyncSession:
+async def management_session() -> AsyncIterator[AsyncSession]:
     """
     创建只包含 OAuth 管理表的真实 SQLite 异步会话。
 
@@ -46,17 +48,17 @@ async def management_session() -> AsyncSession:
     """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [
-        SysOAuthClient.__table__,
-        SysOAuthResource.__table__,
-        SysOAuthScope.__table__,
-        SysOAuthClientSecret.__table__,
-        SysOAuthClientUri.__table__,
-        SysOAuthClientScope.__table__,
-        SysOAuthClientResource.__table__,
-        SysOAuthGrant.__table__,
-        SysSsoSession.__table__,
-        SysOAuthRefreshToken.__table__,
-        SysOAuthAuditLog.__table__,
+        SysOAuthClient.get_table(),
+        SysOAuthResource.get_table(),
+        SysOAuthScope.get_table(),
+        SysOAuthClientSecret.get_table(),
+        SysOAuthClientUri.get_table(),
+        SysOAuthClientScope.get_table(),
+        SysOAuthClientResource.get_table(),
+        SysOAuthGrant.get_table(),
+        SysSsoSession.get_table(),
+        SysOAuthRefreshToken.get_table(),
+        SysOAuthAuditLog.get_table(),
     ]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync_connection: Base.metadata.create_all(sync_connection, tables=tables))
@@ -139,27 +141,7 @@ def _confidential_payload(**changes: object) -> ClientCreateModel:
 @pytest.mark.asyncio
 async def test_after_commit_failure_does_not_rollback_committed_management_change() -> None:
     """提交后的运行时回调失败不得回滚已提交的管理事务。"""
-
-    class _Db:
-        """
-        模拟当前测试所需的数据库操作。
-
-        :cvar commits: 测试中记录的提交次数
-        :cvar rollbacks: 测试中记录的回滚次数
-        """
-
-        commits = 0
-        rollbacks = 0
-
-        async def commit(self) -> None:
-            """累加 ``commits`` 供后续断言检查。"""
-            self.commits += 1
-
-        async def rollback(self) -> None:
-            """累加 ``rollbacks`` 供后续断言检查。"""
-            self.rollbacks += 1
-
-    db = _Db()
+    db = RecordingSession()
 
     async def operation() -> str:
         """
@@ -199,9 +181,9 @@ async def test_create_detail_bindings_secret_and_cors_snapshot(management_sessio
     assert detail.scope_codes == ['openid', 'resource.read']
     assert detail.pre_authorized_scope_codes == ['openid']
     assert detail.resource_ids == ['resource-a']
-    assert verify_client_secret(
-        secret.client_secret, (await management_session.get(SysOAuthClientSecret, secret.secret_id)).secret_hash
-    )
+    stored_secret = await management_session.get(SysOAuthClientSecret, secret.secret_id)
+    assert stored_secret is not None
+    assert verify_client_secret(secret.client_secret, stored_secret.secret_hash)
     assert secret.client_secret not in repr(detail)
     assert await OAuthClientManagementService.list_active_cors_origins(management_session) == (
         'https://client.example',
@@ -306,9 +288,15 @@ async def test_status_soft_disable_and_secret_revoke_are_safe(management_session
         management_session, ClientStatusModel(client_id=second.client_id, status='1'), actor='admin'
     )
     assert disabled.status == '1'
-    assert (await management_session.get(SysOAuthGrant, 'grant-disable')).status == 'revoked'
-    assert (await management_session.get(SysOAuthRefreshToken, 'refresh-disable')).status == 'revoked'
-    assert (await management_session.get(SysSsoSession, 'sid-disable')).status == 'active'
+    stored_grant = await management_session.get(SysOAuthGrant, 'grant-disable')
+    assert stored_grant is not None
+    assert stored_grant.status == 'revoked'
+    stored_token = await management_session.get(SysOAuthRefreshToken, 'refresh-disable')
+    assert stored_token is not None
+    assert stored_token.status == 'revoked'
+    stored_session = await management_session.get(SysSsoSession, 'sid-disable')
+    assert stored_session is not None
+    assert stored_session.status == 'active'
     disabled_again = await OAuthClientManagementService.change_client_status(
         management_session, ClientStatusModel(client_id=second.client_id, status='1'), actor='admin'
     )

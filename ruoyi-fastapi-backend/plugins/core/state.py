@@ -88,7 +88,7 @@ class PluginStateResolver:
             return False
         database_enabled = getattr(database_plugin, 'enabled', None) if database_plugin else None
         if database_enabled is not None:
-            return database_enabled == '0'
+            return bool(database_enabled == '0')
         return False
 
     @staticmethod

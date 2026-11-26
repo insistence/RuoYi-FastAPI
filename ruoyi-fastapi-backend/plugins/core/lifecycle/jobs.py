@@ -5,7 +5,7 @@ from module_admin.dao.job_dao import JobDao
 from module_admin.entity.do.job_do import SysJob
 from module_admin.entity.vo.job_vo import JobModel
 from plugins.core.discovery.scanner import DiscoveredPlugin
-from plugins.core.manifest.schema import PluginJobManifest, PluginManifest
+from plugins.core.manifest.v2 import VersionedPluginJobManifest, VersionedPluginManifest
 from plugins.core.utils import escape_sql_like
 
 
@@ -27,7 +27,12 @@ class PluginJobModelBuilder:
 
     @classmethod
     def build(
-        cls, plugin_id: str, job: PluginJobManifest, *, enabled: bool = True, manifest: PluginManifest | None = None
+        cls,
+        plugin_id: str,
+        job: VersionedPluginJobManifest,
+        *,
+        enabled: bool = True,
+        manifest: VersionedPluginManifest | None = None,
     ) -> JobModel:
         """
         构建系统定时任务模型。
@@ -51,21 +56,21 @@ class PluginJobModelBuilder:
         else:
             cls._validate_callable_belongs_to_plugin(plugin_id, job.callable)
         return JobModel(
-            jobName=cls.build_job_name(plugin_id, job.id),
-            jobGroup=cls.JOB_GROUP,
-            jobStore=job.job_store,
-            jobExecutor=job.executor,
-            invokeTarget=target,
-            jobArgs=args,
-            jobKwargs=kwargs,
-            cronExpression=job.cron_expression,
-            timeZone=job.time_zone,
-            misfireGraceTime=job.misfire_grace_time,
+            job_name=cls.build_job_name(plugin_id, job.id),
+            job_group=cls.JOB_GROUP,
+            job_store=job.job_store,
+            job_executor=job.executor,
+            invoke_target=target,
+            job_args=args,
+            job_kwargs=kwargs,
+            cron_expression=job.cron_expression,
+            time_zone=job.time_zone,
+            misfire_grace_time=job.misfire_grace_time,
             coalesce=job.coalesce,
-            maxInstances=job.max_instances,
+            max_instances=job.max_instances,
             status='0' if enabled and job.enabled else '1',
-            createBy='plugin',
-            updateBy='plugin',
+            create_by='plugin',
+            update_by='plugin',
             remark=cls.build_remark(plugin_id, job),
         )
 
@@ -97,7 +102,7 @@ class PluginJobModelBuilder:
         return f'{plugin_id}:{job_id}'
 
     @classmethod
-    def build_remark(cls, plugin_id: str, job: PluginJobManifest) -> str:
+    def build_remark(cls, plugin_id: str, job: VersionedPluginJobManifest) -> str:
         """
         构建插件任务备注。
 
@@ -269,8 +274,10 @@ class PluginJobInstaller:
 
         :param job_model: 系统定时任务模型
         :return: 写入后的系统任务对象
-        :raises ValueError: 同组已有同名的非插件任务
+        :raises ValueError: 缺少任务名称或分组，或同组已有同名的非插件任务
         """
+        if job_model.job_name is None or job_model.job_group is None:
+            raise ValueError('插件任务必须声明任务名称和分组')
         existing_job = await self.repository.get_job_detail_by_name_group(job_model.job_name, job_model.job_group)
         if existing_job:
             ownership_prefix = f'{PluginJobModelBuilder.REMARK_PREFIX} {job_model.job_name}'

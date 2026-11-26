@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 from fastapi import UploadFile
 from openpyxl import load_workbook
+from sqlalchemy import true
 
 from common.context import LocaleContext, RequestContext
 from exceptions.exception import ServiceException
@@ -15,6 +16,7 @@ from module_admin.service.config_service import ConfigService
 from module_admin.service.dict_service import DictDataService, DictTypeService
 from module_admin.service.user_service import UserService
 from module_identity.service.identity_service import IdentitySubjectService
+from tests.module_admin.service.helpers import make_current_user, make_query_db, make_redis_request
 from utils.excel_util import ExcelUtil
 from utils.user_import_util import UserImportUtil
 
@@ -54,15 +56,15 @@ async def test_published_user_templates_round_trip_independently_of_interface_la
     add_user = AsyncMock(return_value=SimpleNamespace(user_id=77))
     monkeypatch.setattr(UserDao, 'add_user_dao', add_user)
     monkeypatch.setattr(IdentitySubjectService, 'create_for_new_user', AsyncMock())
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = make_query_db()
     result = await UserService.batch_import_user_services(
-        SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=object()))),
+        make_redis_request(object()),
         db,
         UploadFile(file=io.BytesIO(stream.getvalue()), filename='users.xlsx'),
         False,
-        SimpleNamespace(user=SimpleNamespace(admin=True, user_name='admin')),
-        None,
-        None,
+        make_current_user(1, user_name='admin', admin=True),
+        true(),
+        true(),
     )
     created = add_user.call_args.args[1]
     assert created.user_name == 'ada'

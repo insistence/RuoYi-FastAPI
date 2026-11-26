@@ -4,6 +4,7 @@ from cli.exit_codes import RUNTIME_ERROR
 from cli.runtime.config import ConfigRuntimeService
 from cli.runtime.config.gateway import ConfigInfrastructureGateway
 from cli.runtime.config.support import ConfigDomainSupport
+from module_admin.entity.vo import config_vo
 
 MISSING_CONFIG_KEY = 'sys.demo.key'
 
@@ -90,34 +91,10 @@ def test_config_runtime_service_builds_cli_config_model_from_orm_record() -> Non
         update_time = None
         remark = '初始化密码 123456'
 
-    class FakeConfigModel:
-        """
-        模拟 VO 配置模型。
+    model = ConfigRuntimeService.build_cli_config_model(config_vo, FakeOrmConfigRecord())
 
-        :ivar kwargs: 传给被调用对象的关键字参数
-        """
-
-        def __init__(self, **kwargs: object) -> None:
-            """
-            初始化测试夹具的 ``kwargs``。
-
-            :param kwargs: 传给被调用对象的关键字参数
-            """
-            self.kwargs = kwargs
-
-    class FakeConfigVoModule:
-        """
-        模拟配置 VO 模块。
-
-        :cvar ConfigModel: 测试暴露的配置模型
-        """
-
-        ConfigModel = FakeConfigModel
-
-    model = ConfigRuntimeService.build_cli_config_model(FakeConfigVoModule, FakeOrmConfigRecord())
-
-    assert isinstance(model, FakeConfigModel)
-    assert model.kwargs == {
+    assert isinstance(model, config_vo.ConfigModel)
+    assert model.model_dump(by_alias=True) == {
         'configId': 2,
         'configName': '用户管理-账号初始密码',
         'configKey': 'sys.user.initPassword',
@@ -208,7 +185,7 @@ async def test_config_runtime_service_returns_missing_db_config_result() -> None
             :param config_model: 配置模型
             """
             assert isinstance(session, FakeSession)
-            assert config_model.kwargs == {'configKey': MISSING_CONFIG_KEY}
+            assert config_model.kwargs == {'config_key': MISSING_CONFIG_KEY}
 
     gateway = ConfigInfrastructureGateway()
     service = ConfigRuntimeService(infrastructure_gateway=gateway)

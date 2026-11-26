@@ -18,6 +18,7 @@ def load_script(name: str) -> ModuleType:
     :return: 已执行模块顶层定义的脚本模块
     """
     spec = importlib.util.spec_from_file_location(name, ROOT / '.github/scripts' / f'{name}.py')
+    assert spec is not None and spec.loader is not None, name
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

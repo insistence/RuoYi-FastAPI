@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import ColumnElement, delete, select, update
+from sqlalchemy import ColumnElement, delete, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -41,11 +41,11 @@ class AiModelDao:
         query = (
             select(AiModels)
             .where(
-                AiModels.model_id == query_object.model_id if query_object.model_id else True,
-                AiModels.model_name.like(f'%{query_object.model_name}%') if query_object.model_name else True,
-                AiModels.model_code.like(f'%{query_object.model_code}%') if query_object.model_code else True,
-                AiModels.provider == query_object.provider if query_object.provider else True,
-                AiModels.status == query_object.status if query_object.status else True,
+                AiModels.model_id == query_object.model_id if query_object.model_id else true(),
+                AiModels.model_name.like(f'%{query_object.model_name}%') if query_object.model_name else true(),
+                AiModels.model_code.like(f'%{query_object.model_code}%') if query_object.model_code else true(),
+                AiModels.provider == query_object.provider if query_object.provider else true(),
+                AiModels.status == query_object.status if query_object.status else true(),
                 data_scope_sql,
             )
             .order_by(AiModels.model_sort)

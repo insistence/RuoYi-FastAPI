@@ -1,24 +1,28 @@
+from __future__ import annotations
+
 import re
+from typing import TYPE_CHECKING
 
-from playwright.async_api import Locator
+if TYPE_CHECKING:
+    from playwright.async_api import BrowserContext, ElementHandle, Locator, Page
 
-from common.browser_harness import BrowserHarness
+    from common.browser_harness import BrowserHarness
 
 
 class BasePageTest:
     """
     为页面端到端测试提供通用的浏览器和登录操作。
 
-    :cvar harness: 为端到端测试管理资源的夹具
-    :cvar context: 当前操作所需的上下文
-    :cvar page: 浏览器页面或要查询的页码
-    :cvar token: 用于身份验证或授权的令牌
+    :ivar harness: 为当前用例管理资源的浏览器夹具
+    :ivar context: 当前用例独立的浏览器上下文
+    :ivar page: 在当前上下文中创建的测试页面
+    :ivar token: 当前用例的登录令牌
     """
 
-    harness = None
-    context = None
-    page = None
-    token = None
+    harness: BrowserHarness
+    context: BrowserContext
+    page: Page
+    token: str
 
     async def setup(self, harness: BrowserHarness) -> None:
         """
@@ -75,12 +79,12 @@ class BasePageTest:
         """
         await self.page.wait_for_selector(selector, timeout=timeout_ms)
 
-    async def query_selector(self, selector: str) -> any:
+    async def query_selector(self, selector: str) -> ElementHandle | None:
         """
         查询选择器元素。
 
         :param selector: 定位页面元素的选择器
-        :return: 选择器元素
+        :return: 首个匹配的元素，未匹配时返回 ``None``
         """
         return await self.page.query_selector(selector)
 
@@ -91,6 +95,7 @@ class BasePageTest:
         :param button_text: 目标按钮显示的文字
         """
         button = await self.page.wait_for_selector(f'text="{button_text}"', timeout=5000)
+        assert button is not None, f'未找到按钮：{button_text}'
         await button.click()
 
     async def fill_input(self, selector: str, value: str) -> None:
@@ -102,12 +107,12 @@ class BasePageTest:
         """
         await self.page.fill(selector, value)
 
-    async def get_text_content(self, selector: str) -> str:
+    async def get_text_content(self, selector: str) -> str | None:
         """
         获取元素文本内容。
 
         :param selector: 定位页面元素的选择器
-        :return: 元素文本内容
+        :return: 匹配元素的文本，元素或文本不存在时返回 ``None``
         """
         element = await self.page.query_selector(selector)
         if element:
@@ -123,6 +128,6 @@ class BasePageTest:
         element = self.page.locator('span.el-pagination__total').first
         text = await element.text_content()
 
-        # 提取数字
-        number = re.search(r'\d+', text).group()
-        return int(number)
+        match = re.search(r'\d+', text or '')
+        assert match is not None, f'分页总数缺少数字：{text!r}'
+        return int(match.group())

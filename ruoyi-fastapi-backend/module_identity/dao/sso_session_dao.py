@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import case, func, select, union, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.database import execute_rowcount
 from module_identity.entity.do.oauth_client_do import SysOAuthClient
 from module_identity.entity.do.oauth_grant_do import SysOAuthRefreshToken, SysSsoSession, SysSsoSessionClient
 from utils.time_util import TimezoneUtil
@@ -108,7 +109,8 @@ class SsoSessionDao:
         :return: 是否更新成功
         """
         current = now or TimezoneUtil.utc_now()
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysSsoSession)
             .where(
                 SysSsoSession.sid == sid,
@@ -117,11 +119,11 @@ class SsoSessionDao:
                 SysSsoSession.absolute_expires_at > current,
                 idle_expires_at <= SysSsoSession.absolute_expires_at,
             )
-            .values(last_seen_at=current, idle_expires_at=idle_expires_at)
+            .values(last_seen_at=current, idle_expires_at=idle_expires_at),
         )
         await db.flush()
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def revoke(cls, db: AsyncSession, sid: str, reason: str | None = None, now: datetime | None = None) -> bool:
@@ -134,14 +136,15 @@ class SsoSessionDao:
         :param now: 当前时间
         :return: 是否撤销成功
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysSsoSession)
             .where(SysSsoSession.sid == sid, SysSsoSession.status.in_(('active', 'expired')))
-            .values(status='revoked', revoked_at=now or TimezoneUtil.utc_now(), revoke_reason=reason)
+            .values(status='revoked', revoked_at=now or TimezoneUtil.utc_now(), revoke_reason=reason),
         )
         await db.flush()
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def revoke_for_user(
@@ -156,14 +159,15 @@ class SsoSessionDao:
         :param now: 当前时间
         :return: 已撤销的 SSO Session 数量
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysSsoSession)
             .where(SysSsoSession.user_id == user_id, SysSsoSession.status.in_(('active', 'expired')))
-            .values(status='revoked', revoked_at=now or TimezoneUtil.utc_now(), revoke_reason=reason)
+            .values(status='revoked', revoked_at=now or TimezoneUtil.utc_now(), revoke_reason=reason),
         )
         await db.flush()
 
-        return result.rowcount or 0
+        return affected
 
     @classmethod
     async def revoke_for_users(
@@ -187,14 +191,15 @@ class SsoSessionDao:
         conditions = [SysSsoSession.user_id.in_(user_ids), SysSsoSession.status.in_(('active', 'expired'))]
         if exclude_sid is not None:
             conditions.append(SysSsoSession.sid != exclude_sid)
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysSsoSession)
             .where(*conditions)
-            .values(status='revoked', revoked_at=now or TimezoneUtil.utc_now(), revoke_reason=reason)
+            .values(status='revoked', revoked_at=now or TimezoneUtil.utc_now(), revoke_reason=reason),
         )
         await db.flush()
 
-        return result.rowcount or 0
+        return affected
 
     @classmethod
     async def expire_due(cls, db: AsyncSession, now: datetime | None = None) -> int:
@@ -206,17 +211,18 @@ class SsoSessionDao:
         :return: 已过期的 SSO Session 数量
         """
         now = now or TimezoneUtil.utc_now()
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysSsoSession)
             .where(
                 SysSsoSession.status == 'active',
                 (SysSsoSession.idle_expires_at <= now) | (SysSsoSession.absolute_expires_at <= now),
             )
-            .values(status='expired')
+            .values(status='expired'),
         )
         await db.flush()
 
-        return result.rowcount or 0
+        return affected
 
     @classmethod
     async def list_due(
@@ -252,18 +258,19 @@ class SsoSessionDao:
         :return: 是否过期成功
         """
         current = now or TimezoneUtil.utc_now()
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysSsoSession)
             .where(
                 SysSsoSession.sid == sid,
                 SysSsoSession.status == 'active',
                 (SysSsoSession.idle_expires_at <= current) | (SysSsoSession.absolute_expires_at <= current),
             )
-            .values(status='expired')
+            .values(status='expired'),
         )
         await db.flush()
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def rotate_secret(
@@ -285,7 +292,8 @@ class SsoSessionDao:
         :return: 是否轮换成功
         """
         current = now or TimezoneUtil.utc_now()
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysSsoSession)
             .where(
                 SysSsoSession.sid == sid,
@@ -294,11 +302,11 @@ class SsoSessionDao:
                 SysSsoSession.idle_expires_at > current,
                 SysSsoSession.absolute_expires_at > current,
             )
-            .values(session_secret_hash=new_secret_hash, last_seen_at=current)
+            .values(session_secret_hash=new_secret_hash, last_seen_at=current),
         )
         await db.flush()
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def list_for_user(

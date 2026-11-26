@@ -31,6 +31,7 @@ frontend:
     payload = build_runtime(backend_root).check_plugin('demo')
 
     assert payload['ok'] is False
+    assert isinstance(payload['checks'], list)
     assert payload['checks'][0]['missingDependencies'] == []
     assert [item['kind'] for item in payload['checks'][0]['structureErrors']] == [
         'seed_file',
@@ -67,6 +68,7 @@ frontend:
     payload = build_runtime(backend_root, frontend_root=frontend_root).check_plugin('demo')
 
     assert payload['ok'] is True
+    assert isinstance(payload['checks'], list)
     assert payload['checks'][0]['structureErrors'] == []
 
 
@@ -93,6 +95,7 @@ frontend:
     payload = build_runtime(backend_root).check_plugin('demo')
 
     assert payload['ok'] is False
+    assert isinstance(payload['checks'], list)
     assert [item['kind'] for item in payload['checks'][0]['structureErrors']] == [
         'migration_file',
         'migration_type',
@@ -122,6 +125,7 @@ frontend:
     payload = build_runtime(backend_root).check_plugin('demo')
 
     assert payload['ok'] is False
+    assert isinstance(payload['checks'], list)
     assert [item['kind'] for item in payload['checks'][0]['structureErrors']] == [
         'hook_boundary',
         'hook_callable',
@@ -151,6 +155,7 @@ backend:
     payload = build_runtime(backend_root).check_plugin('demo')
 
     assert payload['ok'] is True
+    assert isinstance(payload['checks'], list)
     assert payload['checks'][0]['structureErrors'] == []
 
 
@@ -201,4 +206,5 @@ permissions:
     payload = build_runtime(backend_root).check_plugin('sample')
 
     assert payload['ok'] is True
+    assert isinstance(payload['checks'], list)
     assert payload['checks'][0]['menuConflicts'] == []

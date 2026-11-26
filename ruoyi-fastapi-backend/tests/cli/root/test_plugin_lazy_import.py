@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from pydantic import TypeAdapter
 
 pytestmark = pytest.mark.contract
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
@@ -31,7 +32,7 @@ def inspect_cold_import(module_name: str, observed_modules: tuple[str, ...]) -> 
         text=True,
         timeout=30,
     )
-    return json.loads(completed.stdout)
+    return TypeAdapter(dict[str, bool]).validate_json(completed.stdout, strict=True)
 
 
 def test_cli_plugin_cold_import_boundaries() -> None:

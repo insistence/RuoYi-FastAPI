@@ -6,10 +6,10 @@ from collections import Counter, defaultdict, deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import Lock
-from typing import Any
+from typing import Any, cast
 
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import FastAPI, Request
 from redis import asyncio as aioredis
@@ -156,12 +156,20 @@ class TransportKeyProvider:
 
         :return: 当前启用的密钥对
         """
+        return cls._get_key_pairs()[TransportCryptoConfig.transport_crypto_kid]
+
+    @classmethod
+    def _get_key_pairs(cls) -> dict[str, TransportKeyPair]:
+        """
+        首次读取时加载当前和历史密钥对。
+
+        :return: 按版本索引的密钥对
+        """
         if cls._key_pairs is None:
             with cls._lock:
                 if cls._key_pairs is None:
                     cls._key_pairs = cls._build_key_pairs()
-
-        return cls._key_pairs[TransportCryptoConfig.transport_crypto_kid]
+        return cls._key_pairs
 
     @classmethod
     def get_current_kid(cls) -> str:
@@ -202,11 +210,7 @@ class TransportKeyProvider:
         :raises TransportKeyError: 密钥版本不存在
         """
         target_kid = kid or cls.get_current_kid()
-        if cls._key_pairs is None:
-            with cls._lock:
-                if cls._key_pairs is None:
-                    cls._key_pairs = cls._build_key_pairs()
-        key_pair = cls._key_pairs.get(target_kid)
+        key_pair = cls._get_key_pairs().get(target_kid)
         if key_pair is None:
             raise TransportKeyError('密钥版本不存在', msg_key='transport.keyExpired')
         return key_pair
@@ -218,9 +222,7 @@ class TransportKeyProvider:
 
         :return: 当前支持解密的密钥版本元组
         """
-        if cls._key_pairs is None:
-            cls.get_current_key_pair()
-        return tuple(cls._key_pairs.keys())
+        return tuple(cls._get_key_pairs())
 
     @classmethod
     def _build_key_pairs(cls) -> dict[str, TransportKeyPair]:
@@ -470,6 +472,8 @@ class TransportCryptoUtil:
         kid = str(envelope['kid'])
         private_key_pem = TransportKeyProvider.get_private_key_pem(kid)
         private_key = serialization.load_pem_private_key(private_key_pem.encode('utf-8'), password=None)
+        if not isinstance(private_key, rsa.RSAPrivateKey):
+            raise TransportKeyError('请求密钥解密失败', msg_key='transport.decryptFailed')
         encrypted_key = _urlsafe_b64decode(str(envelope['ek']))
         try:
             return private_key.decrypt(
@@ -512,15 +516,19 @@ class TransportCryptoUtil:
         return json.dumps(encrypted_payload, ensure_ascii=False).encode('utf-8')
 
     @classmethod
-    def decode_query_envelope(cls, encrypted_query: str) -> dict[str, Any]:
+    def decode_query_envelope(cls, encrypted_query: str) -> dict[str, object]:
         """
         解码查询参数中的加密信封。
 
         :param encrypted_query: 查询参数中的加密信封字符串
         :return: 解码后的信封字典
+        :raises ValueError: 解码后的查询参数不是 JSON 对象
         """
         decoded_query = _urlsafe_b64decode(encrypted_query).decode('utf-8')
-        return json.loads(decoded_query)
+        payload = json.loads(decoded_query)
+        if not isinstance(payload, dict):
+            raise ValueError('加密查询参数格式不合法')
+        return cast('dict[str, object]', payload)
 
     @classmethod
     def build_public_key_payload(cls) -> dict[str, Any]:
@@ -1197,7 +1205,7 @@ class TransportCryptoMonitorUtil:
         """
         if app is None:
             return None
-        return getattr(app.state, 'redis', None)
+        return cast('aioredis.Redis | None', getattr(app.state, 'redis', None))
 
     @classmethod
     def _increase_kid_counter_local(cls, kid: str | None, counter_name: str) -> None:

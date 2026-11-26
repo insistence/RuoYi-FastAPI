@@ -45,14 +45,14 @@ def test_db_sources_json_is_parsed_and_password_is_secret(monkeypatch: pytest.Mo
 
 def test_postgresql_uses_sqlglot_postgres_dialect() -> None:
     """PostgreSQL 使用 sqlglot 的 postgres 方言。"""
-    source = DataSourceSettings(**_source(db_type='postgresql', db_port=5432))
+    source = DataSourceSettings.model_validate(_source(db_type='postgresql', db_port=5432))
 
     assert source.sqlglot_parse_dialect == 'postgres'
 
 
 def test_data_source_allows_disabling_pool_recycle() -> None:
     """数据源支持禁用连接池回收。"""
-    source = DataSourceSettings(**_source(db_pool_recycle=-1))
+    source = DataSourceSettings.model_validate(_source(db_pool_recycle=-1))
 
     assert source.db_pool_recycle == -1
 
@@ -61,7 +61,7 @@ def test_data_source_allows_disabling_pool_recycle() -> None:
 def test_data_source_rejects_invalid_connect_timeout(db_connect_timeout: int) -> None:
     """数据源拒绝无效的连接超时。"""
     with pytest.raises(ValidationError):
-        DataSourceSettings(**_source(db_connect_timeout=db_connect_timeout))
+        DataSourceSettings.model_validate(_source(db_connect_timeout=db_connect_timeout))
 
 
 @pytest.mark.parametrize(
@@ -92,7 +92,7 @@ def test_database_settings_rejects_invalid_source_name() -> None:
         DataBaseSettings(
             _env_file=None,
             db_default_source='Primary',
-            db_sources={'Primary': DataSourceSettings(**_source())},
+            db_sources={'Primary': DataSourceSettings.model_validate(_source())},
         )
 
 
@@ -100,7 +100,7 @@ def test_database_settings_does_not_expose_legacy_flat_fields() -> None:
     """数据库设置不暴露旧的平铺字段。"""
     settings = DataBaseSettings(
         _env_file=None,
-        db_sources={'primary': DataSourceSettings(**_source())},
+        db_sources={'primary': DataSourceSettings.model_validate(_source())},
     )
 
     assert not hasattr(settings, 'db_type')
@@ -111,7 +111,7 @@ def test_get_source_rejects_unconfigured_name() -> None:
     """获取未配置的数据源时报错。"""
     settings = DataBaseSettings(
         _env_file=None,
-        db_sources={'primary': DataSourceSettings(**_source())},
+        db_sources={'primary': DataSourceSettings.model_validate(_source())},
     )
 
     with pytest.raises(DataSourceNotFoundException):

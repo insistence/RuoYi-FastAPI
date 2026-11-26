@@ -1,19 +1,18 @@
-from typing import Literal
-
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, model_validator
 
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
+from module_identity.entity.types import AccessStatus, AuditResult, AuditRiskLevel, AuthorizationStatus
 
 
-class SessionModel(BaseModel):
+class SessionModel(CamelModel):
     """
     Session、Grant 和 Audit 管理模型基类。
 
     管理端字段接受 camelCase 别名并拒绝额外字段。
     """
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True, extra='forbid')
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
 
 
 class GrantModel(SessionModel):
@@ -28,11 +27,9 @@ class GrantModel(SessionModel):
     granted_resources: list[str] = Field(default_factory=list, description='已同意的资源受众列表')
     remembered_scopes: list[str] = Field(default_factory=list, description='后续可免确认的权限列表')
     remembered_resources: list[str] = Field(default_factory=list, description='后续可免确认的资源列表')
-    access_status: Literal['allowed', 'blocked'] = Field(default='allowed', description='用户对应用的访问策略')
+    access_status: AccessStatus = Field(default='allowed', description='用户对应用的访问策略')
     access_reason: str | None = Field(default=None, description='访问策略的操作原因')
-    status: Literal['active', 'revoked', 'expired'] = Field(
-        default='active', description='状态（active有效 revoked已撤销 expired已过期）'
-    )
+    status: AuthorizationStatus = Field(default='active', description='状态（active有效 revoked已撤销 expired已过期）')
     client_policy_version: int | None = Field(default=None, description='授权时的客户端策略版本')
     consented_at: ApiUtcDateTime | None = Field(default=None, description='用户同意授权的时间')
     last_used_at: ApiUtcDateTime | None = Field(default=None, description='授权最近使用时间')
@@ -55,9 +52,7 @@ class SsoSessionModel(SessionModel):
     amr: list[str] = Field(default_factory=list, description='认证方式列表')
     remember_me: bool = Field(default=False, description='是否保持长期登录')
     ip_address: str | None = Field(default=None, description='IP地址')
-    status: Literal['active', 'revoked', 'expired'] = Field(
-        default='active', description='状态（active有效 revoked已撤销 expired已过期）'
-    )
+    status: AuthorizationStatus = Field(default='active', description='状态（active有效 revoked已撤销 expired已过期）')
     revoked_at: ApiUtcDateTime | None = Field(default=None, description='撤销时间')
     revoke_reason: str | None = Field(default=None, description='撤销原因')
     create_time: ApiUtcDateTime | None = Field(default=None, description='创建时间')
@@ -81,7 +76,7 @@ class SessionPageQueryModel(SessionModel):
 
     user_id: int | None = Field(default=None, description='用户ID')
     ip_address: str | None = Field(default=None, description='IP地址')
-    status: Literal['active', 'revoked', 'expired'] | None = Field(
+    status: AuthorizationStatus | None = Field(
         default=None, description='状态（active有效 revoked已撤销 expired已过期）'
     )
     start_time: ApiUtcDateTime | None = Field(default=None, description='查询开始时间')
@@ -107,10 +102,10 @@ class GrantPageQueryModel(SessionModel):
 
     user_id: int | None = Field(default=None, description='用户ID')
     client_id: str | None = Field(default=None, description='客户端标识')
-    status: Literal['active', 'revoked', 'expired'] | None = Field(
+    status: AuthorizationStatus | None = Field(
         default=None, description='状态（active有效 revoked已撤销 expired已过期）'
     )
-    access_status: Literal['allowed', 'blocked'] | None = Field(default=None, description='用户对应用的访问策略')
+    access_status: AccessStatus | None = Field(default=None, description='用户对应用的访问策略')
     page_num: int = Field(default=1, ge=1, description='当前页码')
     page_size: int = Field(default=10, ge=1, le=200, description='每页记录数')
 
@@ -122,7 +117,7 @@ class AccessPolicyModel(SessionModel):
     user_name: str = Field(description='用户名称')
     client_id: str = Field(description='客户端标识')
     client_name: str = Field(description='客户端名称')
-    access_status: Literal['allowed', 'blocked'] = Field(description='用户对应用的访问策略')
+    access_status: AccessStatus = Field(description='用户对应用的访问策略')
     reason: str | None = Field(default=None, description='操作原因')
     update_by: str | None = Field(default=None, description='操作人')
     update_time: ApiUtcDateTime = Field(description='最近操作时间')
@@ -133,7 +128,7 @@ class AccessPolicyPageQueryModel(SessionModel):
 
     user_id: int | None = Field(default=None, gt=0, description='用户ID')
     client_id: str | None = Field(default=None, max_length=128, description='客户端标识')
-    access_status: Literal['allowed', 'blocked'] | None = Field(default=None, description='访问策略')
+    access_status: AccessStatus | None = Field(default=None, description='访问策略')
     page_num: int = Field(default=1, ge=1, description='当前页码')
     page_size: int = Field(default=10, ge=1, le=200, description='每页记录数')
 
@@ -148,10 +143,8 @@ class AuditPageQueryModel(SessionModel):
     event_type: str | None = Field(default=None, description='审计事件类型')
     client_id: str | None = Field(default=None, description='客户端标识')
     user_id: int | None = Field(default=None, description='用户ID')
-    result: Literal['success', 'failure'] | None = Field(
-        default=None, description='处理结果（success成功 failure失败）'
-    )
-    risk_level: Literal['normal', 'medium', 'high', 'critical'] | None = Field(
+    result: AuditResult | None = Field(default=None, description='处理结果（success成功 failure失败）')
+    risk_level: AuditRiskLevel | None = Field(
         default=None, description='风险等级（normal普通 medium中等 high高 critical严重）'
     )
     start_time: ApiUtcDateTime | None = Field(default=None, description='查询开始时间')
@@ -177,8 +170,8 @@ class AuditModel(SessionModel):
 
     audit_id: int = Field(description='审计记录ID')
     event_type: str = Field(description='审计事件类型')
-    result: Literal['success', 'failure'] = Field(description='处理结果（success成功 failure失败）')
-    risk_level: Literal['normal', 'medium', 'high', 'critical'] = Field(
+    result: AuditResult = Field(description='处理结果（success成功 failure失败）')
+    risk_level: AuditRiskLevel = Field(
         default='normal', description='风险等级（normal普通 medium中等 high高 critical严重）'
     )
     trace_id: str | None = Field(default=None, description='请求跟踪标识')

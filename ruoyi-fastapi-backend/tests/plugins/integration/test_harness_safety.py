@@ -3,9 +3,12 @@ import json
 import os
 import threading
 from collections.abc import AsyncGenerator, AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from fnmatch import fnmatchcase
 from importlib import import_module
+from multiprocessing.context import SpawnProcess
+from multiprocessing.queues import Queue
+from multiprocessing.synchronize import Event
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -13,6 +16,9 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from config.database import DataSourceRegistry
+from config.get_redis import RedisUtil
+from plugins.core.runtime.service.lifecycle_lock import RedisPluginLifecycleLock
 from scripts import plugin_release_integration as harness
 
 
@@ -294,11 +300,10 @@ async def test_run_continues_owned_cleanup_after_engine_dispose_error(
     monkeypatch.setattr(harness, 'create_isolated_database', AsyncMock())
     monkeypatch.setattr(harness, 'prepare_schema', AsyncMock())
     monkeypatch.setattr(harness, 'exercise_release', AsyncMock())
-    monkeypatch.setattr(harness, 'wire_runtime', Mock(return_value=(object(), object())))
+    monkeypatch.setattr(harness, 'wire_runtime', Mock(return_value=nullcontext((object(), object()))))
     monkeypatch.setattr(import_module('plugins.core.deployment.service'), 'PluginDeploymentService', Mock())
-    monkeypatch.setattr(
-        import_module('scripts.plugin_task_integration'), 'exercise_task_delivery', AsyncMock(return_value={})
-    )
+    deliver_task = AsyncMock(return_value={})
+    monkeypatch.setattr(import_module('scripts.plugin_task_integration'), 'exercise_task_delivery', deliver_task)
     monkeypatch.setattr(harness, 'clear_own_redis_keys', clear)
     monkeypatch.setattr(harness, 'drop_isolated_database', drop)
     monkeypatch.setattr(harness, 'emit', Mock())
@@ -306,6 +311,7 @@ async def test_run_continues_owned_cleanup_after_engine_dispose_error(
     with pytest.raises(RuntimeError, match='engine disposal failed'):
         await harness.run(run_spec)
 
+    deliver_task.assert_awaited_once()
     clear.assert_awaited_once_with(run_spec)
     drop.assert_awaited_once_with(run_spec, admin)
     admin.dispose.assert_awaited_once()
@@ -422,15 +428,13 @@ def test_workers_pass_independent_stop_events_to_spawned_processes(
 @pytest.mark.parametrize('second_state', ['killed', 'dead'])
 async def test_workers_close_skips_killed_or_dead_stop_event_but_stops_healthy_worker(second_state: str) -> None:
     """关闭时跳过已终止进程的事件并停止健康进程。"""
-    healthy_stop = SimpleNamespace(set=Mock())
-    unusable_stop = SimpleNamespace(set=Mock(side_effect=AssertionError('Terminated waiter poisoned this event')))
-    healthy = SimpleNamespace(pid=101, exitcode=0, is_alive=Mock(return_value=True), terminate=Mock())
-    second = SimpleNamespace(
-        pid=102,
-        exitcode=-15 if second_state == 'killed' else 0,
-        is_alive=Mock(return_value=second_state == 'killed'),
-        terminate=Mock(),
-    )
+    healthy_stop = Mock(spec_set=Event)
+    unusable_stop = Mock(spec_set=Event)
+    unusable_stop.set.side_effect = AssertionError('Terminated waiter poisoned this event')
+    healthy = Mock(spec_set=SpawnProcess, pid=101, exitcode=0)
+    healthy.is_alive.return_value = True
+    second = Mock(spec_set=SpawnProcess, pid=102, exitcode=-15 if second_state == 'killed' else 0)
+    second.is_alive.return_value = second_state == 'killed'
 
     def join_healthy(timeout: float) -> None:
         """
@@ -455,7 +459,8 @@ async def test_workers_close_skips_killed_or_dead_stop_event_but_stops_healthy_w
     workers.stops = [healthy_stop, unusable_stop]
     workers.processes = [healthy, second]
     workers.killed = {1} if second_state == 'killed' else set()
-    workers.queue = SimpleNamespace(close=Mock(), join_thread=Mock())
+    queue = Mock(spec_set=Queue)
+    workers.queue = queue
 
     await workers.close()
 
@@ -465,8 +470,8 @@ async def test_workers_close_skips_killed_or_dead_stop_event_but_stops_healthy_w
     second.join.assert_called_once()
     healthy.terminate.assert_not_called()
     second.terminate.assert_not_called()
-    workers.queue.close.assert_called_once()
-    workers.queue.join_thread.assert_called_once()
+    queue.close.assert_called_once()
+    queue.join_thread.assert_called_once()
 
 
 def _wait_for_isolated_stop(stop: Any, ready: Any, index: int) -> None:
@@ -556,3 +561,24 @@ async def test_run_requires_built_bundle_before_opening_any_resource(
     configure.assert_not_called()
     factory.assert_not_called()
     redis.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_wire_runtime_restores_host_factories_after_failure(
+    run_spec: harness.RunSpec, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """隔离验收失败后恢复宿主会话工厂、Redis 工厂和生命周期锁命名空间。"""
+    client = Mock()
+    monkeypatch.setattr(harness, 'redis_client', lambda: client)
+    original_session = DataSourceRegistry.session
+    original_pool = RedisUtil.create_redis_pool
+    original_key = RedisPluginLifecycleLock._build_lock_key()
+
+    with pytest.raises(RuntimeError, match='中止验收'), harness.wire_runtime(run_spec, None):
+        assert await RedisUtil.create_redis_pool() is client
+        assert RedisPluginLifecycleLock._build_lock_key() == f'{run_spec.redis_prefix}lifecycle:global'
+        raise RuntimeError('中止验收')
+
+    assert DataSourceRegistry.session == original_session
+    assert RedisUtil.create_redis_pool == original_pool
+    assert RedisPluginLifecycleLock._build_lock_key() == original_key

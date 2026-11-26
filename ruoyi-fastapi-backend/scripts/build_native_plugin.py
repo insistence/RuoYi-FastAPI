@@ -5,13 +5,16 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
+
+if TYPE_CHECKING:
+    from plugins.core.manifest.v2 import PluginManifestV2
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _resource_roots(source: Path, manifest: Any, output: Path) -> list[Path]:
+def _resource_roots(source: Path, manifest: 'PluginManifestV2', output: Path) -> list[Path]:
     """
     检查清单声明的资源根路径及前端入口，在构建前拒绝缺失产物。
 
@@ -28,8 +31,8 @@ def _resource_roots(source: Path, manifest: Any, output: Path) -> list[Path]:
     resources.update(str(item) for item in manifest.backend.seeds)
     if (source / 'plugin.lock.yaml').exists():
         resources.add('plugin.lock.yaml')
-    if manifest.frontend.delivery.type == 'bundle':
-        bundle = manifest.frontend.bundle
+    bundle = manifest.frontend.bundle
+    if bundle is not None:
         resources.add(bundle.directory)
         if not (source / bundle.directory / bundle.entry).is_file():
             raise ValueError('缺少 bundle HTML 入口，请先独立构建前端后再组装制品')
@@ -50,7 +53,7 @@ def _resource_roots(source: Path, manifest: Any, output: Path) -> list[Path]:
     return roots
 
 
-def collect_deployment_resources(source: Path, manifest: Any, output: Path) -> dict[str, Path]:
+def collect_deployment_resources(source: Path, manifest: 'PluginManifestV2', output: Path) -> dict[str, Path]:
     """
     收集清单资源和已构建 bundle，拒绝开发工程、敏感文件及链接。
 
@@ -58,7 +61,7 @@ def collect_deployment_resources(source: Path, manifest: Any, output: Path) -> d
     :param manifest: 已解析的插件清单
     :param output: 待创建的构建输出目录
     :return: 插件内相对路径与对应源码文件的映射
-    :raises ValueError: 交付资源超过制品文件数量或大小限制
+    :raises ValueError: 清单缺少原生发行包声明，或交付资源超过制品文件数量、大小限制
     """
     from plugins.core.artifacts.package import (  # noqa: PLC0415
         CACHE_DIRECTORIES,
@@ -75,6 +78,8 @@ def collect_deployment_resources(source: Path, manifest: Any, output: Path) -> d
 
     files: dict[str, Path] = {}
     total_bytes = 0
+    if manifest.backend.native is None:
+        raise ValueError('清单缺少原生发行包声明')
     native_root = Path(manifest.backend.native.module_root)
     for resource in _resource_roots(source, manifest, output):
         pending = [resource]
@@ -137,7 +142,7 @@ def main() -> None:
     from plugins.core.validation.structure import PluginStructureChecker  # noqa: PLC0415
 
     manifest = PluginScanner(source.parent).load_manifest(source / 'plugin.yaml').manifest
-    if manifest.runtime_kind != 'native':
+    if manifest.manifest_version == 1 or manifest.backend.native is None:
         parser.error('清单必须声明 native 运行时')
     if manifest.frontend.delivery.type not in {'none', 'bundle'}:
         parser.error('原生交付只支持 none 或已独立构建的 bundle 前端')

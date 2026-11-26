@@ -4,6 +4,7 @@ from typing import Any
 from fastapi.routing import APIRoute, iter_route_contexts
 
 from cli.bootstrap import APP_BOOTSTRAP, AppBootstrapService
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -81,7 +82,7 @@ class AppCommandController:
         """
         self.bootstrap_service.exec_app_run_command(env)
 
-    def doctor(self, env: str, output: str) -> None:
+    def doctor(self, env: str, output: OutputFormat) -> None:
         """
         执行应用启动前检查。
 
@@ -109,7 +110,7 @@ class AppCommandController:
             default_exit_code=exit_code,
         )
 
-    def show_config(self, env: str, output: str) -> None:
+    def show_config(self, env: str, output: OutputFormat) -> None:
         """
         输出当前应用配置快照。
 
@@ -124,7 +125,7 @@ class AppCommandController:
             default_exit_code=SUCCESS,
         )
 
-    def show_env(self, env: str, output: str) -> None:
+    def show_env(self, env: str, output: OutputFormat) -> None:
         """
         输出当前 CLI 解析到的应用环境信息。
 
@@ -142,7 +143,7 @@ class AppCommandController:
     def show_routes(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         path_prefix: str,
         method: str,

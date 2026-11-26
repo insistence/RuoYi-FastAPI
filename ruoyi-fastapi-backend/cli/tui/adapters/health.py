@@ -2,6 +2,7 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any
 
+from cli.tui.adapters.base import get_dict_field, get_list_field
 from cli.tui.copy import TUI_COPY
 from cli.tui.diagnostics import TUI_DIAGNOSTIC_SERVICE
 from cli.tui.keymaps import TUI_KEYMAP_REGISTRY
@@ -392,11 +393,10 @@ class DashboardPanelBuilder:
         :param routes_payload: ``app routes`` JSON 负载
         :return: 面板快照
         """
-        runtime = env_payload.get('runtime') if isinstance(env_payload, dict) else None
         route_count = routes_payload.get('count', 0) if isinstance(routes_payload, dict) else 0
         grouped_routes = routes_payload.get('groupedRoutes') if isinstance(routes_payload, dict) else None
         group_count = len(grouped_routes) if isinstance(grouped_routes, dict) else 0
-        if not isinstance(runtime, dict):
+        if not isinstance(env_payload, dict) or not isinstance(runtime := env_payload.get('runtime'), dict):
             return DashboardPanelSnapshot(
                 title='应用摘要',
                 status='fail',
@@ -441,9 +441,9 @@ class DashboardPanelBuilder:
                 ),
             )
 
-        database = payload.get('database') if isinstance(payload.get('database'), dict) else {}
-        redis = payload.get('redis') if isinstance(payload.get('redis'), dict) else {}
-        crypto = payload.get('crypto') if isinstance(payload.get('crypto'), dict) else {}
+        database = get_dict_field(payload, 'database')
+        redis = get_dict_field(payload, 'redis')
+        crypto = get_dict_field(payload, 'crypto')
         return DashboardPanelSnapshot(
             title='系统摘要',
             status='ok' if payload.get('ok', False) else 'fail',
@@ -653,8 +653,8 @@ class DashboardPanelBuilder:
                     suggestion=TUI_COPY.build_dashboard_page_suggestion('缓存', '查看 Redis 状态'),
                 ),
             )
-        info = payload.get('info') if isinstance(payload.get('info'), dict) else {}
-        cache_names = payload.get('cacheNames') if isinstance(payload.get('cacheNames'), list) else []
+        info = get_dict_field(payload, 'info')
+        cache_names = get_list_field(payload, 'cacheNames')
         return DashboardPanelSnapshot(
             title='缓存摘要',
             status='ok' if payload.get('ok', False) else 'fail',
@@ -687,8 +687,8 @@ class DashboardPanelBuilder:
                     suggestion=TUI_COPY.build_dashboard_page_suggestion('运维', '检查依赖详情'),
                 ),
             )
-        packages = payload.get('packages') if isinstance(payload.get('packages'), dict) else {}
-        missing_required = payload.get('missingRequired') if isinstance(payload.get('missingRequired'), list) else []
+        packages = get_dict_field(payload, 'packages')
+        missing_required = get_list_field(payload, 'missingRequired')
         lines = [
             '## 依赖结论',
             f'检查结果: {"通过" if payload.get("ok", False) else "异常"}',
@@ -715,8 +715,7 @@ class DashboardPanelBuilder:
         :param payload: ``ops server-info`` JSON 负载
         :return: 面板快照
         """
-        server = payload.get('server') if isinstance(payload, dict) else None
-        if not isinstance(server, dict):
+        if not isinstance(payload, dict) or not isinstance(server := payload.get('server'), dict):
             return DashboardPanelSnapshot(
                 title='服务器摘要',
                 status='fail',
@@ -727,9 +726,9 @@ class DashboardPanelBuilder:
                     suggestion=TUI_COPY.build_dashboard_page_suggestion('运维', '重新采集服务器摘要'),
                 ),
             )
-        sys_info = server.get('sys') if isinstance(server.get('sys'), dict) else {}
-        cpu_info = server.get('cpu') if isinstance(server.get('cpu'), dict) else {}
-        mem_info = server.get('mem') if isinstance(server.get('mem'), dict) else {}
+        sys_info = get_dict_field(server, 'sys')
+        cpu_info = get_dict_field(server, 'cpu')
+        mem_info = get_dict_field(server, 'mem')
         return DashboardPanelSnapshot(
             title='服务器摘要',
             status='ok' if payload.get('ok', False) else 'fail',

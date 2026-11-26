@@ -10,7 +10,7 @@ from config.env import DataBaseConfig
 from i18n.message import I18nMessage
 from plugins.core.environment import PluginRuntimeEnvironmentService
 from plugins.core.manifest.menu_tree import PluginMenuTree
-from plugins.core.manifest.schema import PluginManifest
+from plugins.core.manifest.v2 import PluginManifestV2, VersionedPluginManifest
 from plugins.core.sdk.version import HOST_API_VERSION
 from plugins.core.validation.dependencies import DependencyRequirementParser
 from plugins.core.validation.python_requirements import PythonRequirementParser
@@ -99,7 +99,7 @@ class PluginManifestChecker:
         self.python_version = python_version or platform.python_version()
         self.node_version = node_version
 
-    def check(self, manifest: PluginManifest) -> PluginManifestCheckResult:
+    def check(self, manifest: VersionedPluginManifest) -> PluginManifestCheckResult:
         """
         检查插件 manifest 提示类问题。
 
@@ -125,7 +125,7 @@ class PluginManifestChecker:
 
         return PluginManifestCheckResult(plugin_id=manifest.id, issues=issues)
 
-    def _check_secret_config_defaults(self, manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_secret_config_defaults(self, manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查敏感配置默认值声明。
 
@@ -157,7 +157,7 @@ class PluginManifestChecker:
         return issues
 
     @staticmethod
-    def _check_secret_config_type_alignment(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_secret_config_type_alignment(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查敏感配置类型和 secret 标记是否一致。
 
@@ -207,7 +207,8 @@ class PluginManifestChecker:
 
         return issues
 
-    def _check_unpinned_dependencies(self, manifest: PluginManifest) -> list[PluginValidationIssue]:
+    @staticmethod
+    def _check_unpinned_dependencies(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查未声明版本约束的依赖。
 
@@ -278,7 +279,7 @@ class PluginManifestChecker:
         return issues
 
     @staticmethod
-    def _check_resources_without_purge_hook(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_resources_without_purge_hook(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查资源声明是否缺少物理清理钩子。
 
@@ -309,7 +310,7 @@ class PluginManifestChecker:
         ]
 
     @staticmethod
-    def _check_required_config_without_default(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_required_config_without_default(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查必填配置是否缺少默认值。
 
@@ -342,7 +343,7 @@ class PluginManifestChecker:
         return issues
 
     @staticmethod
-    def _check_ineffective_config_constraints(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_ineffective_config_constraints(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查配置项声明了当前类型不会生效的增强约束。
 
@@ -414,7 +415,7 @@ class PluginManifestChecker:
         return issues
 
     @staticmethod
-    def _check_permissions_without_plugin_prefix(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_permissions_without_plugin_prefix(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查权限标识是否使用插件 ID 前缀。
 
@@ -448,7 +449,7 @@ class PluginManifestChecker:
         ]
 
     @staticmethod
-    def _check_frontend_menus_without_permissions(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_frontend_menus_without_permissions(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查前端菜单是否完全缺少权限声明。
 
@@ -480,7 +481,7 @@ class PluginManifestChecker:
         ]
 
     @staticmethod
-    def _check_button_menus_without_permission(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_button_menus_without_permission(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查按钮菜单是否声明权限标识。
 
@@ -513,7 +514,7 @@ class PluginManifestChecker:
         return issues
 
     @staticmethod
-    def _check_button_menu_structure(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_button_menu_structure(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查按钮菜单结构是否混入路由菜单语义。
 
@@ -566,7 +567,7 @@ class PluginManifestChecker:
         return issues
 
     @staticmethod
-    def _check_permission_button_parent(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_permission_button_parent(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查自动权限按钮是否存在可挂载的页面或目录菜单。
 
@@ -602,7 +603,7 @@ class PluginManifestChecker:
         ]
 
     @staticmethod
-    def _check_lifecycle_script_order(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_lifecycle_script_order(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查 migration 和 seed 声明顺序是否稳定。
 
@@ -639,7 +640,7 @@ class PluginManifestChecker:
         return issues
 
     @staticmethod
-    def _check_enabled_jobs_without_health_checker(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_enabled_jobs_without_health_checker(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查默认启用任务是否缺少健康检查声明。
 
@@ -669,7 +670,7 @@ class PluginManifestChecker:
         ]
 
     @staticmethod
-    def _check_unpaired_runtime_hooks(manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_unpaired_runtime_hooks(manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查启动和关闭钩子是否成对声明。
 
@@ -701,7 +702,7 @@ class PluginManifestChecker:
             )
         ]
 
-    def _check_compatibility(self, manifest: PluginManifest) -> list[PluginValidationIssue]:
+    def _check_compatibility(self, manifest: VersionedPluginManifest) -> list[PluginValidationIssue]:
         """
         检查插件平台兼容性声明。
 
@@ -715,7 +716,7 @@ class PluginManifestChecker:
             ('pythonVersion', compatibility.python_version, lambda: self.python_version, 'python'),
             ('nodeVersion', compatibility.node_version, self._resolve_node_version, 'node'),
         ]
-        if manifest.uses_entrypoint:
+        if isinstance(manifest, PluginManifestV2):
             checks.append(
                 ('hostApiVersion', manifest.compatibility.host_api_version, lambda: HOST_API_VERSION, 'hostApi')
             )

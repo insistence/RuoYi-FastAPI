@@ -34,28 +34,31 @@ class OnlineService:
             except AuthException:
                 # 单个过期或损坏的会话不应影响在线用户列表中的其他会话
                 continue
+            login_info = payload.get('login_info')
+            if not isinstance(login_info, dict):
+                login_info = {}
             online_dict = {
                 'token_id': payload.get('session_id') if AppConfig.app_same_time_login else payload.get('user_id'),
                 'user_name': payload.get('user_name'),
                 'dept_name': payload.get('dept_name'),
-                'ipaddr': payload.get('login_info').get('ipaddr'),
-                'login_location': payload.get('login_info').get('loginLocation'),
-                'browser': payload.get('login_info').get('browser'),
-                'os': payload.get('login_info').get('os'),
-                'login_time': payload.get('login_info').get('loginTime'),
+                'ipaddr': login_info.get('ipaddr'),
+                'login_location': login_info.get('loginLocation'),
+                'browser': login_info.get('browser'),
+                'os': login_info.get('os'),
+                'login_time': login_info.get('loginTime'),
             }
             if query_object.user_name and not query_object.ipaddr:
                 if query_object.user_name == payload.get('user_name'):
                     online_info_list = [online_dict]
                     break
             elif not query_object.user_name and query_object.ipaddr:
-                if query_object.ipaddr == payload.get('login_info').get('ipaddr'):
+                if query_object.ipaddr == login_info.get('ipaddr'):
                     online_info_list = [online_dict]
                     break
             elif query_object.user_name and query_object.ipaddr:
-                if query_object.user_name == payload.get('user_name') and query_object.ipaddr == payload.get(
-                    'login_info'
-                ).get('ipaddr'):
+                if query_object.user_name == payload.get('user_name') and query_object.ipaddr == login_info.get(
+                    'ipaddr'
+                ):
                     online_info_list = [online_dict]
                     break
             else:

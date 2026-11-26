@@ -207,8 +207,13 @@ CONTRACT_FILE_BUSINESS_TYPE = 'contract'
 ### 4.2 请求模型接收文件 ID
 
 ```python
-class ContractModel(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel)
+from pydantic import Field
+
+from common.vo import CamelModel
+
+
+class ContractModel(CamelModel):
+    """合同及其关联附件。"""
 
     contract_id: int | None = Field(default=None, description='合同ID')
     contract_name: str = Field(description='合同名称')

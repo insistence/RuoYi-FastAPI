@@ -1,11 +1,13 @@
 import re
 from collections import Counter
-from typing import Any, Literal
+from typing import Annotated, Any, Generic, Literal, Self
 
 from packaging.requirements import InvalidRequirement
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
+from typing_extensions import TypeVar
 
 from i18n.translation import TranslationUtil
+from plugins.core import manifest as manifest_models
 from plugins.core.frontend import validate_frontend_framework
 from plugins.core.manifest.menu_tree import PluginMenuTree
 from plugins.core.types import PluginConfigValue
@@ -54,7 +56,7 @@ class PluginManifestError(ValueError):
 class RouterManifest(BaseModel):
     """插件路由声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     auto_scan: bool = Field(default=True, alias='autoScan', description='是否自动扫描插件控制器')
 
@@ -62,7 +64,7 @@ class RouterManifest(BaseModel):
 class HealthManifest(BaseModel):
     """插件健康检查声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     checker: str | None = Field(default=None, description='插件健康检查 callable，格式为 <module_path>:<callable_name>')
 
@@ -84,7 +86,7 @@ class HealthManifest(BaseModel):
 class HookManifest(BaseModel):
     """插件生命周期钩子声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     on_install: str | None = Field(default=None, alias='onInstall', description='插件安装钩子')
     on_upgrade: str | None = Field(default=None, alias='onUpgrade', description='插件升级钩子')
@@ -107,10 +109,13 @@ class HookManifest(BaseModel):
         raise ValueError('生命周期钩子必须使用 <module_path>:<callable_name> 格式')
 
 
-class PluginJobManifest(BaseModel):
+_ExecutorT = TypeVar('_ExecutorT', bound=Literal['default', 'processpool'], default=Literal['default', 'processpool'])
+
+
+class PluginJobManifest(BaseModel, Generic[_ExecutorT]):
     """插件定时任务声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     id: str = Field(description='插件内定时任务唯一标识')
     name: str | None = Field(default=None, description='定时任务展示名称')
@@ -132,7 +137,7 @@ class PluginJobManifest(BaseModel):
     job_store: Literal['default', 'sqlalchemy', 'redis'] = Field(
         default='default', alias='jobStore', description='调度存储'
     )
-    executor: Literal['default', 'processpool'] = Field(default='default', description='任务执行器')
+    executor: Annotated[_ExecutorT, Field(default='default', description='任务执行器')]
 
     @field_validator('id')
     @classmethod
@@ -202,7 +207,7 @@ class PluginJobManifest(BaseModel):
         return TimezoneUtil.validate_timezone_name(value)
 
     @model_validator(mode='after')
-    def fill_name(self) -> 'PluginJobManifest':
+    def fill_name(self) -> Self:
         """
         填充任务展示名称默认值。
 
@@ -213,10 +218,13 @@ class PluginJobManifest(BaseModel):
         return self
 
 
-class BackendManifest(BaseModel):
+_JobT = TypeVar('_JobT', bound='PluginJobManifest | manifest_models.v2.PluginJobManifestV2', default=PluginJobManifest)
+
+
+class BackendManifest(BaseModel, Generic[_JobT]):
     """插件后端声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     module: str = Field(description='插件后端 Python 模块路径')
     routers: RouterManifest = Field(default_factory=RouterManifest, description='插件路由声明')
@@ -224,7 +232,7 @@ class BackendManifest(BaseModel):
     migrations: list[str] = Field(default_factory=list, description='数据库迁移脚本列表')
     seeds: list[str] = Field(default_factory=list, description='初始化数据脚本列表')
     hooks: HookManifest = Field(default_factory=HookManifest, description='生命周期钩子声明')
-    jobs: list[PluginJobManifest] = Field(default_factory=list, description='插件定时任务声明列表')
+    jobs: list[_JobT] = Field(default_factory=list, description='插件定时任务声明列表')
 
     @field_validator('module')
     @classmethod
@@ -241,7 +249,7 @@ class BackendManifest(BaseModel):
         return value
 
     @model_validator(mode='after')
-    def validate_unique_jobs(self) -> 'BackendManifest':
+    def validate_unique_jobs(self) -> Self:
         """
         校验插件定时任务 ID 唯一性。
 
@@ -258,7 +266,7 @@ class BackendManifest(BaseModel):
 class PluginDependencyManifest(BaseModel):
     """插件间依赖声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     id: str = Field(description='依赖插件ID')
     version: str | None = Field(default=None, description='依赖插件版本约束，例如 >=1.0.0')
@@ -315,7 +323,7 @@ class PluginDependencyManifest(BaseModel):
 class FrontendDependencyManifest(BaseModel):
     """指定前端框架的宿主前端依赖声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     npm: list[str] = Field(default_factory=list, description='前端 npm 依赖声明')
     npm_dev: list[str] = Field(default_factory=list, alias='npmDev', description='前端 npm 开发依赖声明')
@@ -328,7 +336,7 @@ class DependencyManifest(BaseModel):
     前端依赖按宿主前端框架在 frontend 中分类声明，各分类独立维护完整依赖列表。
     """
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     python: list[str] = Field(default_factory=list, description='Python 依赖声明')
     frontend: dict[str, FrontendDependencyManifest] = Field(
@@ -416,7 +424,7 @@ class DependencyManifest(BaseModel):
 class PluginMetadataManifest(BaseModel):
     """插件展示元数据声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     category: str = Field(default='', description='插件分类')
     tags: list[str] = Field(default_factory=list, description='插件标签')
@@ -474,7 +482,7 @@ class PluginMetadataManifest(BaseModel):
 class CompatibilityManifest(BaseModel):
     """插件平台兼容性声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     backend_version: str | None = Field(default=None, alias='backendVersion', description='后端版本约束')
     frontend_version: str | None = Field(default=None, alias='frontendVersion', description='前端版本约束')
@@ -520,7 +528,7 @@ class CompatibilityManifest(BaseModel):
 class PluginResourceManifest(BaseModel):
     """插件资源声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     static: list[str] = Field(default_factory=list, description='插件静态资源相对路径列表')
     uploads: list[str] = Field(default_factory=list, description='插件上传资源相对路径列表')
@@ -549,7 +557,7 @@ class PluginResourceManifest(BaseModel):
 class PluginPermissionManifest(BaseModel):
     """插件权限声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     code: str = Field(validation_alias=AliasChoices('code', 'perms', 'permission'), description='权限标识')
     name: str | None = Field(default=None, description='权限展示名称')
@@ -626,7 +634,7 @@ class PluginPermissionManifest(BaseModel):
 class PluginConfigOptionManifest(BaseModel):
     """插件配置选项声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     label: str = Field(description='配置选项展示名称')
     value: PluginConfigValue = Field(description='配置选项值')
@@ -635,7 +643,7 @@ class PluginConfigOptionManifest(BaseModel):
 class PluginConfigItemManifest(BaseModel):
     """插件配置项声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     key: str = Field(description='配置键名')
     label: str | None = Field(default=None, description='配置展示名称')
@@ -750,8 +758,6 @@ class PluginConfigItemManifest(BaseModel):
             return
         if self.type == 'boolean' and not isinstance(self.default, bool):
             raise ValueError(f'配置 {self.key} 的 default 必须是布尔值')
-        if self.type == 'number' and (not isinstance(self.default, int | float) or isinstance(self.default, bool)):
-            raise ValueError(f'配置 {self.key} 的 default 必须是数字')
         if self.type == 'json' and not isinstance(self.default, dict | list):
             raise ValueError(f'配置 {self.key} 的 default 必须是对象或数组')
 
@@ -759,12 +765,14 @@ class PluginConfigItemManifest(BaseModel):
         """
         校验数字配置范围。
 
-        :raises ValueError: 上下限互相矛盾或默认值超出范围
+        :raises ValueError: 上下限互相矛盾，或数字配置的默认值类型、取值范围有误
         """
         if self.min_value is not None and self.max_value is not None and self.min_value > self.max_value:
             raise ValueError(f'配置 {self.key} 的 min 不能大于 max')
         if self.default is None or self.type != 'number':
             return
+        if not isinstance(self.default, int | float) or isinstance(self.default, bool):
+            raise ValueError(f'配置 {self.key} 的 default 必须是数字')
         if self.min_value is not None and self.default < self.min_value:
             raise ValueError(f'配置 {self.key} 的 default 不能小于 min')
         if self.max_value is not None and self.default > self.max_value:
@@ -793,7 +801,7 @@ class PluginConfigItemManifest(BaseModel):
 class PluginConfigManifest(BaseModel):
     """插件配置声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     items: list[PluginConfigItemManifest] = Field(default_factory=list, description='插件配置项列表')
 
@@ -841,7 +849,7 @@ class PluginConfigManifest(BaseModel):
 class PluginMenuManifest(BaseModel):
     """插件菜单声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     name: str = Field(description='菜单名称')
     name_i18n: dict[str, str] = Field(default_factory=dict, alias='nameI18n', description='多语言名称')
@@ -944,25 +952,35 @@ class PluginMenuManifest(BaseModel):
         return self
 
 
-class FrontendDeliveryManifest(BaseModel):
+_DeliveryKindT = TypeVar('_DeliveryKindT', bound=Literal['none', 'source', 'bundle'], default=Literal['none', 'source'])
+
+
+class FrontendDeliveryManifest(BaseModel, Generic[_DeliveryKindT]):
     """插件前端交付声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
-    type: Literal['none', 'source'] = Field(default='none', description='前端交付类型')
+    type: Annotated[_DeliveryKindT, Field(default='none', description='前端交付类型')]
     build_required: bool = Field(default=False, alias='buildRequired', description='前端资源是否需要构建后生效')
 
 
-class FrontendManifest(BaseModel):
+_DeliveryT = TypeVar(
+    '_DeliveryT',
+    bound='FrontendDeliveryManifest | manifest_models.v2.FrontendDeliveryManifestV2',
+    default=FrontendDeliveryManifest,
+)
+
+
+class FrontendManifest(BaseModel, Generic[_DeliveryT]):
     """插件前端声明。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
     plugin_id: str | None = Field(default=None, alias='pluginId', description='前端插件目录名')
     base_path: str | None = Field(default=None, alias='basePath', description='前端基础路径')
     views_path: str = Field(default='views', alias='viewsPath', description='前端视图目录')
     api_path: str = Field(default='api', alias='apiPath', description='前端 API 目录')
-    delivery: FrontendDeliveryManifest = Field(default_factory=FrontendDeliveryManifest, description='前端交付声明')
+    delivery: Annotated[_DeliveryT, Field(default_factory=FrontendDeliveryManifest, description='前端交付声明')]
     menus: list[PluginMenuManifest] = Field(default_factory=list, description='菜单声明列表')
 
     @field_validator('plugin_id')
@@ -1005,26 +1023,41 @@ class FrontendManifest(BaseModel):
         return value
 
 
-class PluginManifest(BaseModel):
+_VersionT = TypeVar('_VersionT', bound=Literal[1, 2], default=Literal[1])
+_BackendT = TypeVar(
+    '_BackendT', bound='BackendManifest | manifest_models.v2.BackendManifestV2', default=BackendManifest
+)
+_FrontendT = TypeVar(
+    '_FrontendT', bound='FrontendManifest | manifest_models.v2.FrontendManifestV2', default=FrontendManifest
+)
+_CompatibilityT = TypeVar('_CompatibilityT', bound=CompatibilityManifest, default=CompatibilityManifest)
+
+
+class PluginManifest(BaseModel, Generic[_VersionT, _BackendT, _FrontendT, _CompatibilityT]):
     """插件主清单。"""
 
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True, extra='forbid')
 
-    manifest_version: Literal[1] = Field(
-        default=SUPPORTED_MANIFEST_VERSION,
-        alias='manifestVersion',
-        description='插件清单版本',
-    )
+    manifest_version: Annotated[
+        _VersionT,
+        Field(
+            default=SUPPORTED_MANIFEST_VERSION,
+            alias='manifestVersion',
+            description='插件清单版本',
+        ),
+    ]
     id: str = Field(description='插件唯一标识')
     name: str = Field(description='插件名称')
     version: str = Field(description='插件版本')
     description: str = Field(default='', description='插件说明')
     metadata: PluginMetadataManifest = Field(default_factory=PluginMetadataManifest, description='插件展示元数据')
-    backend: BackendManifest = Field(description='后端声明')
-    frontend: FrontendManifest = Field(default_factory=FrontendManifest, description='前端声明')
+    backend: _BackendT = Field(description='后端声明')
+    frontend: Annotated[_FrontendT, Field(default_factory=FrontendManifest, description='前端声明')]
     permissions: list[PluginPermissionManifest] = Field(default_factory=list, description='权限声明列表')
     dependencies: DependencyManifest = Field(default_factory=DependencyManifest, description='依赖声明')
-    compatibility: CompatibilityManifest = Field(default_factory=CompatibilityManifest, description='平台兼容性声明')
+    compatibility: Annotated[
+        _CompatibilityT, Field(default_factory=CompatibilityManifest, description='平台兼容性声明')
+    ]
     resources: PluginResourceManifest = Field(default_factory=PluginResourceManifest, description='插件资源声明')
     config: PluginConfigManifest = Field(default_factory=PluginConfigManifest, description='插件配置声明')
 
@@ -1089,7 +1122,7 @@ class PluginManifest(BaseModel):
 
         :return: 插件后端交付类型
         """
-        return getattr(self.backend, 'runtime', 'python')
+        return self.backend.runtime if isinstance(self.backend, manifest_models.v2.BackendManifestV2) else 'python'
 
     @property
     def integration_kind(self) -> str:
@@ -1098,7 +1131,7 @@ class PluginManifest(BaseModel):
 
         :return: 插件 Web 接入类型
         """
-        return getattr(self.backend, 'integration', 'router')
+        return self.backend.integration if isinstance(self.backend, manifest_models.v2.BackendManifestV2) else 'router'
 
     @property
     def uses_entrypoint(self) -> bool:
@@ -1119,7 +1152,7 @@ class PluginManifest(BaseModel):
         return {permission.code: permission.name for permission in self.permissions if permission.name}
 
     @model_validator(mode='after')
-    def fill_frontend_defaults(self) -> 'PluginManifest':
+    def fill_frontend_defaults(self) -> Self:
         """
         填充前端声明默认值并执行跨字段校验。
 
@@ -1271,7 +1304,7 @@ class PluginManifestFactory:
     """
 
     @classmethod
-    def create(cls, raw_manifest: dict[str, Any]) -> PluginManifest:
+    def create(cls, raw_manifest: dict[str, Any]) -> 'manifest_models.v2.VersionedPluginManifest':
         """
         从原始字典创建插件清单。
 
@@ -1279,7 +1312,5 @@ class PluginManifestFactory:
         :return: 插件清单模型
         """
         if raw_manifest.get('manifestVersion', raw_manifest.get('manifest_version', 1)) == EXPLICIT_MANIFEST_VERSION:
-            from plugins.core.manifest.v2 import PluginManifestV2  # noqa: PLC0415
-
-            return PluginManifestV2.model_validate(raw_manifest)
+            return manifest_models.v2.PluginManifestV2.model_validate(raw_manifest)
         return PluginManifest.model_validate(raw_manifest)

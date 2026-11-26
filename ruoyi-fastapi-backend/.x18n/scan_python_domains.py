@@ -64,6 +64,8 @@ def scan(source: dict) -> dict:
             raise ValueError(
                 f'{source["path"]}:{node.lineno}: static message requires a literal or module constant domain'
             )
+        if key.end_lineno is None or key.end_col_offset is None:
+            raise ValueError(f'{source["path"]}:{key.lineno}: missing end position for message key')
         usages.append(
             {
                 'domain': domain.value,

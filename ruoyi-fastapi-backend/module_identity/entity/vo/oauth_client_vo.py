@@ -1,18 +1,19 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, model_validator
 
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
+from module_identity.entity.types import ClientUriType, ResponseType
 from utils.oidc_util import OidcUtil
 
 _MAX_ROLE_KEY_LENGTH = 100
 
 
-class ClientModel(BaseModel):
+class ClientModel(CamelModel):
     """OAuth Client 管理模型基类。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True, extra='forbid')
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
 
 
 class ClientCreateModel(ClientModel):
@@ -24,8 +25,8 @@ class ClientCreateModel(ClientModel):
     )
     token_endpoint_auth_method: Literal['none', 'client_secret_basic'] = Field(description='令牌端点的客户端认证方式')
     grant_types: list[str] = Field(default_factory=lambda: ['authorization_code'], description='允许使用的授权类型')
-    response_types: list[Literal['code']] = Field(
-        default_factory=lambda: ['code'], description='允许使用的授权响应类型'
+    response_types: list[ResponseType] = Field(
+        default_factory=lambda: list[ResponseType](('code',)), description='允许使用的授权响应类型'
     )
     require_pkce: bool = Field(default=True, description='是否强制使用PKCE')
     require_consent: bool = Field(default=True, description='是否要求用户确认授权')
@@ -166,9 +167,7 @@ class ClientUriModel(ClientModel):
     URI 在 DTO 边界执行精确匹配所需的安全校验。
     """
 
-    uri_type: Literal['redirect', 'post_logout', 'backchannel_logout', 'cors_origin'] = Field(
-        description='注册地址类型'
-    )
+    uri_type: ClientUriType = Field(description='注册地址类型')
     uri: str = Field(min_length=1, max_length=1000, description='完整注册地址')
     is_default: bool = Field(default=False, description='是否为默认地址')
     status: Literal['0', '1'] = Field(default='0', description='状态（0正常 1停用）')

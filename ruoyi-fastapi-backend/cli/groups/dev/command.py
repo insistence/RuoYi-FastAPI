@@ -14,7 +14,7 @@ app = typer.Typer(
 _DEV_COMMAND_CONTROLLER = DevCommandController()
 
 
-@app.command('lint', help='执行 Ruff 检查、格式化和 reST 文档字符串检查')
+@app.command('lint', help='执行 Ruff 格式化、静态检查、文档规范和 ty 类型检查')
 def lint(
     targets: Annotated[list[str] | None, typer.Argument(help='待检查路径，可传多个')] = None,
     env: EnvOption = 'dev',
@@ -24,7 +24,7 @@ def lint(
     unsafe_fixes: bool = typer.Option(False, '--unsafe-fixes', help='允许 Ruff 不安全修复'),
 ) -> None:
     """
-    执行 Ruff 检查、格式化和 reST 文档字符串检查。
+    执行 Ruff 格式化、静态检查、文档规范和 ty 类型检查。
 
     :param targets: 待检查路径列表
     :param env: 当前命令运行环境

@@ -47,7 +47,7 @@ class LoginHelper:
                     if not token:
                         token = result.get('data', {}).get('token')  # 在data对象内
 
-                    if token:
+                    if isinstance(token, str) and token:
                         print('登录成功')
                         return token
                     print(f'登录失败: 响应中未找到token - {result}')

@@ -197,7 +197,7 @@ async def test_job_operation_retains_execution_and_sync_results(
     gateway.get_redis_util.return_value.create_redis_pool = AsyncMock()
     gateway.get_scheduler_manager.return_value.init_system_scheduler = AsyncMock()
     gateway.get_job_service.return_value = job_service
-    scheduler_support = SimpleNamespace(close_scheduler_context=AsyncMock())
+    scheduler_support = MagicMock(spec=JobSchedulerSupport, close_scheduler_context=AsyncMock())
     service = JobRuntimeService(infrastructure_gateway=gateway, scheduler_support=scheduler_support)
     payload = await service.run_with_scheduler_context(operation, 7)
     assert payload['result'] == result

@@ -16,32 +16,12 @@ from module_identity.controller.oauth_resource_controller import (
     oauth_resource_controller,
     oauth_scope_controller,
 )
+from module_identity.entity.vo.oauth_resource_vo import ResourcePageQueryModel, ScopePageQueryModel
 from module_identity.service.oauth_management_service import (
     OAuthClientManagementError,
     OAuthResourceManagementService,
 )
-
-
-class _FakeSession:
-    """
-    记录 Controller 提交和回滚次数。
-
-    :ivar commits: 测试中记录的提交次数
-    :ivar rollbacks: 测试中记录的回滚次数
-    """
-
-    def __init__(self) -> None:
-        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
-        self.commits = 0
-        self.rollbacks = 0
-
-    async def commit(self) -> None:
-        """累加 ``commits`` 供后续断言检查。"""
-        self.commits += 1
-
-    async def rollback(self) -> None:
-        """累加 ``rollbacks`` 供后续断言检查。"""
-        self.rollbacks += 1
+from tests.module_identity.support.sessions import RecordingSession
 
 
 @pytest.fixture(autouse=True)
@@ -74,7 +54,7 @@ def _user() -> SimpleNamespace:
     return SimpleNamespace(user=SimpleNamespace(user_name='admin', dept=SimpleNamespace(dept_name='测试部门')))
 
 
-def _route_map(router: object) -> dict[tuple[str, str], APIRoute]:
+def _route_map(router: APIRouter) -> dict[tuple[str, str], APIRoute]:
     """
     构造路由路径和方法索引。
 
@@ -82,10 +62,10 @@ def _route_map(router: object) -> dict[tuple[str, str], APIRoute]:
     :return: 路由路径和方法索引
     """
     routes = [route for route in router.routes if isinstance(route, APIRoute)]
-    return {(route.path, method): route for route in routes for method in route.methods}
+    return {(route.path, method): route for route in routes for method in route.methods or ()}
 
 
-def _assert_routes(router: object, expected: dict[tuple[str, str], str]) -> None:
+def _assert_routes(router: APIRouter, expected: dict[tuple[str, str], str]) -> None:
     """
     断言路由路径、方法和权限依赖。
 
@@ -133,7 +113,7 @@ async def test_resource_batch_failure_rolls_back_without_partial_commit(
     oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
 ) -> None:
     """Resource 批量停用任一项失败时整体回滚。"""
-    session = _FakeSession()
+    session = RecordingSession()
     calls: list[str] = []
 
     async def fake_disable(*args: object, **kwargs: object) -> object:
@@ -146,6 +126,7 @@ async def test_resource_batch_failure_rolls_back_without_partial_commit(
         :return: ``SimpleNamespace`` 实例
         """
         resource_id = args[1]
+        assert isinstance(resource_id, str)
         calls.append(resource_id)
         if resource_id == 'resource-bad':
             raise OAuthClientManagementError('resource not found')
@@ -167,7 +148,7 @@ async def test_scope_batch_rejects_empty_duplicate_and_invalid_encoding(
     oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
 ) -> None:
     """Scope 批量路径拒绝空项、重复项和未解析的百分号编码。"""
-    session = _FakeSession()
+    session = RecordingSession()
     user = _user()
     async with oauth_management_client(oauth_scope_controller, session, user) as client:
         for value, message in (
@@ -190,7 +171,7 @@ async def test_resource_scope_lists_use_real_total_and_actor_failure_is_mapped(
     oauth_management_client: Callable[[APIRouter, object, object], AsyncClient],
 ) -> None:
     """Resource/Scope 列表使用真实全量计数，缺少 actor 时不逃逸异常。"""
-    session = _FakeSession()
+    session = RecordingSession()
 
     async def fake_rows(*args: object, **kwargs: object) -> list[str]:
         """
@@ -214,13 +195,13 @@ async def test_resource_scope_lists_use_real_total_and_actor_failure_is_mapped(
 
     monkeypatch.setattr(OAuthResourceManagementService, 'list_resources', fake_rows)
     monkeypatch.setattr(OAuthResourceManagementService, 'count_resources', fake_count)
-    resource_response = await get_system_oauth_resource_list(SimpleNamespace(), session)
+    resource_response = await get_system_oauth_resource_list(ResourcePageQueryModel(), session)
     assert b'"total":37' in resource_response.body
     assert b'"rows":["row-1","row-2"]' in resource_response.body
 
     monkeypatch.setattr(OAuthResourceManagementService, 'list_scopes', fake_rows)
     monkeypatch.setattr(OAuthResourceManagementService, 'count_scopes', fake_count)
-    scope_response = await get_system_oauth_scope_list(SimpleNamespace(), session)
+    scope_response = await get_system_oauth_scope_list(ScopePageQueryModel(), session)
     assert b'"total":37' in scope_response.body
     assert b'"rows":["row-1","row-2"]' in scope_response.body
 

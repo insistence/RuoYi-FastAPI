@@ -32,7 +32,7 @@ class JobSnapshot:
     """
 
     name: str
-    jobstore: str
+    jobstore: str | None
     executor: str
     invoke_target: str
     args: str
@@ -69,6 +69,17 @@ class JobSnapshot:
             dispatch_token=getattr(job.trigger, 'dispatch_token', None),
             managed=managed and (job.id.isdecimal() or job.id.startswith('_manual:')),
         )
+
+    def require_job_id(self) -> int:
+        """
+        读取持久化执行所需的任务 ID。
+
+        :return: 关联的数据库任务 ID
+        :raises ValueError: 调度任务缺少数据库任务 ID
+        """
+        if self.job_id is None:
+            raise ValueError('调度任务缺少数据库任务 ID')
+        return self.job_id
 
     def execution_snapshot(self) -> dict[str, Any]:
         """

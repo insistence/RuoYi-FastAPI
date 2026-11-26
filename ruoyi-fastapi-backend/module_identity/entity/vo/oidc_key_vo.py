@@ -1,17 +1,17 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field, field_validator
 
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from module_identity.entity.vo.protocol_vo import Jwk
 from utils.oidc_util import OidcUtil
 
 
-class OidcKeyModel(BaseModel):
+class OidcKeyModel(CamelModel):
     """OIDC 签名密钥管理模型基类。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True, extra='forbid')
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
 
 
 class OidcKeyRotateModel(OidcKeyModel):

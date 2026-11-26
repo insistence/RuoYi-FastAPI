@@ -38,6 +38,7 @@ def test_invocation_counts_duration_histogram_and_is_idempotent() -> None:
     metrics = collector()
     metrics.clock = lambda: now[0]
     invocation = metrics.begin('metric_demo', 'http', 'trace-1')
+    assert invocation is not None
     assert metrics.snapshot().series[0].active == 1
     now[0] = 0.2
     invocation.finish('succeeded')
@@ -62,6 +63,7 @@ def test_task_metric_names_accept_all_manifest_job_id_forms(job_id: str) -> None
     """指标标签兼容清单允许的短任务 ID 和连接符。"""
     metrics = collector()
     invocation = metrics.begin('metric_demo', f'job:{job_id}', 'job-request')
+    assert invocation is not None
     invocation.finish('succeeded')
     assert any(series.operation == f'job:{job_id}' for series in metrics.snapshot().series)
 
@@ -71,8 +73,12 @@ def test_aggregate_preserves_version_and_generation_boundaries() -> None:
     first, second = collector(), collector('b' * 32)
     new_version = collector('d' * 32, '2.0.0')
     new_generation = collector('e' * 32, generation='f' * 32)
-    first.begin('metric_demo', 'http', 'first').finish('succeeded')
-    second.begin('metric_demo', 'http', 'second').finish('failed', error_type='TimeoutError', timed_out=True)
+    invocation = first.begin('metric_demo', 'http', 'first')
+    assert invocation is not None
+    invocation.finish('succeeded')
+    invocation = second.begin('metric_demo', 'http', 'second')
+    assert invocation is not None
+    invocation.finish('failed', error_type='TimeoutError', timed_out=True)
     rows = aggregate_metric_snapshots([item.snapshot() for item in (first, second, new_version, new_generation)], None)
     expected_groups = 3
     assert len(rows) == expected_groups

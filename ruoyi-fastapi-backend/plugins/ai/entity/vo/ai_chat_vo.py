@@ -1,15 +1,13 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import Field
 
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 
 
-class AiChatRequestModel(BaseModel):
+class AiChatRequestModel(CamelModel):
     """AI对话请求模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     session_id: str | None = Field(default=None, description='会话ID')
     model_id: int = Field(description='模型ID')
@@ -18,10 +16,8 @@ class AiChatRequestModel(BaseModel):
     images: list[str] | None = Field(default=None, description='图片URL列表')
 
 
-class AiChatConfigModel(BaseModel):
+class AiChatConfigModel(CamelModel):
     """AI对话配置模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     chat_config_id: int | None = Field(default=None, description='配置主键')
     user_id: int | None = Field(default=None, description='用户ID')
@@ -36,10 +32,8 @@ class AiChatConfigModel(BaseModel):
     update_time: ApiUtcDateTime | None = Field(default=None, description='更新时间')
 
 
-class AiChatSessionBaseModel(BaseModel):
+class AiChatSessionBaseModel(CamelModel):
     """AI对话会话基础模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     session_id: str = Field(description='会话ID')
     session_title: str | None = Field(default=None, description='会话标题')
@@ -49,10 +43,8 @@ class AiChatSessionBaseModel(BaseModel):
     updated_at: ApiUtcDateTime | None = Field(default=None, description='更新时间')
 
 
-class ModelInfoModel(BaseModel):
+class ModelInfoModel(CamelModel):
     """对话会话数据模型-模型信息模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     id: str | None = Field(default=None, description='模型ID')
     name: str | None = Field(default=None, description='模型名称')
@@ -60,19 +52,15 @@ class ModelInfoModel(BaseModel):
     temperature: float | None = Field(default=None, description='模型温度')
 
 
-class AgentDataModel(BaseModel):
+class AgentDataModel(CamelModel):
     """对话会话数据模型-智能体数据模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     model: ModelInfoModel | None = Field(default=None, description='模型信息')
     agent_id: str | None = Field(default=None, description='智能体ID')
 
 
-class SessionMetricsModel(BaseModel):
+class SessionMetricsModel(CamelModel):
     """对话会话数据模型-会话指标模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     cost: float | None = Field(default=None, description='成本（元）')
     timer: float | None = Field(default=None, description='运行时长（秒）')
@@ -91,19 +79,15 @@ class SessionMetricsModel(BaseModel):
     time_to_first_token: float | None = Field(default=None, description='到第一个Token的时间（秒）')
 
 
-class SessionDataModel(BaseModel):
+class SessionDataModel(CamelModel):
     """对话会话数据模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     session_state: dict | None = Field(default=None, description='会话状态')
     session_metrics: SessionMetricsModel | None = Field(default=None, description='会话指标')
 
 
-class MessageMetrics(BaseModel):
+class MessageMetrics(CamelModel):
     """对话消息模型-消息指标模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     input_tokens: int | None = Field(default=None, description='输入Token数量')
     total_tokens: int | None = Field(default=None, description='总Token数量')
@@ -113,10 +97,8 @@ class MessageMetrics(BaseModel):
     time_to_first_token: float | None = Field(default=None, description='到第一个Token的时间（秒）')
 
 
-class ChatMessageModel(BaseModel):
+class ChatMessageModel(CamelModel):
     """对话消息模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     id: str | None = Field(default=None, description='消息ID')
     role: str | None = Field(default=None, description='角色')
@@ -131,8 +113,6 @@ class ChatMessageModel(BaseModel):
 
 class AiChatSessionModel(AiChatSessionBaseModel):
     """AI对话会话模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     agent_id: str | None = Field(default=None, description='智能体ID')
     session_data: SessionDataModel | None = Field(default=None, description='会话数据')

@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import select, true, update
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -56,7 +56,7 @@ class JobRuntimeDao:
         await db.execute(statement)
 
     @classmethod
-    async def lock_job(cls, db: AsyncSession, job_id: int) -> tuple[SysJob | None, SysJobSync | None]:
+    async def lock_job(cls, db: AsyncSession, job_id: int) -> tuple[SysJob | None, SysJobSync]:
         """
         按同步状态、任务记录的固定顺序加锁，并为已有任务建立初始状态。
 
@@ -257,10 +257,10 @@ class JobRuntimeDao:
         statement = (
             select(*fields, SysJobExecution.job_snapshot['jobName'].as_string().label('job_name'))
             .where(
-                SysJobExecution.job_id == query.job_id if query.job_id is not None else True,
-                SysJobExecution.execution_id == query.execution_id if query.execution_id else True,
-                SysJobExecution.status == query.status if query.status else True,
-                SysJobExecution.source == query.source if query.source else True,
+                SysJobExecution.job_id == query.job_id if query.job_id is not None else true(),
+                SysJobExecution.execution_id == query.execution_id if query.execution_id else true(),
+                SysJobExecution.status == query.status if query.status else true(),
+                SysJobExecution.source == query.source if query.source else true(),
             )
             .order_by(SysJobExecution.create_time.desc(), SysJobExecution.execution_id.desc())
         )
@@ -291,8 +291,8 @@ class JobRuntimeDao:
         statement = (
             select(*fields)
             .where(
-                SysJobSync.job_id == query.job_id if query.job_id is not None else True,
-                SysJobSync.sync_status == query.sync_status if query.sync_status else True,
+                SysJobSync.job_id == query.job_id if query.job_id is not None else true(),
+                SysJobSync.sync_status == query.sync_status if query.sync_status else true(),
             )
             .order_by(SysJobSync.update_time.desc(), SysJobSync.job_id.desc())
         )

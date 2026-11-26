@@ -1,13 +1,14 @@
 import asyncio
 from collections.abc import AsyncIterator, Iterator
 from types import SimpleNamespace
-from typing import Annotated
-from unittest.mock import AsyncMock
+from typing import TYPE_CHECKING, Annotated
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
 from fastapi import APIRouter, Depends, FastAPI, Request, status
 from sqlalchemy import ColumnElement
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.aspect.data_scope import DataScopeDependency
 from common.aspect.db_session import get_db_session_provider
@@ -23,6 +24,9 @@ from module_admin.entity.vo.role_vo import RoleModel
 from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
 from module_admin.service.login_service import LoginService, oauth2_scheme
 from utils.dependency_util import DependencyUtil
+
+if TYPE_CHECKING:
+    from common.auth_policy import ExcludeRoute
 
 USER_IDS = {'alice': 1, 'bob': 2}
 TWO_AUTH_CALLS = 2
@@ -40,9 +44,9 @@ def _user(user_id: int) -> CurrentUserModel:
         permissions=[f'user:{user_id}:read'],
         roles=['reader'],
         user=UserInfoModel(
-            userId=user_id,
-            userName=f'user-{user_id}',
-            role=[RoleModel(roleId=2, roleKey='reader', dataScope='5', status='0', delFlag='0')],
+            user_id=user_id,
+            user_name=f'user-{user_id}',
+            role=[RoleModel(role_id=2, role_key='reader', data_scope='5', status='0', del_flag='0')],
         ),
     )
 
@@ -258,7 +262,7 @@ def test_current_user_dependency_keeps_original_oauth_token_url(auth_app: Simple
 async def test_direct_calls_authenticate_each_time(monkeypatch: pytest.MonkeyPatch) -> None:
     """每次直接调用均执行认证。"""
     request = Request({'type': 'http', 'headers': []})
-    database = object()
+    database = AsyncSession()
     resolver = AsyncMock(side_effect=[_user(USER_IDS['alice']), _user(USER_IDS['alice'])])
     monkeypatch.setattr(LoginService, '_resolve_current_user', resolver)
     first = await LoginService.get_current_user(request, 'alice', database)
@@ -272,7 +276,7 @@ async def test_direct_calls_authenticate_each_time(monkeypatch: pytest.MonkeyPat
 async def test_failed_authentication_is_not_saved(monkeypatch: pytest.MonkeyPatch) -> None:
     """认证失败时不缓存结果。"""
     request = Request({'type': 'http', 'headers': []})
-    database = object()
+    database = AsyncSession()
     user = _user(USER_IDS['alice'])
     resolver = AsyncMock(side_effect=[AuthException(message='认证失败'), user])
     monkeypatch.setattr(LoginService, '_resolve_current_user', resolver)
@@ -287,7 +291,7 @@ async def test_failed_authentication_is_not_saved(monkeypatch: pytest.MonkeyPatc
 async def test_cancelled_authentication_is_not_saved(monkeypatch: pytest.MonkeyPatch) -> None:
     """取消认证时不缓存结果。"""
     request = Request({'type': 'http', 'headers': []})
-    database = object()
+    database = AsyncSession()
     entered = asyncio.Event()
 
     async def blocked(*args: object, **kwargs: object) -> CurrentUserModel:
@@ -382,8 +386,8 @@ async def test_original_dependency_override_applies_to_both_declarations(auth_ap
 @pytest.mark.asyncio
 async def test_calls_without_request_state_authenticate_each_time(monkeypatch: pytest.MonkeyPatch) -> None:
     """没有请求状态时每次调用均执行认证。"""
-    request = SimpleNamespace()
-    database = object()
+    request = Mock(spec_set=[])
+    database = AsyncSession()
     resolver = AsyncMock(return_value=_user(USER_IDS['alice']))
     monkeypatch.setattr(LoginService, '_resolve_current_user', resolver)
     await LoginService.get_current_user(request, 'alice', database)
@@ -396,7 +400,7 @@ async def test_calls_without_request_state_authenticate_each_time(monkeypatch: p
 async def test_plugin_session_validation_never_reuses_main_request_result(monkeypatch: pytest.MonkeyPatch) -> None:
     """插件会话校验独立于主请求的认证结果。"""
     request = Request({'type': 'http', 'headers': []})
-    database = object()
+    database = AsyncSession()
     resolver = AsyncMock(return_value=_user(USER_IDS['alice']))
     monkeypatch.setattr(LoginService, '_resolve_current_user', resolver)
     await LoginService.get_current_user(request, 'alice', database)
@@ -409,10 +413,34 @@ async def test_plugin_session_validation_never_reuses_main_request_result(monkey
 @pytest.mark.asyncio
 async def test_non_string_token_keeps_auth_exception_conversion() -> None:
     """非字符串令牌仍按约定转换认证异常。"""
-    request = Request({'type': 'http', 'headers': []})
-    with pytest.raises(AuthException) as exc_info:
-        await LoginService.get_current_user(request, b'invalid', object())
+    app = FastAPI()
+    requests: list[Request] = []
+
+    def invalid_token(request: Request) -> bytes:
+        """
+        模拟自定义依赖返回未经解码的令牌。
+
+        :param request: 参与本次鉴权的请求
+        :return: 无效的二进制令牌
+        """
+        requests.append(request)
+        return b'invalid'
+
+    app.dependency_overrides[oauth2_scheme] = invalid_token
+
+    @app.get('/', summary='校验令牌', description='通过当前用户依赖验证令牌。', dependencies=[CurrentUserDependency()])
+    async def protected() -> None:
+        pass
+
+    async with (
+        AsyncSession() as db,
+        httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client,
+    ):
+        app.dependency_overrides[get_db_session_provider(None)] = lambda: db
+        with pytest.raises(AuthException) as exc_info:
+            await client.get('/')
     assert exc_info.value.message == '用户token已失效，请重新登录'
+    (request,) = requests
     assert not hasattr(request.state, '_current_user_auth')
 
 
@@ -651,7 +679,7 @@ async def test_direct_call_without_a_token_requires_login() -> None:
     """直接调用时缺少令牌必须登录。"""
     request = Request({'type': 'http', 'headers': []})
     with pytest.raises(AuthException) as exc_info:
-        await LoginService.get_current_user(request, None, object())
+        await LoginService.get_current_user(request, None, AsyncSession())
     assert exc_info.value.message == '用户未登录，请先完成登录'
 
 
@@ -884,7 +912,7 @@ async def test_explicit_oauth_dependency_returns_bare_token_and_still_requires_l
     auth_app: SimpleNamespace, excluded: bool
 ) -> None:
     """显式 OAuth 依赖返回纯令牌并要求登录。"""
-    exclude_routes = [{'path': '/token'}] if excluded else None
+    exclude_routes: list[ExcludeRoute] | None = [{'path': '/token'}] if excluded else None
 
     @auth_app.app.get(
         '/token',
@@ -1168,7 +1196,9 @@ async def test_encoded_path_separators_cannot_expand_public_routes(
 ) -> None:
     """编码后的分隔符无法扩大公开路由范围。"""
     protected_path = f'/encoded/public{decoded}'
-    rule = {'path': '/encoded/{name}', 'ignore_paths': [protected_path]} if ignore_path else {'path': '/encoded/public'}
+    rule: ExcludeRoute = (
+        {'path': '/encoded/{name}', 'ignore_paths': [protected_path]} if ignore_path else {'path': '/encoded/public'}
+    )
 
     @auth_app.app.get(
         '/encoded/{name}',
@@ -1266,6 +1296,6 @@ def test_direct_dependency_path_keeps_configured_prefix_fallback(
     request = (
         Request({'type': 'http', 'path': path, 'headers': []})
         if with_scope
-        else SimpleNamespace(url=SimpleNamespace(path=path))
+        else Mock(spec_set=['url'], url=SimpleNamespace(path=path))
     )
     assert DependencyUtil.get_request_path(request) == expected

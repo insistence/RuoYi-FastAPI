@@ -1,7 +1,7 @@
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from apscheduler.job import Job
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -70,7 +70,10 @@ class SchedulerJobs:
 
         :param job_info: 任务对象信息
         :return: 调度器任务参数
+        :raises ValueError: 未配置任务调用目标
         """
+        if not job_info.invoke_target:
+            raise ValueError('调用目标不能为空')
         return JobAdapter.prepare(job_info, function=cls.import_function(job_info.invoke_target))
 
     @classmethod
@@ -164,9 +167,7 @@ class SchedulerJobs:
         :param job_id: 任务id
         :return: 任务对象
         """
-        query_job = self.scheduler.get_job(job_id=str(job_id))
-
-        return query_job
+        return cast('Job | None', self.scheduler.get_job(job_id=str(job_id)))
 
     def add_job(self, job_info: JobModel) -> None:
         """

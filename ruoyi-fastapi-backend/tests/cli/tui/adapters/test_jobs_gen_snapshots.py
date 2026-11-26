@@ -9,7 +9,7 @@ from pytest import MonkeyPatch
 async def test_collect_jobs_page_snapshot_links_first_job_detail_and_logs(
     monkeypatch: MonkeyPatch,
     jobs_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """任务快照关联首个任务的详情和日志。"""
     calls: list[tuple[str, ...]] = []
@@ -133,7 +133,7 @@ async def test_collect_jobs_page_snapshot_links_first_job_detail_and_logs(
 async def test_collect_jobs_page_snapshot_applies_failed_filter(
     monkeypatch: MonkeyPatch,
     jobs_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """任务快照可筛选失败任务。"""
 
@@ -215,7 +215,7 @@ async def test_collect_jobs_page_snapshot_applies_failed_filter(
 async def test_collect_jobs_page_snapshot_applies_query_filter(
     monkeypatch: MonkeyPatch,
     jobs_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """任务快照按查询条件过滤。"""
 
@@ -268,7 +268,7 @@ async def test_collect_jobs_page_snapshot_applies_query_filter(
 async def test_collect_jobs_page_snapshot_surfaces_failure_message(
     monkeypatch: MonkeyPatch,
     jobs_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """任务快照显示失败原因。"""
 
@@ -303,7 +303,7 @@ async def test_collect_jobs_page_snapshot_surfaces_failure_message(
 async def test_collect_gen_page_snapshot_links_first_table_detail(
     monkeypatch: MonkeyPatch,
     gen_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """生成器快照关联首张表的详情。"""
     calls: list[tuple[str, ...]] = []
@@ -468,7 +468,7 @@ async def test_collect_gen_page_snapshot_links_first_table_detail(
 async def test_gen_browser_adapter_collect_snapshot_exposes_search_context(
     monkeypatch: MonkeyPatch,
     gen_adapter: ModuleType,
-    install_query_service: Callable[[ModuleType, Callable[..., object]], object],
+    install_query_service: Callable[[ModuleType, Callable[..., SimpleNamespace]], object],
 ) -> None:
     """生成器浏览器快照提供搜索上下文。"""
 

@@ -1,7 +1,6 @@
 import sys
 from collections.abc import Generator
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
@@ -11,6 +10,7 @@ from plugins.core.discovery.scanner import PluginScanner
 from plugins.core.manifest.schema import EXPLICIT_MANIFEST_VERSION
 from plugins.core.runtime.explicit import ExplicitPluginRuntime
 from plugins.core.runtime.health import PluginHealthChecker
+from plugins.core.runtime.route_guard import UnavailablePluginRouteStateGateway
 
 
 @pytest.fixture(autouse=True)
@@ -266,7 +266,7 @@ async def test_v2_invalid_health_result_prevents_router_activation(tmp_path: Pat
     discovered = PluginScanner(plugin_root.parent).load_manifest(plugin_root / 'plugin.yaml')
     plugin = RegisteredPlugin(discovered, None, True, 'installed')
     app = FastAPI()
-    runtime = ExplicitPluginRuntime(SimpleNamespace())
+    runtime = ExplicitPluginRuntime(UnavailablePluginRouteStateGateway())
     runtime.prepare(plugin, app, startup_write_enabled=False)
     try:
         with pytest.raises(RuntimeError, match='健康检查'):

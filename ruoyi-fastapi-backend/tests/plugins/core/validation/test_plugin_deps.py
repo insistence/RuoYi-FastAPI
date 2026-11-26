@@ -1,8 +1,10 @@
 from pathlib import Path
+from typing import Literal
 
 from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.management.entity.vo.schemas import PluginModel
 from plugins.core.manifest.schema import PluginManifest
+from plugins.core.state import PluginStatus
 from plugins.core.validation.plugin_deps import (
     PluginDependencyChecker,
     PluginDependencyPlanBuilder,
@@ -42,7 +44,7 @@ def build_discovered_plugin(
 
 
 def build_database_plugin(
-    plugin_id: str, version: str, *, enabled: str = '0', status: str = 'installed'
+    plugin_id: str, version: str, *, enabled: Literal['0', '1'] = '0', status: PluginStatus = 'installed'
 ) -> PluginModel:
     """
     构造测试用数据库插件状态。
@@ -54,10 +56,10 @@ def build_database_plugin(
     :return: 测试用数据库插件状态
     """
     return PluginModel(
-        pluginId=plugin_id,
-        pluginName=plugin_id,
+        plugin_id=plugin_id,
+        plugin_name=plugin_id,
         version=version,
-        installedVersion=version,
+        installed_version=version,
         enabled=enabled,
         status=status,
     )

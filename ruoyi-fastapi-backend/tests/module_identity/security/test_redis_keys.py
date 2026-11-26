@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import pytest
 
 from module_identity.redis_keys import OidcRedisKey
@@ -30,8 +32,6 @@ def test_sensitive_identifiers_use_independent_32_byte_pepper() -> None:
 
     with pytest.raises(ValueError):
         OidcUtil.hash_sensitive_identifier('user@example.com', 'short')
-    with pytest.raises(TypeError):
-        OidcUtil.hash_sensitive_identifier('user@example.com', 123)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize('value', ['../escape', 'space value', 'a' * 129])
@@ -45,5 +45,13 @@ def test_digest_components_must_be_sha256_hex() -> None:
     """摘要组件必须使用 SHA-256 十六进制格式。"""
     with pytest.raises(ValueError):
         OidcRedisKey.sso_cookie('not-a-digest')
+
+
+@pytest.mark.parametrize(
+    ('operation', 'args'),
+    [(OidcUtil.hash_sensitive_identifier, ('user@example.com', 123)), (OidcRedisKey.sso_cookie, (123,))],
+)
+def test_identifier_helpers_reject_non_string_input(operation: Callable[..., str], args: tuple[object, ...]) -> None:
+    """敏感标识和摘要键遇到类型错误的输入时抛出类型异常。"""
     with pytest.raises(TypeError):
-        OidcRedisKey.sso_cookie(123)  # type: ignore[arg-type]
+        operation(*args)

@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -42,7 +43,7 @@ class CacheCommandController:
         self.presenter = presenter or CacheCommandPresenter()
         self.runtime_service = runtime_service or CACHE_RUNTIME
 
-    def stats(self, env: str, output: str) -> None:
+    def stats(self, env: str, output: OutputFormat) -> None:
         """
         查看缓存统计信息。
 
@@ -58,7 +59,7 @@ class CacheCommandController:
             text_condition=lambda result_data: bool(result_data.get('ok', False)),
         )
 
-    def keys(self, cache_name: str, env: str, output: str) -> None:
+    def keys(self, cache_name: str, env: str, output: OutputFormat) -> None:
         """
         查看指定缓存名称下的键名列表。
 
@@ -75,7 +76,7 @@ class CacheCommandController:
             text_condition=lambda result_data: bool(result_data.get('ok', False)),
         )
 
-    def get(self, cache_name: str, cache_key: str, env: str, output: str) -> None:
+    def get(self, cache_name: str, cache_key: str, env: str, output: OutputFormat) -> None:
         """
         查看指定缓存内容。
 
@@ -96,7 +97,7 @@ class CacheCommandController:
     def clear(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -137,7 +138,7 @@ class CacheCommandController:
             ),
         )
 
-    def ttl(self, cache_name: str, cache_key: str, env: str, output: str) -> None:
+    def ttl(self, cache_name: str, cache_key: str, env: str, output: OutputFormat) -> None:
         """
         查看指定缓存键的剩余过期时间。
 
@@ -155,7 +156,7 @@ class CacheCommandController:
             text_condition=lambda result_data: 'error' not in result_data,
         )
 
-    def warmup(self, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def warmup(self, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         执行系统缓存预热。
 

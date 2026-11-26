@@ -22,7 +22,7 @@ class RedisUtil:
         :param log_start_enabled: 是否输出开始连接日志
         :return: Redis连接对象
         """
-        redis = await aioredis.from_url(
+        redis = aioredis.Redis.from_url(
             url=f'redis://{RedisConfig.redis_host}',
             port=RedisConfig.redis_port,
             username=RedisConfig.redis_username,
@@ -31,6 +31,7 @@ class RedisUtil:
             encoding='utf-8',
             decode_responses=True,
         )
+        await redis.initialize()
         if log_start_enabled is None:
             log_start_enabled = log_enabled
         if log_enabled or log_start_enabled:
@@ -87,7 +88,7 @@ class RedisUtil:
         logger.debug('✅️ 关闭redis连接成功')
 
     @classmethod
-    async def init_sys_dict(cls, redis: FastAPI) -> None:
+    async def init_sys_dict(cls, redis: aioredis.Redis) -> None:
         """
         应用启动时缓存字典表。
 

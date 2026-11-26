@@ -1,14 +1,18 @@
 import asyncio
 from pathlib import Path
-from types import SimpleNamespace
+from typing import Never
+from unittest.mock import create_autospec
 
 import pytest
 
 import plugins.core.runtime.service.context as runtime_context_module
 from plugins.core.discovery.scanner import PluginDiscoveryResult
 from plugins.core.environment import PluginRuntimeEnvironmentService
+from plugins.core.management.entity.vo.schemas import PluginModel
 from plugins.core.runtime.service import PluginRuntimeService
 from plugins.core.runtime.service.dependency_container import PluginRuntimeGatewayOverrides
+from plugins.core.runtime.service.query import PluginQueryUseCase
+from plugins.core.types import PluginStateRecord
 from plugins.core.validation.dependencies import (
     NpmDependencyInspector,
     PluginDependencyChecker,
@@ -35,7 +39,7 @@ class QueryOnlyStateGateway:
     :ivar list_called: 记录 ``list`` 的调用情况
     """
 
-    def __init__(self, plugin_state: object | None = None) -> None:
+    def __init__(self, plugin_state: PluginStateRecord | None = None) -> None:
         """
         初始化查询网关。
 
@@ -45,7 +49,7 @@ class QueryOnlyStateGateway:
         self.detail_calls: list[str] = []
         self.list_called = False
 
-    async def get_plugin_state(self, plugin_id: str) -> object | None:
+    async def get_plugin_state(self, plugin_id: str) -> PluginStateRecord | None:
         """
         获取插件状态。
 
@@ -55,7 +59,7 @@ class QueryOnlyStateGateway:
         self.detail_calls.append(plugin_id)
         return self.plugin_state
 
-    async def list_plugin_states(self) -> list[object]:
+    async def list_plugin_states(self) -> list[PluginStateRecord]:
         """
         获取插件状态列表。
 
@@ -64,7 +68,7 @@ class QueryOnlyStateGateway:
         self.list_called = True
         return [self.plugin_state] if self.plugin_state is not None else []
 
-    def get_plugin_service(self) -> object:
+    def get_plugin_service(self) -> Never:
         """
         禁止查询链路回退到管理服务胖接口。
 
@@ -110,6 +114,7 @@ config:
     payload = asyncio.run(runtime.get_plugin_config('demo'))
 
     assert payload['ok'] is True
+    assert isinstance(payload['configs'], list)
     assert payload['configs'][0]['key'] == 'provider'
     assert gateway.session_local.last_session is not None
     assert gateway.session_local.last_session.committed is False
@@ -203,7 +208,7 @@ dependencies:
 
     monkeypatch.setattr(runtime_context_module.logger, 'warning', fake_warning)
 
-    async def load_states_sync_in_loop() -> tuple[list[object], str | None]:
+    async def load_states_sync_in_loop() -> tuple[list[PluginStateRecord], str | None]:
         """
         在事件循环内调用同步状态读取。
 
@@ -329,6 +334,7 @@ config:
 
     assert payload['ok'] is True
     assert payload['count'] == 1
+    assert isinstance(payload['plugins'], list)
     assert payload['plugins'][0]['pluginId'] == 'demo'
 
 
@@ -346,7 +352,7 @@ backend:
 """,
     )
     query_gateway = QueryOnlyStateGateway(
-        SimpleNamespace(
+        PluginModel(
             plugin_id='demo',
             installed_version='1.0.0',
             enabled='0',
@@ -365,6 +371,7 @@ backend:
     assert payload['ok'] is True
     assert payload['databaseAvailable'] is True
     assert payload['databaseError'] is None
+    assert isinstance(payload['plugins'], list)
     assert payload['plugins'][0]['enabled'] is True
     assert payload['plugins'][0]['status'] == 'installed'
 
@@ -388,63 +395,20 @@ def test_plugin_runtime_query_entrypoints_delegate_to_query_use_case(
     """校验插件查询入口委托给组合式查询 use case。"""
     runtime = build_runtime(tmp_path / 'backend')
 
-    class FakeQueryUseCase:
-        """
-        测试用插件查询 use case。
-
-        :ivar called_entrypoint: 实际调用的插件入口
-        :ivar plugin_id: 插件清单中的唯一标识
-        """
-
-        def __init__(self) -> None:
-            """初始化测试用插件查询 use case。"""
-            self.called_entrypoint: str | None = None
-            self.plugin_id: str | None = None
-
-        def list_plugins(self) -> dict:
-            """
-            记录插件列表查询调用。
-
-            :return: 包含 ``ok``、``plugins`` 的数据
-            """
-            self.called_entrypoint = 'list_plugins'
-            return {'ok': True, 'plugins': [{'pluginId': 'delegated'}]}
-
-        def get_plugin_info(self, plugin_id: str) -> dict:
-            """
-            记录插件详情查询调用。
-
-            :param plugin_id: 插件清单中的唯一标识
-            :return: 包含 ``ok``、``plugin`` 的数据
-            """
-            self.called_entrypoint = 'get_plugin_info'
-            self.plugin_id = plugin_id
-            return {'ok': True, 'plugin': {'pluginId': plugin_id}}
-
-        async def get_plugin_info_with_state(self, plugin_id: str) -> dict:
-            """
-            记录带状态插件详情查询调用。
-
-            :param plugin_id: 插件清单中的唯一标识
-            :return: 包含 ``ok``、``plugin`` 的数据
-            """
-            self.called_entrypoint = 'get_plugin_info_with_state'
-            self.plugin_id = plugin_id
-            return {'ok': True, 'plugin': {'pluginId': plugin_id, 'database': {'available': True}}}
-
-    query = FakeQueryUseCase()
+    query = create_autospec(PluginQueryUseCase, instance=True, spec_set=True)
+    handler = getattr(query, entrypoint)
+    handler.return_value = expected_payload
     runtime.query = query
 
     if entrypoint == 'list_plugins':
         payload = runtime.list_plugins()
+        handler.assert_called_once_with()
     elif entrypoint == 'get_plugin_info':
         payload = runtime.get_plugin_info('demo')
+        handler.assert_called_once_with('demo')
     else:
         payload = asyncio.run(runtime.get_plugin_info_with_state('demo'))
-
-    assert query.called_entrypoint == entrypoint
-    if entrypoint != 'list_plugins':
-        assert query.plugin_id == 'demo'
+        handler.assert_awaited_once_with('demo')
     assert payload == expected_payload
 
 
@@ -514,6 +478,7 @@ dependencies:
     payload = build_runtime(backend_root).get_plugin_info('demo')
 
     assert payload['ok'] is True
+    assert isinstance(payload['plugin'], dict)
     assert payload['plugin']['pluginId'] == 'demo'
     assert len(payload['plugin']['dependencies']) == EXPECTED_DEPENDENCY_COUNT
     assert all(item['ok'] for item in payload['plugin']['dependencies'])
@@ -545,6 +510,7 @@ config:
     payload = build_runtime(backend_root).get_plugin_info('demo')
 
     assert payload['ok'] is True
+    assert isinstance(payload['plugin'], dict)
     assert payload['plugin']['config'][0]['key'] == 'provider'
     assert payload['plugin']['config'][0]['default'] == 'openai'
 
@@ -569,7 +535,7 @@ config:
 """,
     )
     gateway = FakePluginRuntimeGateway()
-    FakePluginService.detail_plugin = SimpleNamespace(
+    FakePluginService.detail_plugin = PluginModel(
         plugin_id='demo',
         installed_version='1.0.0',
         enabled='0',
@@ -582,6 +548,7 @@ config:
     payload = asyncio.run(build_runtime_with_gateway(backend_root, gateway).get_plugin_info_with_state('demo'))
 
     assert payload['ok'] is True
+    assert isinstance(payload['plugin'], dict)
     assert payload['plugin']['enabled'] is True
     assert payload['plugin']['status'] == 'installed'
     assert payload['plugin']['installedVersion'] == '1.0.0'
@@ -603,7 +570,7 @@ backend:
 """,
     )
     query_gateway = QueryOnlyStateGateway(
-        SimpleNamespace(
+        PluginModel(
             plugin_id='demo',
             installed_version='1.0.0',
             enabled='0',
@@ -622,6 +589,7 @@ backend:
     payload = asyncio.run(runtime.get_plugin_info_with_state('demo'))
 
     assert payload['ok'] is True
+    assert isinstance(payload['plugin'], dict)
     assert payload['plugin']['pluginId'] == 'demo'
     assert payload['plugin']['status'] == 'installed'
     assert payload['plugin']['database']['available'] is True
@@ -645,6 +613,7 @@ backend:
     payload = asyncio.run(build_runtime(backend_root).get_plugin_info_with_state('demo'))
 
     assert payload['ok'] is True
+    assert isinstance(payload['plugin'], dict)
     assert payload['plugin']['pluginId'] == 'demo'
     assert payload['plugin']['database']['available'] is False
     assert payload['plugin']['database']['installed'] is False

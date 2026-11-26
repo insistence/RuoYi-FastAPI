@@ -22,7 +22,7 @@ class MenuService:
 
     @classmethod
     async def get_menu_tree_services(
-        cls, query_db: AsyncSession, current_user: CurrentUserModel | None = None
+        cls, query_db: AsyncSession, current_user: CurrentUserModel
     ) -> list[dict[str, Any]]:
         """
         获取菜单树信息service。
@@ -41,7 +41,7 @@ class MenuService:
 
     @classmethod
     async def get_role_menu_tree_services(
-        cls, query_db: AsyncSession, role_id: int, current_user: CurrentUserModel | None = None
+        cls, query_db: AsyncSession, role_id: int, current_user: CurrentUserModel
     ) -> RoleMenuQueryModel:
         """
         根据角色id获取菜单树信息service。
@@ -56,15 +56,15 @@ class MenuService:
         )
         menu_tree_result = cls.list_to_tree(menu_list_result)
         role = await RoleDao.get_role_detail_by_id(query_db, role_id)
-        role_menu_list = await RoleDao.get_role_menu_dao(query_db, role)
+        role_menu_list = await RoleDao.get_role_menu_dao(query_db, role) if role is not None else []
         checked_keys = [row.menu_id for row in role_menu_list]
-        result = RoleMenuQueryModel(menus=menu_tree_result, checkedKeys=checked_keys)
+        result = RoleMenuQueryModel(menus=menu_tree_result, checked_keys=checked_keys)
 
         return result
 
     @classmethod
     async def get_menu_list_services(
-        cls, query_db: AsyncSession, page_object: MenuQueryModel, current_user: CurrentUserModel | None = None
+        cls, query_db: AsyncSession, page_object: MenuQueryModel, current_user: CurrentUserModel
     ) -> list[dict[str, Any]]:
         """
         获取菜单列表信息service。
@@ -92,7 +92,7 @@ class MenuService:
         :return: 校验结果
         """
         menu_id = -1 if page_object.menu_id is None else page_object.menu_id
-        menu = await MenuDao.get_menu_detail_by_info(query_db, MenuModel(menuName=page_object.menu_name))
+        menu = await MenuDao.get_menu_detail_by_info(query_db, MenuModel(menu_name=page_object.menu_name))
         if menu and menu.menu_id != menu_id:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
@@ -211,6 +211,8 @@ class MenuService:
                 if parent_id in visited_ids:
                     raise ServiceException(message='上级菜单存在循环关系', msg_key='menu.parentCycle')
                 visited_ids.add(parent_id)
+                if parent_id is None:
+                    raise ServiceException(message='上级菜单不存在', msg_key='menu.parentNotFound')
                 parent_menu = await MenuDao.get_menu_detail_by_id(query_db, parent_id)
                 if not parent_menu:
                     raise ServiceException(message='上级菜单不存在', msg_key='menu.parentNotFound')
@@ -302,7 +304,7 @@ class MenuService:
                         raise ServiceWarning(message='存在子菜单,不允许删除', msg_key='menu.childrenPreventDelete')
                     if (await MenuDao.check_menu_exist_role_dao(query_db, int(menu_id))) > 0:
                         raise ServiceWarning(message='菜单已分配,不允许删除', msg_key='menu.assigned')
-                    await MenuDao.delete_menu_dao(query_db, MenuModel(menuId=menu_id))
+                    await MenuDao.delete_menu_dao(query_db, MenuModel(menu_id=menu_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
@@ -312,7 +314,7 @@ class MenuService:
             raise ServiceException(message='传入菜单id为空', msg_key='menu.idRequired')
 
     @classmethod
-    async def menu_detail_services(cls, query_db: AsyncSession, menu_id: int) -> MenuModel:
+    async def menu_detail_services(cls, query_db: AsyncSession, menu_id: int | None) -> MenuModel:
         """
         获取菜单详细信息service。
 
@@ -320,6 +322,8 @@ class MenuService:
         :param menu_id: 菜单id
         :return: 菜单id对应的信息
         """
+        if menu_id is None:
+            return MenuModel()
         menu = await MenuDao.get_menu_detail_by_id(query_db, menu_id=menu_id)
         result = MenuModel(**CamelCaseUtil.transform_result(menu)) if menu else MenuModel()
 
@@ -335,12 +339,15 @@ class MenuService:
         """
         _permission_list = [
             MenuTreeModel(
-                id=item.menu_id, label=item.menu_name, labelI18n=item.menu_name_i18n or {}, parentId=item.parent_id
+                id=item.menu_id,
+                label=item.menu_name,
+                label_i18n=item.menu_name_i18n or {},
+                parent_id=item.parent_id or 0,
             )
             for item in permission_list
         ]
         # 转成id为key的字典
-        mapping: dict[int, MenuTreeModel] = dict(zip([i.id for i in _permission_list], _permission_list, strict=False))
+        mapping = {node.id: node for node in _permission_list}
 
         # 树容器
         container: list[MenuTreeModel] = []
@@ -351,10 +358,8 @@ class MenuService:
             if parent is None:
                 container.append(d)
             else:
-                children: list[MenuTreeModel] = parent.children
-                if not children:
-                    children = []
-                children.append(d)
-                parent.children = children
+                if parent.children is None:
+                    parent.children = []
+                parent.children.append(d)
 
         return container

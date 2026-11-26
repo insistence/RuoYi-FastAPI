@@ -2,6 +2,7 @@ import io
 import json
 import re
 from pathlib import Path
+from typing import Never
 
 from babel import Locale, UnknownLocaleError
 from babel.messages.catalog import Catalog
@@ -93,7 +94,7 @@ class GenI18nUtil:
         ):
             self.invalid_configuration()
         self.namespace = f'generated.{table.module_name}.{table.business_name}'
-        if not self.KEY_PATTERN.fullmatch(self.namespace):
+        if not table.module_name or not table.business_name or not self.KEY_PATTERN.fullmatch(self.namespace):
             self.invalid_configuration()
         self.frontend = {locale: {} for locale in self.locales}
         self.backend = {locale: {} for locale in self.locales}
@@ -113,7 +114,7 @@ class GenI18nUtil:
             self.text(suffix, source)
 
     @staticmethod
-    def invalid_configuration() -> None:
+    def invalid_configuration() -> Never:
         """
         拒绝无法安全注册或插值的生成参数。
 
@@ -155,6 +156,19 @@ class GenI18nUtil:
             self.frontend[locale][suffix] = value
         return key
 
+    @classmethod
+    def _field_label(cls, column: GenTableColumnModel) -> str:
+        """
+        从列描述或列名提取用于翻译的字段标签。
+
+        :param column: 待生成语言资源的字段
+        :return: 去除括号说明的字段标签
+        """
+        label = column.column_comment or column.column_name
+        if not label:
+            cls.invalid_configuration()
+        return label.split('（', 1)[0]
+
     def field_key(self, column: GenTableColumnModel, suffix: str = 'label') -> str:
         """
         根据代码字段生成标签、占位符或必填提示。
@@ -163,7 +177,7 @@ class GenI18nUtil:
         :param suffix: label、input、select 或 required
         :return: 完整前端字段消息标识
         """
-        label = (column.column_comment or column.column_name).split('（')[0]
+        label = self._field_label(column)
         source = {'label': label, 'input': f'请输入{label}', 'select': f'请选择{label}', 'required': f'{label}不能为空'}
         if suffix not in source:
             self.invalid_configuration()
@@ -199,7 +213,7 @@ class GenI18nUtil:
         :param suffix: label 或 required
         :return: 完整后端字段消息标识
         """
-        label = (column.column_comment or column.column_name).split('（')[0]
+        label = self._field_label(column)
         if suffix not in {'label', 'required'}:
             self.invalid_configuration()
         prefix = self.field_prefixes.get(id(column), 'fields')

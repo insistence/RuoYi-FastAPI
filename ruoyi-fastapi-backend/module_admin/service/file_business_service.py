@@ -1,6 +1,6 @@
 import uuid
 from datetime import timedelta
-from typing import Any
+from typing import Any, Literal, overload
 
 from sqlalchemy import ColumnElement, true
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -66,9 +66,9 @@ class FileReferenceService:
             result.insert(
                 0,
                 FileReferenceModel(
-                    fileId=file_id,
-                    businessType=business_type,
-                    businessId=business_id,
+                    file_id=file_id,
+                    business_type=business_type,
+                    business_id=business_id,
                     legacy=True,
                 ),
             )
@@ -212,6 +212,16 @@ class FileReferenceService:
         except (AttributeError, TypeError, ValueError) as exc:
             raise ServiceException(message='文件ID格式错误', msg_key='file.business.invalidFileId') from exc
         return list(dict.fromkeys(normalized_file_ids))
+
+    @staticmethod
+    @overload
+    def _normalize_text(value: str | None, field_name: str, max_length: int, required: Literal[True]) -> str: ...
+
+    @staticmethod
+    @overload
+    def _normalize_text(
+        value: str | None, field_name: str, max_length: int, required: Literal[False] = False
+    ) -> str | None: ...
 
     @staticmethod
     def _normalize_text(value: str | None, field_name: str, max_length: int, required: bool = False) -> str | None:
@@ -502,12 +512,32 @@ class FileRetentionNoticeService:
             await FileRetentionNoticeDao.add_file_retention_notices(query_db, notice_list)
             await query_db.commit()
             return FileRetentionScanModel(
-                expiringCount=len(expiring_files),
-                expiredCount=len(expired_files),
+                expiring_count=len(expiring_files),
+                expired_count=len(expired_files),
             )
         except Exception:
             await query_db.rollback()
             raise
+
+    @classmethod
+    @overload
+    async def get_file_retention_notice_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: FileRetentionNoticePageQueryModel,
+        file_data_scope_sql: ColumnElement,
+        is_page: Literal[True] = True,
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_file_retention_notice_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: FileRetentionNoticePageQueryModel,
+        file_data_scope_sql: ColumnElement,
+        is_page: Literal[False],
+    ) -> list[dict]: ...
 
     @classmethod
     async def get_file_retention_notice_list_services(

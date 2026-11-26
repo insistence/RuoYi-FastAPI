@@ -81,7 +81,7 @@ class JobExecutionStore:
         """
         with cls.session() as db, db.begin():
             # 无值变更的 UPDATE 同时适用于 MySQL、PostgreSQL 和 SQLite 的写锁。
-            locked = db.execute(
+            locked = db.connection().execute(
                 update(SysJobSync)
                 .where(SysJobSync.job_id == job_id)
                 .values(
@@ -112,14 +112,14 @@ class JobExecutionStore:
                 message = '任务已删除或已停用，取消尚未开始的定时执行' if dispatch_token is None else '任务已删除'
                 cls._stop(execution, 'cancelled', message)
                 return ExecutionClaim(False, status='cancelled', message=message)
-            active = db.scalar(
+            active = db.execute(
                 select(func.count())
                 .select_from(SysJobExecution)
                 .where(
                     SysJobExecution.job_id == job_id,
                     SysJobExecution.status.in_(['running', 'unknown']),
                 )
-            )
+            ).scalar_one()
             limit = job.max_instances
             if active >= limit:
                 message = f'达到任务并发上限 {limit}，本次未执行'
@@ -129,8 +129,9 @@ class JobExecutionStore:
             execution.status = 'running'
             execution.owner_token = token
             execution.scheduled_time = scheduled_time
-            execution.start_time = TimezoneUtil.utc_now()
-            execution.lease_until = execution.start_time + timedelta(seconds=cls.LEASE_SECONDS)
+            start_time = TimezoneUtil.utc_now()
+            execution.start_time = start_time
+            execution.lease_until = start_time + timedelta(seconds=cls.LEASE_SECONDS)
             execution.message = None
             return ExecutionClaim(True, token=token, status='running')
 
@@ -159,7 +160,7 @@ class JobExecutionStore:
         :return: 是否续租成功
         """
         with cls.session() as db, db.begin():
-            result = db.execute(
+            result = db.connection().execute(
                 update(SysJobExecution)
                 .where(
                     SysJobExecution.execution_id == execution_id,
@@ -229,7 +230,7 @@ class JobExecutionStore:
         :param error: SQLAlchemy 包装的数据库异常
         :return: 是否可以重试终态更新事务
         """
-        if error.connection_invalidated:
+        if error.connection_invalidated or error.orig is None:
             return False
         original = error.orig
         sqlstate = getattr(original, 'sqlstate', None) or getattr(original, 'pgcode', None)
@@ -259,7 +260,7 @@ class JobExecutionStore:
         :param dispatch_token: 本次派发的领取凭据
         """
         with cls.session() as db, db.begin():
-            locked = db.execute(
+            locked = db.connection().execute(
                 update(SysJobSync)
                 .where(SysJobSync.job_id == job_id)
                 .values(

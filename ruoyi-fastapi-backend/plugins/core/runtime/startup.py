@@ -379,7 +379,7 @@ class PluginRuntimeStartupManager:
         runtime = getattr(app.state, 'plugin_explicit_runtime', None)
         if not isinstance(runtime, ExplicitPluginRuntime):
             return
-        registry = getattr(app.state, 'plugin_registry', None)
+        registry: PluginRegistry = app.state.plugin_registry
         enabled = {plugin.plugin_id for plugin in registry.list_enabled_plugins()}
         failures: set[str] = set()
         try:
@@ -515,7 +515,7 @@ class PluginRuntimeStartupManager:
         database_plugin = plugin.database_plugin
         last_error = getattr(database_plugin, 'last_error', None) if database_plugin else None
         return (
-            getattr(database_plugin, 'status', None) == 'error'
+            bool(getattr(database_plugin, 'status', None) == 'error')
             and isinstance(last_error, str)
             and last_error.startswith(PLUGIN_STARTUP_DEPENDENCY_ERROR_PREFIX)
         )
@@ -929,9 +929,8 @@ class PluginRuntimeStartupManager:
         database_plugin = plugin.database_plugin
         if database_plugin is None:
             return True
-        return (
-            not getattr(database_plugin, 'installed_version', None)
-            and getattr(database_plugin, 'status', None) == 'discovered'
+        return not getattr(database_plugin, 'installed_version', None) and bool(
+            getattr(database_plugin, 'status', None) == 'discovered'
         )
 
     async def run_plugin_install_scripts(self, query_db: Any, discovered_plugin: Any) -> None:
@@ -1249,8 +1248,8 @@ class PluginRuntimeStartupManager:
             return True
         return (
             not getattr(database_plugin, 'installed_version', None)
-            and getattr(database_plugin, 'status', None) == 'discovered'
-            and getattr(database_plugin, 'enabled', None) == '0'
+            and bool(getattr(database_plugin, 'status', None) == 'discovered')
+            and bool(getattr(database_plugin, 'enabled', None) == '0')
         )
 
     @staticmethod
@@ -1291,7 +1290,7 @@ class PluginRuntimeStartupManager:
         :param plugin_id: 插件ID
         :return: 插件运行时快照
         """
-        plugin_registry = getattr(app.state, 'plugin_registry', None)
+        plugin_registry: PluginRegistry | None = getattr(app.state, 'plugin_registry', None)
         if plugin_registry is None:
             return None
 

@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import re
+from functools import partial
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
@@ -13,7 +14,16 @@ from common.config import Config
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from playwright.async_api import APIRequestContext, APIResponse, Browser, BrowserContext, Page, Playwright, Response
+    from playwright.async_api import (
+        APIRequestContext,
+        APIResponse,
+        Browser,
+        BrowserContext,
+        Page,
+        Playwright,
+        Response,
+        ViewportSize,
+    )
 
 _API_TIMEOUT_MS = 15000
 _LOGIN_MAX_ATTEMPTS = 3
@@ -48,7 +58,7 @@ async def _login_token(response: APIResponse | Response) -> str:
     assert response.ok, f'登录 HTTP 状态异常：{response.status}'
     payload = await response.json()
     token = payload.get('token') or (payload.get('data') or {}).get('token')
-    assert token, f'登录未返回令牌：{payload.get("msg", "未知错误")}'
+    assert isinstance(token, str) and token, f'登录未返回令牌：{payload.get("msg", "未知错误")}'
     return token
 
 
@@ -166,9 +176,9 @@ class BrowserHarness:
         :param options: 调用方按名称传入的附加选项
         :return: 当前操作所需的上下文
         """
-        context = await self.browser.new_context(
-            **{'base_url': Config.frontend_url, 'viewport': {'width': 1440, 'height': 1000}, **options}
-        )
+        viewport: ViewportSize = {'width': 1440, 'height': 1000}
+        create_context = partial(self.browser.new_context, base_url=Config.frontend_url, viewport=viewport)
+        context = await create_context(**options)
         self.contexts.append(context)
         context.set_default_timeout(15000)
         context.set_default_navigation_timeout(30000)

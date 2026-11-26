@@ -1,5 +1,3 @@
-from typing import cast
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from module_admin.dao.dict_dao import DictDataDao
@@ -50,13 +48,13 @@ class PluginOperationService:
         :param audit_limit: 最近审计记录数量
         :return: 插件诊断包负载
         """
-        payload = cast('dict[str, object]', await self.runtime_service.diagnose_plugin(plugin_id))
+        payload = await self.runtime_service.diagnose_plugin(plugin_id)
         payload['audit'] = await self._build_recent_audit_snapshot(query_db, plugin_id, audit_limit=audit_limit)
 
-        return cast('PluginDiagnoseResponse', payload)
+        return payload
 
     @classmethod
-    async def get_plugin_operation_dict_services(cls, query_db: AsyncSession) -> dict[str, str]:
+    async def get_plugin_operation_dict_services(cls, query_db: AsyncSession) -> dict[str, str | None]:
         """
         获取插件管理页面使用的操作类型字典映射。
 
@@ -89,7 +87,7 @@ class PluginOperationService:
         """
         operation_logs = await PluginService.get_plugin_operation_log_export_list_services(
             query_db,
-            PluginOperationLogExportQueryModel(exportLimit=audit_limit * AUDIT_LOG_OVERFETCH_MULTIPLIER),
+            PluginOperationLogExportQueryModel(export_limit=audit_limit * AUDIT_LOG_OVERFETCH_MULTIPLIER),
         )
         return PluginAuditPayloadBuilder.build_recent_snapshot_payload(
             plugin_id,

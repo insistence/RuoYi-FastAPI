@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import CheckConstraint
 from sqlalchemy.dialects import mysql, postgresql
+from sqlalchemy.engine import Dialect
 from sqlalchemy.schema import CreateTable
 
 from plugins.core.lifecycle.script import PluginLifecycleScriptHelper
@@ -23,7 +24,7 @@ def test_initial_release_schema_matches_models(initial: str, time_type: str) -> 
     """初始发布表结构与模型一致。"""
     initialization = (SQL_ROOT / initial).read_text(encoding='utf-8')
     statements = PluginLifecycleScriptHelper.split_sql_statements(initialization)
-    for table in (SysPluginArtifact.__table__, SysPluginRelease.__table__, SysPluginWorker.__table__):
+    for table in (SysPluginArtifact.get_table(), SysPluginRelease.get_table(), SysPluginWorker.get_table()):
         table_statements = [
             statement
             for statement in statements
@@ -49,9 +50,9 @@ def test_initial_release_schema_matches_models(initial: str, time_type: str) -> 
 
 
 @pytest.mark.parametrize('dialect', [mysql.dialect(), postgresql.dialect()])
-def test_release_orm_schema_compiles_for_supported_database_dialects(dialect: object) -> None:
+def test_release_orm_schema_compiles_for_supported_database_dialects(dialect: Dialect) -> None:
     """发布 ORM 结构可在支持的数据库方言中编译。"""
     for model in (SysPluginArtifact, SysPluginRelease, SysPluginWorker):
-        ddl = str(CreateTable(model.__table__).compile(dialect=dialect))
+        ddl = str(CreateTable(model.get_table()).compile(dialect=dialect))
         assert model.__tablename__ in ddl
         assert 'PRIMARY KEY' in ddl

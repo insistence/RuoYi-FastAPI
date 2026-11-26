@@ -1,3 +1,4 @@
+from functools import cache
 from typing import Any, Generic, Self, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
@@ -9,6 +10,12 @@ from i18n.message import I18nMessage
 from utils.time_util import TimezoneUtil
 
 T = TypeVar('T')
+
+
+class CamelModel(BaseModel):
+    """支持蛇形字段名和驼峰别名输入的 API 模型。"""
+
+    model_config = ConfigDict(alias_generator=to_camel, validate_by_name=True, validate_by_alias=True)
 
 
 class CrudResponseModel(BaseModel):
@@ -42,16 +49,16 @@ class CrudResponseModel(BaseModel):
         return self
 
 
-class ResponseBaseModel(BaseModel):
+class ResponseBaseModel(CamelModel):
     """响应模型。"""
 
     code: int = Field(default=HttpStatusConstant.SUCCESS, description='响应码')
     msg: str = Field(default='操作成功', description='响应信息')
-    msg_key: str | None = Field(default=None, alias='msgKey', description='国际化消息标识')
-    msg_params: dict | None = Field(default=None, alias='msgParams', description='国际化消息插值参数')
-    msg_domain: str | None = Field(default=None, alias='msgDomain', description='国际化插件词库域')
-    msg_count: int | None = Field(default=None, alias='msgCount', description='复数消息数量')
-    msg_plural_key: str | None = Field(default=None, alias='msgPluralKey', description='复数消息标识')
+    msg_key: str | None = Field(default=None, description='国际化消息标识')
+    msg_params: dict | None = Field(default=None, description='国际化消息插值参数')
+    msg_domain: str | None = Field(default=None, description='国际化插件词库域')
+    msg_count: int | None = Field(default=None, description='复数消息数量')
+    msg_plural_key: str | None = Field(default=None, description='复数消息标识')
     success: bool = Field(default=True, description='响应是否成功')
     time: ApiUtcDateTime = Field(default_factory=TimezoneUtil.utc_now, description='响应时间')
 
@@ -59,55 +66,31 @@ class ResponseBaseModel(BaseModel):
 class DynamicResponseModel(ResponseBaseModel, Generic[T]):
     """动态响应模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel)
-
-    def __class_getitem__(cls, item: Any) -> Any | Self:
+    @classmethod
+    @cache
+    def __class_getitem__(cls, typevar_values: object) -> type[BaseModel]:
         """
-        当使用 DynamicResponseModel[Item] 语法时，动态创建一个包含所有字段的新模型。
+        将业务模型的字段合并到响应模型，并复用同一模型生成的结果。
 
-        :param item: 当前要处理的条目
-        :return: 绑定给定数据类型的响应模型
-        :raises TypeError: 泛型参数不是 Pydantic 模型
+        :param typevar_values: 提供业务字段的 Pydantic 模型类
+        :return: 继承响应字段和序列化配置的模型类
+        :raises TypeError: 泛型参数不是 Pydantic 模型类
         """
-        # 检查是否已经为该类型创建了模型
-        if not hasattr(cls, '_cached_models'):
-            cls._cached_models = {}
-
-        if item in cls._cached_models:
-            return cls._cached_models[item]
-
-        # 检查item是否为Pydantic模型
-        if not hasattr(item, 'model_fields'):
-            raise TypeError(f'{item} 不是一个Pydantic模型，请使用Pydantic模型作为泛型参数')
-
-        # 获取ResponseBaseModel的字段
-        base_fields = {}
-        for field_name, field in cls.model_fields.items():
-            base_fields[field_name] = (field.annotation, field)
-
-        # 获取泛型类型的字段
-        item_fields = {}
-        for field_name, field in item.model_fields.items():
-            item_fields[field_name] = (field.annotation, field)
-
-        # 合并所有字段
-        all_fields = {**base_fields, **item_fields}
-
-        # 动态创建新模型
-        new_model = create_model(
-            f'DynamicResponseModel[{item.__name__}]', __base__=cls, __config__=cls.model_config, **all_fields
+        if not isinstance(typevar_values, type) or not issubclass(typevar_values, BaseModel):
+            raise TypeError(f'{typevar_values} 不是一个Pydantic模型，请使用Pydantic模型作为泛型参数')
+        fields: dict[str, Any] = {
+            name: (field.annotation, field) for name, field in typevar_values.model_fields.items()
+        }
+        return create_model(
+            f'DynamicResponseModel[{typevar_values.__name__}]',
+            __base__=cls,
+            __module__=__name__,
+            **fields,
         )
 
-        # 缓存模型
-        cls._cached_models[item] = new_model
 
-        return new_model
-
-
-class PageModel(BaseModel, Generic[T]):
+class PageModel(CamelModel, Generic[T]):
     """分页模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     rows: list[T] = Field(description='记录列表')
     page_num: int = Field(description='当前页码')

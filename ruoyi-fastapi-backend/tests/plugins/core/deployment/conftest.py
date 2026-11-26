@@ -48,7 +48,7 @@ async def deployment_sessions(tmp_path: Path) -> AsyncIterator[async_sessionmake
         await connection.run_sync(
             Base.metadata.create_all,
             tables=[
-                item.__table__
+                item.get_table()
                 for item in (
                     SysPlugin,
                     SysPluginArtifact,

@@ -19,18 +19,21 @@ if TYPE_CHECKING:
     from playwright.async_api import Browser, Playwright
 
 
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> Generator:
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo
+) -> Generator[None, pytest.TestReport, pytest.TestReport]:
     """
     在浏览器 fixture 回收前保存调用结果，确保断言失败仍能导出诊断。
 
     :param item: 当前要处理的条目
     :param call: 需要执行或验证的调用
     :yield: 上下文就绪后将控制权交给调用方
+    :return: 当前测试阶段生成的报告
     """
-    result = yield
-    report = result.get_result()
+    report = yield
     setattr(item, f'rep_{report.when}', report)
+    return report
 
 
 @pytest_asyncio.fixture(scope='session', loop_scope='session')
@@ -68,8 +71,8 @@ async def browser_harness(
         yield harness
     finally:
         failed = any(
-            getattr(request.node, f'rep_{phase}', None).failed
+            report.failed
             for phase in ('setup', 'call')
-            if hasattr(request.node, f'rep_{phase}')
+            if (report := getattr(request.node, f'rep_{phase}', None)) is not None
         )
         await harness.finish(failed=failed)

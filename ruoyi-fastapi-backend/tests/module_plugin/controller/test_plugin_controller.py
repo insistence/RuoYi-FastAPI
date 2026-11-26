@@ -1,9 +1,12 @@
 import json
 from collections.abc import Generator
 from datetime import UTC, datetime
-from types import SimpleNamespace
 
 import pytest
+from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import Response, StreamingResponse
+from starlette.types import Message
 
 from common.annotation import log_annotation
 from common.context import RequestContext
@@ -18,13 +21,14 @@ from plugins.core.management.entity.vo.schemas import (
     PluginOperationLogRetentionModel,
     PluginOperationLogRetentionResultModel,
 )
+from plugins.core.validation.dependency_policy import DependencyInstallPolicyConfig
 
 HTTP_OK = 200
 EXPECTED_RETENTION_MATCHED_COUNT = 2
 PLUGIN_OPERATION_FAILURE_EXIT_CODE = 10
 
 
-def build_request(path: str = '/system/plugin/batch', method: str = 'POST') -> object:
+def build_request(path: str = '/system/plugin/batch', method: str = 'POST') -> Request:
     """
     构造测试用请求对象。
 
@@ -33,33 +37,35 @@ def build_request(path: str = '/system/plugin/batch', method: str = 'POST') -> o
     :return: 测试用请求对象
     """
 
-    async def empty_body() -> bytes:
+    async def receive() -> Message:
         """
-        返回测试用空请求体。
+        提供此次请求的空 HTTP 消息体。
 
-        :return: 此分支的固定值 ``b''``
+        :return: 已完整接收的 HTTP 请求消息
         """
-        return b''
+        return {'type': 'http.request', 'body': b'', 'more_body': False}
 
-    return SimpleNamespace(
-        url=SimpleNamespace(path=path),
-        method=method,
-        headers={'User-Agent': 'pytest'},
-        client=SimpleNamespace(host='127.0.0.1'),
-        query_params={},
-        path_params={},
-        body=empty_body,
+    return Request(
+        {
+            'type': 'http',
+            'method': method,
+            'path': path,
+            'headers': [(b'user-agent', b'pytest')],
+            'client': ('127.0.0.1', 12345),
+            'query_string': b'',
+        },
+        receive=receive,
     )
 
 
-def load_response_body(response: object) -> dict:
+def load_response_body(response: Response) -> dict:
     """
     解析测试响应体。
 
     :param response: 当前调用产生的响应
     :return: 从响应体解码的 JSON 数据
     """
-    return json.loads(response.body.decode())
+    return json.loads(bytes(response.body))
 
 
 def test_plugin_operation_response_hides_exit_code_from_web_payload() -> None:
@@ -80,7 +86,7 @@ def test_plugin_operation_response_hides_exit_code_from_web_payload() -> None:
     assert payload['exit_code'] == PLUGIN_OPERATION_FAILURE_EXIT_CODE
 
 
-class FakeAsyncSession:
+class FakeAsyncSession(AsyncSession):
     """
     测试用异步数据库会话。
 
@@ -89,6 +95,7 @@ class FakeAsyncSession:
 
     def __init__(self) -> None:
         """初始化测试会话。"""
+        super().__init__()
         self.committed = False
 
     async def commit(self) -> None:
@@ -107,7 +114,7 @@ def fake_request_context(monkeypatch: pytest.MonkeyPatch) -> Generator[CurrentUs
     user = CurrentUserModel(
         permissions=['*:*:*'],
         roles=[],
-        user=UserInfoModel(userName='admin', dept=None, role=[]),
+        user=UserInfoModel(user_id=1, user_name='admin', dept=None, role=[]),
     )
     user_token = RequestContext.set_current_user(user)
     pattern_token = RequestContext.set_current_exclude_patterns([])
@@ -169,9 +176,9 @@ async def test_batch_system_plugins_accepts_json_body(monkeypatch: pytest.Monkey
         request=build_request('/system/plugin/batch'),
         batch_action=PluginBatchActionModel(
             operation='install',
-            dryRun=True,
-            continueOnError=True,
-            pluginIds=['demo', 'ai'],
+            dry_run=True,
+            continue_on_error=True,
+            plugin_ids=['demo', 'ai'],
         ),
     )
 
@@ -282,7 +289,7 @@ async def test_install_system_plugin_dependencies_forces_dry_run(monkeypatch: py
             plugin_id: str,
             *,
             dry_run: bool = True,
-            policy_config: object | None = None,
+            policy_config: DependencyInstallPolicyConfig,
         ) -> dict[str, object]:
             """
             记录依赖安装参数。
@@ -384,11 +391,11 @@ async def test_get_system_plugin_operation_log_list_returns_page_payload(monkeyp
     """校验审计列表接口会返回分页负载并透传查询条件。"""
     recorded: dict[str, object] = {}
     operation_log = PluginOperationLogDetailModel(
-        operationId=1,
+        operation_id=1,
         operation='install',
-        pluginIds=['demo'],
-        dryRun=False,
-        continueOnError=False,
+        plugin_ids=['demo'],
+        dry_run=False,
+        continue_on_error=False,
         status='success',
         summary={'total': 1},
         result={'ok': True},
@@ -396,10 +403,10 @@ async def test_get_system_plugin_operation_log_list_returns_page_payload(monkeyp
     )
     page_result = PageModel[PluginOperationLogDetailModel](
         rows=[operation_log],
-        pageNum=1,
-        pageSize=10,
+        page_num=1,
+        page_size=10,
         total=1,
-        hasNext=False,
+        has_next=False,
     )
 
     class FakePluginService:
@@ -437,11 +444,11 @@ async def test_get_system_plugin_operation_log_list_returns_page_payload(monkeyp
     response = await plugin_controller.get_system_plugin_operation_log_list(
         request=build_request('/system/plugin/operation-log/list', method='GET'),
         operation_log_page_query=PluginOperationLogPageQueryModel(
-            pluginId='demo',
+            plugin_id='demo',
             operation='install',
             status='success',
-            pageNum=1,
-            pageSize=10,
+            page_num=1,
+            page_size=10,
         ),
         query_db=query_db,
     )
@@ -466,11 +473,11 @@ async def test_query_detail_system_plugin_operation_log_returns_payload(monkeypa
     """校验审计详情接口会返回插件操作审计详情。"""
     recorded: dict[str, object] = {}
     operation_log = PluginOperationLogDetailModel(
-        operationId=1,
+        operation_id=1,
         operation='install',
-        pluginIds=['demo'],
-        dryRun=False,
-        continueOnError=False,
+        plugin_ids=['demo'],
+        dry_run=False,
+        continue_on_error=False,
         status='success',
         summary={'total': 1},
         result={'ok': True},
@@ -551,11 +558,11 @@ async def test_retain_system_plugin_operation_log_commits_session(monkeypatch: p
     """校验审计保留策略接口会调用管理服务并提交事务。"""
     recorded: dict[str, object] = {}
     retention_result = PluginOperationLogRetentionResultModel(
-        retentionDays=0,
-        cutoffTime=datetime(2026, 5, 22, 12, 0, 0, tzinfo=UTC),
-        matchedCount=2,
-        deletedCount=0,
-        dryRun=True,
+        retention_days=0,
+        cutoff_time=datetime(2026, 5, 22, 12, 0, 0, tzinfo=UTC),
+        matched_count=2,
+        deleted_count=0,
+        dry_run=True,
     )
 
     class FakePluginService:
@@ -582,7 +589,7 @@ async def test_retain_system_plugin_operation_log_commits_session(monkeypatch: p
 
     response = await plugin_controller.retain_system_plugin_operation_log(
         request=build_request('/system/plugin/operation-log/retention', method='DELETE'),
-        retention_query=PluginOperationLogRetentionModel(retentionDays=0, dryRun=True),
+        retention_query=PluginOperationLogRetentionModel(retention_days=0, dry_run=True),
         query_db=query_db,
     )
 
@@ -602,11 +609,11 @@ async def test_export_system_plugin_operation_log_uses_operation_dict(
     """校验审计导出接口会使用操作类型字典映射。"""
     recorded: dict[str, object] = {}
     operation_log = PluginOperationLogDetailModel(
-        operationId=1,
+        operation_id=1,
         operation='config_set',
-        pluginIds=['demo'],
-        dryRun=False,
-        continueOnError=False,
+        plugin_ids=['demo'],
+        dry_run=False,
+        continue_on_error=False,
         status='success',
         summary={},
         result={},
@@ -673,13 +680,17 @@ async def test_export_system_plugin_operation_log_uses_operation_dict(
 
     response = await plugin_controller.export_system_plugin_operation_log_list(
         request=build_request('/system/plugin/operation-log/export'),
-        operation_log_export_query=PluginOperationLogExportQueryModel(exportLimit=10),
+        operation_log_export_query=PluginOperationLogExportQueryModel(export_limit=10),
         query_db=query_db,
     )
-    chunks = [chunk async for chunk in response.body_iterator]
+    assert isinstance(response, StreamingResponse)
+    body = bytearray()
+    async for chunk in response.body_iterator:
+        assert isinstance(chunk, bytes | memoryview)
+        body.extend(chunk)
 
     assert response.status_code == HTTP_OK
-    assert b''.join(chunks) == b'plugin audit export'
+    assert body == b'plugin audit export'
     assert recorded == {
         'query_db': query_db,
         'export_limit': 10,

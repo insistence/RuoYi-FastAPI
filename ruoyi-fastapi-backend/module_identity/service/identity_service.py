@@ -126,7 +126,7 @@ class CredentialAuthenticationService:
         *,
         client_ip: str | None,
         skip_captcha: bool = False,
-    ) -> Row[tuple[SysUser, SysDept]]:
+    ) -> Row[SysUser, SysDept | None]:
         """
         执行 Legacy 登录的原有凭据检查，不签发 JWT。
 
@@ -256,6 +256,8 @@ class CredentialAuthenticationService:
         :raises CredentialAuthenticationError: 客户端 IP 命中禁止登录名单
         """
         value = await redis.get(f'{RedisInitKeyConfig.SYS_CONFIG.key}:sys.login.blackIPList')
+        if isinstance(value, bytes):
+            value = value.decode()
         if client_ip in (value.split(',') if value else []):
             raise CredentialAuthenticationError('ip_blocked', I18nMessage('当前IP禁止登录', msg_key='auth.ipBlocked'))
 
@@ -468,7 +470,9 @@ class ClaimService:
         :return: 可安全生成的 Claim 名称集合
         """
         requested = OidcUtil.scope_set(requested_scopes)
-        client_claims = set().union(*(cls._client_claims_for_scope(scope, client_scope_policy) for scope in requested))
+        client_claims = {
+            claim for scope in requested for claim in cls._client_claims_for_scope(scope, client_scope_policy)
+        }
         resource_claims = cls._claim_set(resource_allowed_claims)
 
         return (client_claims & resource_claims) - cls.FORBIDDEN_CLAIMS

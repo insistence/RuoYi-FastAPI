@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
@@ -21,7 +22,7 @@ _NEXT_AUTH_VERSION = 2
 
 
 @pytest_asyncio.fixture
-async def service_session(tmp_path: Path) -> AsyncSession:
+async def service_session(tmp_path: Path) -> AsyncIterator[AsyncSession]:
     """
     创建只包含主体服务所需表的真实 SQLite 会话。
 
@@ -29,7 +30,7 @@ async def service_session(tmp_path: Path) -> AsyncSession:
     :yield: 只包含主体服务所需表的真实 SQLite 会话
     """
     engine = create_async_engine(f'sqlite+aiosqlite:///{tmp_path / "subject-service.sqlite3"}')
-    tables = [SysUser.__table__, SysIdentitySubject.__table__, SysOAuthAuditLog.__table__]
+    tables = [SysUser.get_table(), SysIdentitySubject.get_table(), SysOAuthAuditLog.get_table()]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync_connection: Base.metadata.create_all(sync_connection, tables=tables))
     factory = async_sessionmaker(engine, expire_on_commit=False)

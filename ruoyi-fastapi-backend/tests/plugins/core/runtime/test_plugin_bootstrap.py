@@ -79,10 +79,10 @@ backend:
 """,
     )
     database_plugin = PluginModel(
-        pluginId='demo',
-        pluginName='演示插件',
+        plugin_id='demo',
+        plugin_name='演示插件',
         version='1.0.0',
-        installedVersion='1.0.0',
+        installed_version='1.0.0',
         enabled='1',
         status='installed',
     )
@@ -116,10 +116,10 @@ backend:
     registry = builder.build_registry(
         [
             PluginModel(
-                pluginId='sample_entity',
-                pluginName='演示插件',
+                plugin_id='sample_entity',
+                plugin_name='演示插件',
                 version='1.0.0',
-                installedVersion='1.0.0',
+                installed_version='1.0.0',
                 enabled='0',
                 status='installed',
             )
@@ -154,10 +154,10 @@ backend:
     registry = builder.build_registry(
         [
             PluginModel(
-                pluginId='broken_entity',
-                pluginName='异常插件',
+                plugin_id='broken_entity',
+                plugin_name='异常插件',
                 version='1.0.0',
-                installedVersion='1.0.0',
+                installed_version='1.0.0',
                 enabled='0',
                 status='installed',
             )

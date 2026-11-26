@@ -1,12 +1,12 @@
 import asyncio
 import os
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Iterable
 from logging.config import fileConfig
-from typing import Literal
 
 from alembic import context
 from alembic.migration import MigrationContext
 from alembic.operations.ops import MigrationScript
+from alembic.runtime.environment import NameFilterParentNames, NameFilterType
 from sqlalchemy.engine import Connection
 
 from config.database import Base, DataSourceRegistry, build_async_sqlalchemy_database_url
@@ -79,8 +79,8 @@ def run_migrations_offline() -> None:
 def do_run_migrations(connection: Connection) -> None:
     def include_name(
         name: str | None,
-        type_: Literal['schema', 'table', 'column', 'index', 'unique_constraint', 'foreign_key_constraint'],
-        parent_names: MutableMapping[Literal['schema_name', 'table_name', 'schema_qualified_table_name'], str | None],
+        type_: NameFilterType,
+        parent_names: NameFilterParentNames,
     ) -> bool:
         if type_ == 'table':
             return name in target_metadata.tables

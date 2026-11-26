@@ -1,6 +1,7 @@
 from datetime import timedelta
 from http.cookies import SimpleCookie
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
@@ -97,7 +98,7 @@ async def auth_flow(data_session: AsyncSession, monkeypatch: pytest.MonkeyPatch)
     connection = await data_session.connection()
     await connection.run_sync(
         lambda sync: SysUser.metadata.create_all(
-            sync, tables=[SysDept.__table__, SysRole.__table__, SysUserRole.__table__]
+            sync, tables=[SysDept.get_table(), SysRole.get_table(), SysUserRole.get_table()]
         )
     )
     user = SysUser(user_id=2001, user_name='alice', nick_name='Alice', status='0', del_flag='0')
@@ -193,7 +194,7 @@ async def auth_flow(data_session: AsyncSession, monkeypatch: pytest.MonkeyPatch)
     coordinator = AfterCommitCoordinator()
     cookie, session = await SsoSessionService.create(
         data_session,
-        redis,
+        redis.client,
         user.user_id,
         subject.subject_id,
         subject.auth_version,
@@ -243,7 +244,7 @@ def _authorize_request(flow: SimpleNamespace, *, offline: bool = False) -> dict[
 
 async def _user_token(
     flow: SimpleNamespace, *, remember: bool = False, offline: bool = False
-) -> tuple[TokenResult, SysOAuthGrant | None]:
+) -> tuple[TokenResult, SysOAuthGrant]:
     """
     通过真实同意和授权码流程签发用户令牌。
 
@@ -252,7 +253,7 @@ async def _user_token(
     :param offline: 是否使用离线资源
     :return: 已签发的用户令牌与对应的授权记录
     """
-    request = AuthorizeRequest(**_authorize_request(flow, offline=offline))
+    request = AuthorizeRequest.model_validate(_authorize_request(flow, offline=offline))
     context = await AuthorizationService.validate_request(flow.db, request)
     consent = await ConsentService.submit_consent(
         flow.db,
@@ -263,6 +264,7 @@ async def _user_token(
         user_id=flow.user.user_id,
         subject_id=flow.subject.subject_id,
     )
+    assert consent.grant is not None
     code = await AuthorizationCodeService.issue(
         flow.redis,
         {
@@ -272,7 +274,7 @@ async def _user_token(
             'subjectId': flow.subject.subject_id,
             'authVersion': flow.subject.auth_version,
             'sid': flow.session.sid,
-            'grantId': consent.grant.grant_id if consent.grant is not None else None,
+            'grantId': consent.grant.grant_id,
             'scopes': list(consent.scopes),
             'resources': [flow.resource.audience],
             'nonce': request.nonce,
@@ -334,7 +336,7 @@ async def _introspect(flow: SimpleNamespace, token: str) -> dict[str, object]:
     )
 
 
-def _claims(flow: SimpleNamespace, token: str) -> dict[str, object]:
+def _claims(flow: SimpleNamespace, token: str) -> dict[str, Any]:
     """
     验证 Access Token 的签名、Issuer 和 Resource Audience。
 
@@ -375,7 +377,7 @@ async def test_one_time_consent_has_revocable_grant_without_remembering_consent(
     assert _claims(auth_flow, token.access_token)['grant_id'] == grant.grant_id
     assert await auth_flow.db.scalar(select(func.count()).select_from(SysOAuthGrant)) == 1
     context = await AuthorizationService.validate_request(
-        auth_flow.db, AuthorizeRequest(**_authorize_request(auth_flow))
+        auth_flow.db, AuthorizeRequest.model_validate(_authorize_request(auth_flow))
     )
     assert not ConsentService.consent_is_satisfied(context, grant)
     result = await _introspect(auth_flow, token.access_token)
@@ -441,6 +443,7 @@ async def test_saved_grant_revocation_cannot_be_bypassed_by_a_later_grant(
     with pytest.raises(ValueError, match='授权已失效'):
         await UserInfoService.build(auth_flow.db, _claims(auth_flow, token.access_token), auth_flow.redis)
     if offline:
+        assert token.refresh_token is not None
         assert await _introspect(auth_flow, token.refresh_token) == {'active': False}
         with pytest.raises(OAuthProtocolException) as error:
             await TokenService.refresh_token(
@@ -614,7 +617,9 @@ async def test_login_cookie_persistence_survives_forced_password_change(
 ) -> None:
     """普通登录及强制改密后的 Cookie 持久化行为均遵守保持登录选项。"""
     flow = auth_flow
-    context = await AuthorizationService.validate_request(flow.db, AuthorizeRequest(**_authorize_request(flow)))
+    context = await AuthorizationService.validate_request(
+        flow.db, AuthorizeRequest.model_validate(_authorize_request(flow))
+    )
     created = await InteractionService.create(flow.redis, context.to_internal_payload('cookie-test'), pepper=_PEPPER)
     flow.user.password = PwdUtil.get_password_hash('old-password')
     await flow.db.commit()
@@ -636,7 +641,7 @@ async def test_login_cookie_persistence_survives_forced_password_change(
     outcome = await InteractionLoginService.login(
         flow.redis,
         created.interaction_id,
-        InteractionLoginModel(userName='alice', password='old-password', rememberMe=remember),
+        InteractionLoginModel(user_name='alice', password='old-password', remember_me=remember),
         flow.db,
         created.csrf_token,
     )
@@ -647,9 +652,9 @@ async def test_login_cookie_persistence_survives_forced_password_change(
             flow.redis,
             created.interaction_id,
             ChangePasswordModel(
-                oldPassword='old-password',
-                newPassword='new-password-A1!',
-                confirmPassword='new-password-A1!',
+                old_password='old-password',
+                new_password='new-password-A1!',
+                confirm_password='new-password-A1!',
             ),
             flow.db,
             created.csrf_token,
@@ -678,7 +683,9 @@ async def test_block_and_unblock_require_new_authorization(auth_flow: SimpleName
     flow = auth_flow
     token, grant = await _user_token(flow, offline=offline)
     client_id, user_id, grant_id = flow.app.client_id, flow.user.user_id, grant.grant_id
-    context = await AuthorizationService.validate_request(flow.db, AuthorizeRequest(**_authorize_request(flow)))
+    context = await AuthorizationService.validate_request(
+        flow.db, AuthorizeRequest.model_validate(_authorize_request(flow))
+    )
     code_payload = {
         'clientPk': flow.app.client_pk,
         'redirectUri': context.redirect_uri,
@@ -729,8 +736,9 @@ async def test_block_and_unblock_require_new_authorization(auth_flow: SimpleName
         )
     assert error.value.error == 'invalid_grant'
     if offline:
+        assert token.refresh_token is not None
         assert await _introspect(flow, token.refresh_token) == {'active': False}
-    rows, total = await OAuthSessionManagementService.list_grants(flow.db, GrantPageQueryModel(accessStatus='blocked'))
+    rows, total = await OAuthSessionManagementService.list_grants(flow.db, GrantPageQueryModel(access_status='blocked'))
     assert total == 1 and rows[0].access_status == 'blocked' and rows[0].access_reason == '禁止访问'
     assert await OAuthSessionManagementService.set_access(flow.db, user_id, client_id, False, 'admin', '解除禁止') == 0
     assert await _introspect(flow, token.access_token) == {'active': False}
@@ -790,7 +798,7 @@ async def test_batch_revoke_covers_all_grants_for_selected_user_client(auth_flow
         granted_scopes=list(grant.granted_scopes),
         granted_resources=list(grant.granted_resources),
         client_policy_version=flow.app.policy_version,
-        remembered_scopes=list(grant.remembered_scopes),
+        remembered_scopes=list(grant.remembered_scopes or []),
         status='active',
     )
     other_user = SysUser(user_id=2002, user_name='bob', nick_name='Bob', status='0', del_flag='0')
@@ -844,7 +852,9 @@ async def test_interactive_completion_binds_a_grant(auth_flow: SimpleNamespace, 
     flow = auth_flow
     flow.app.require_consent = int(confirm)
     await flow.db.commit()
-    context = await AuthorizationService.validate_request(flow.db, AuthorizeRequest(**_authorize_request(flow)))
+    context = await AuthorizationService.validate_request(
+        flow.db, AuthorizeRequest.model_validate(_authorize_request(flow))
+    )
     payload = context.to_internal_payload('pending')
     payload.update(
         {
@@ -859,7 +869,7 @@ async def test_interactive_completion_binds_a_grant(auth_flow: SimpleNamespace, 
         await InteractionConsentService.consent(
             flow.redis,
             created.interaction_id,
-            InteractionConsentModel(approved=True, scopes=list(context.scopes), rememberConsent=False),
+            InteractionConsentModel(approved=True, scopes=list(context.scopes), remember_consent=False),
             flow.db,
             created.csrf_token,
         )
@@ -893,7 +903,9 @@ async def test_revocation_between_consent_and_completion_prevents_code(
 ) -> None:
     """同意后、签码前发生撤销或禁止，不得继续发码或复用授权记录。"""
     flow = auth_flow
-    context = await AuthorizationService.validate_request(flow.db, AuthorizeRequest(**_authorize_request(flow)))
+    context = await AuthorizationService.validate_request(
+        flow.db, AuthorizeRequest.model_validate(_authorize_request(flow))
+    )
     payload = context.to_internal_payload('pending')
     payload.update(
         {
@@ -907,7 +919,7 @@ async def test_revocation_between_consent_and_completion_prevents_code(
     await InteractionConsentService.consent(
         flow.redis,
         created.interaction_id,
-        InteractionConsentModel(approved=True, scopes=list(context.scopes), rememberConsent=False),
+        InteractionConsentModel(approved=True, scopes=list(context.scopes), remember_consent=False),
         flow.db,
         created.csrf_token,
     )
@@ -917,7 +929,9 @@ async def test_revocation_between_consent_and_completion_prevents_code(
             flow.db, flow.user.user_id, flow.app.client_id, True, 'admin', '禁止'
         )
     else:
-        await OAuthSessionManagementService.revoke_grants(flow.db, [record['grantId']], 'admin', '撤销')
+        grant_id = record.get('grantId')
+        assert grant_id is not None
+        await OAuthSessionManagementService.revoke_grants(flow.db, [grant_id], 'admin', '撤销')
     issue = AsyncMock()
     monkeypatch.setattr(AuthorizationCodeService, 'issue', issue)
     with pytest.raises(OAuthProtocolException) as error:

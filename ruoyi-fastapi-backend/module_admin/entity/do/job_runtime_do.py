@@ -1,4 +1,8 @@
-from sqlalchemy import JSON, BigInteger, Boolean, Column, Index, String, Text
+from datetime import datetime
+from typing import Any
+
+from sqlalchemy import JSON, BigInteger, Boolean, Index, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from common.mixin import AuditTimeMixin
 from common.types import DbUtcDateTime
@@ -14,18 +18,22 @@ class SysJobSync(AuditTimeMixin, Base):
         {'comment': '任务调度同步状态'},
     )
 
-    job_id = Column(BigInteger, primary_key=True, autoincrement=False, comment='逻辑任务ID')
-    config_version = Column(BigInteger, nullable=False, default=1, comment='最新配置版本')
-    applied_version = Column(BigInteger, nullable=False, default=0, comment='已应用版本')
-    config_hash = Column(String(64), nullable=False, comment='最新配置摘要')
-    deleted = Column(Boolean, nullable=False, default=False, comment='任务是否已删除')
-    sync_status = Column(
+    job_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False, comment='逻辑任务ID')
+    config_version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=1, comment='最新配置版本')
+    applied_version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, comment='已应用版本')
+    config_hash: Mapped[str] = mapped_column(String(64), nullable=False, comment='最新配置摘要')
+    deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, comment='任务是否已删除')
+    sync_status: Mapped[str] = mapped_column(
         String(16), nullable=False, default='pending', comment='应用状态（pending、applied 或 failed）'
     )
-    sync_error = Column(String(2000), nullable=True, comment='最近同步错误')
-    applied_time = Column(DbUtcDateTime(), nullable=True, comment='最近应用时刻')
-    next_run_time = Column(DbUtcDateTime(), nullable=True, comment='最近观测的实际下次调度时刻')
-    schedule_observed_time = Column(DbUtcDateTime(), nullable=True, comment='Leader调度观测时刻')
+    sync_error: Mapped[str | None] = mapped_column(String(2000), nullable=True, comment='最近同步错误')
+    applied_time: Mapped[datetime | None] = mapped_column(DbUtcDateTime(), nullable=True, comment='最近应用时刻')
+    next_run_time: Mapped[datetime | None] = mapped_column(
+        DbUtcDateTime(), nullable=True, comment='最近观测的实际下次调度时刻'
+    )
+    schedule_observed_time: Mapped[datetime | None] = mapped_column(
+        DbUtcDateTime(), nullable=True, comment='Leader调度观测时刻'
+    )
 
 
 class SysJobExecution(AuditTimeMixin, Base):
@@ -38,16 +46,16 @@ class SysJobExecution(AuditTimeMixin, Base):
         {'comment': '任务执行请求与状态'},
     )
 
-    execution_id = Column(String(32), primary_key=True, comment='执行ID')
-    job_id = Column(BigInteger, nullable=False, comment='逻辑任务ID')
-    source = Column(String(10), nullable=False, comment='触发方式（手动或定时）')
-    status = Column(String(16), nullable=False, default='pending', comment='执行状态')
-    job_snapshot = Column(JSON, nullable=False, comment='提交时任务配置快照')
-    owner_token = Column(String(64), nullable=True, comment='派发或执行占用凭据')
-    lease_until = Column(DbUtcDateTime(), nullable=True, comment='执行占用租约截止时刻')
-    scheduled_time = Column(DbUtcDateTime(), nullable=True, comment='计划执行时刻')
-    start_time = Column(DbUtcDateTime(), nullable=True, comment='实际开始时刻')
-    end_time = Column(DbUtcDateTime(), nullable=True, comment='实际结束时刻')
-    run_duration_ms = Column(BigInteger, nullable=True, comment='实际执行耗时（毫秒）')
-    message = Column(Text, nullable=True, comment='执行结果或未执行原因')
-    requested_by = Column(String(64), nullable=True, comment='手动执行提交者')
+    execution_id: Mapped[str] = mapped_column(String(32), primary_key=True, comment='执行ID')
+    job_id: Mapped[int] = mapped_column(BigInteger, nullable=False, comment='逻辑任务ID')
+    source: Mapped[str] = mapped_column(String(10), nullable=False, comment='触发方式（手动或定时）')
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default='pending', comment='执行状态')
+    job_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, comment='提交时任务配置快照')
+    owner_token: Mapped[str | None] = mapped_column(String(64), nullable=True, comment='派发或执行占用凭据')
+    lease_until: Mapped[datetime | None] = mapped_column(DbUtcDateTime(), nullable=True, comment='执行占用租约截止时刻')
+    scheduled_time: Mapped[datetime | None] = mapped_column(DbUtcDateTime(), nullable=True, comment='计划执行时刻')
+    start_time: Mapped[datetime | None] = mapped_column(DbUtcDateTime(), nullable=True, comment='实际开始时刻')
+    end_time: Mapped[datetime | None] = mapped_column(DbUtcDateTime(), nullable=True, comment='实际结束时刻')
+    run_duration_ms: Mapped[int | None] = mapped_column(BigInteger, nullable=True, comment='实际执行耗时（毫秒）')
+    message: Mapped[str | None] = mapped_column(Text, nullable=True, comment='执行结果或未执行原因')
+    requested_by: Mapped[str | None] = mapped_column(String(64), nullable=True, comment='手动执行提交者')

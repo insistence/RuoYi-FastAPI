@@ -1,9 +1,10 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import Row, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.database import execute_rowcount
 from module_identity.entity.do.oauth_client_do import SysOAuthClient, SysOAuthClientSecret, SysOAuthClientUri
 from module_identity.entity.do.oauth_grant_do import SysOAuthGrant, SysOAuthRefreshToken
 from module_identity.entity.do.oauth_resource_do import (
@@ -108,7 +109,7 @@ class OAuthClientDao:
         :return: Client 内部主键到公开标识的映射
         """
         if not client_pks:
-            return {}
+            return dict[int, str]()
         result = await db.execute(
             select(SysOAuthClient.client_pk, SysOAuthClient.client_id).where(SysOAuthClient.client_pk.in_(client_pks))
         )
@@ -205,13 +206,14 @@ class OAuthClientDao:
         :param secret_id: Client Secret 标识
         :return: 是否更新成功
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysOAuthClientSecret)
             .where(SysOAuthClientSecret.secret_id == secret_id)
-            .values(last_used_at=TimezoneUtil.utc_now())
+            .values(last_used_at=TimezoneUtil.utc_now()),
         )
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def list_uris(
@@ -584,7 +586,7 @@ class OAuthClientDao:
     @classmethod
     async def get_client_detail_rows(
         cls, db: AsyncSession, client_id: str
-    ) -> tuple[SysOAuthClient, list[tuple[SysOAuthScope, int]], list[str], Sequence[SysOAuthClientUri]] | None:
+    ) -> tuple[SysOAuthClient, Sequence[Row[SysOAuthScope, int]], list[str], Sequence[SysOAuthClientUri]] | None:
         """
         查询 OAuth Client 详情及关联数据。
 

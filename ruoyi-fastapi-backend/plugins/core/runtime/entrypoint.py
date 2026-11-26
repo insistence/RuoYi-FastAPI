@@ -8,6 +8,7 @@ import sys
 import sysconfig
 from dataclasses import dataclass
 from importlib.machinery import EXTENSION_SUFFIXES
+from os import PathLike
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -17,6 +18,7 @@ from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 from plugins.core.discovery.scanner import DiscoveredPlugin
+from plugins.core.manifest.v2 import PluginManifestV2
 from plugins.core.sdk import PluginDefinition, PluginHostContext
 
 
@@ -51,9 +53,10 @@ class PluginEntrypointLoader:
         :raises ValueError: 显式入口加载器仅用于 manifestVersion 2
         """
         self.plugin = plugin
-        self.backend = plugin.manifest.backend
-        if not plugin.manifest.uses_entrypoint:
+        manifest = plugin.manifest
+        if not isinstance(manifest, PluginManifestV2):
             raise ValueError('显式入口加载器仅用于 manifestVersion 2')
+        self.backend = manifest.backend
 
     @property
     def module_root(self) -> Path:
@@ -62,7 +65,7 @@ class PluginEntrypointLoader:
 
         :return: Python 插件目录或原生发行包安装目录的绝对路径
         """
-        if self.plugin.manifest.runtime_kind == 'native':
+        if self.backend.native is not None:
             return self._contained(self.plugin.backend_path / self.backend.native.module_root)
         return self.plugin.backend_path.resolve()
 
@@ -130,11 +133,13 @@ class PluginEntrypointLoader:
         """
         if platform.python_implementation() != 'CPython' or sysconfig.get_config_var('Py_GIL_DISABLED'):
             raise ValueError('当前 native 运行时仅支持带 GIL 的 CPython')
+        if self.backend.native is None:
+            raise ValueError('原生插件缺少发行包配置')
         expected = canonicalize_name(self.backend.native.distribution)
         matches = [
             dist
             for dist in importlib.metadata.distributions(path=[str(self.module_root)])
-            if canonicalize_name(dist.metadata.get('Name', '')) == expected
+            if 'Name' in (metadata := dist.metadata) and canonicalize_name(metadata['Name']) == expected
         ]
         if len(matches) != 1:
             raise ValueError('native.moduleRoot 必须包含唯一匹配的已安装 wheel 元数据')
@@ -148,7 +153,11 @@ class PluginEntrypointLoader:
                 tags.update(parse_tag(line.removeprefix('Tag: ').strip()))
         if not any(tag.abi != 'none' and tag.platform != 'any' for tag in tags.intersection(sys_tags())):
             raise ValueError('原生 wheel 平台、Python 或 ABI 与当前解释器不兼容')
-        entries = [entry for entry in dist.files or [] if Path(dist.locate_file(entry)).resolve() == location.path]
+        entries = [
+            entry
+            for entry in dist.files or []
+            if isinstance(path := dist.locate_file(entry), (str, PathLike)) and Path(path).resolve() == location.path
+        ]
         if len(entries) != 1 or entries[0].hash is None or entries[0].hash.mode != 'sha256':
             raise ValueError('原生入口必须包含在发行包 RECORD 中并声明 SHA256')
         digest = hashlib.sha256(location.path.read_bytes()).digest()

@@ -49,7 +49,8 @@ class EnablementRuntime(MaintenanceRuntime):
         :param dry_run: 是否只预览操作结果
         :return: 测试指定的启停预检结果
         """
-        owner: EnablementFactory = self.owner
+        owner = self.owner
+        assert isinstance(owner, EnablementFactory)
         owner.checks.append((plugin_id, enabled, dry_run))
         if owner.before_check is not None:
             await owner.before_check()
@@ -160,6 +161,7 @@ async def _seed_resources(sessions: async_sessionmaker[AsyncSession], *, disable
     status = '1' if disabled else '0'
     async with sessions() as db:
         plugin = await db.get(SysPlugin, PLUGIN_ID)
+        assert plugin is not None
         plugin.enabled = status
         db.add(SysMenu(menu_id=PLUGIN_MENU_ID, menu_name='Owned menu', status=status))
         db.add(SysMenu(menu_id=OTHER_MENU_ID, menu_name='Unrelated menu', status='0'))
@@ -217,7 +219,9 @@ async def _snapshot(sessions: async_sessionmaker[AsyncSession]) -> dict[str, Any
     """
     async with sessions() as db:
         plugin = await db.get(SysPlugin, PLUGIN_ID)
+        assert plugin is not None
         release = await db.get(SysPluginRelease, PLUGIN_ID)
+        assert release is not None
         return {
             'plugin': (plugin.enabled, plugin.status, plugin.version, plugin.installed_version),
             'release': (
@@ -342,10 +346,18 @@ async def test_audit_failure_rolls_back_generation_plugin_menu_and_job_updates(
         :param actor: 发起操作的主体
         :raises RuntimeError: 模拟审计服务不可用
         """
-        assert (await db.get(SysPlugin, PLUGIN_ID)).enabled == '1'
-        assert (await db.get(SysMenu, PLUGIN_MENU_ID)).status == '1'
-        assert (await db.get(SysJob, FIRST_JOB_ID)).status == '1'
-        assert (await db.get(SysPluginRelease, PLUGIN_ID)).generation == payload['generation']
+        stored_plugin = await db.get(SysPlugin, PLUGIN_ID)
+        assert stored_plugin is not None
+        assert stored_plugin.enabled == '1'
+        stored_menu = await db.get(SysMenu, PLUGIN_MENU_ID)
+        assert stored_menu is not None
+        assert stored_menu.status == '1'
+        stored_job = await db.get(SysJob, FIRST_JOB_ID)
+        assert stored_job is not None
+        assert stored_job.status == '1'
+        stored_pluginrelease = await db.get(SysPluginRelease, PLUGIN_ID)
+        assert stored_pluginrelease is not None
+        assert stored_pluginrelease.generation == payload['generation']
         raise RuntimeError('audit unavailable')
 
     monkeypatch.setattr(enablement_service, '_audit', failed_audit)
@@ -368,6 +380,7 @@ async def test_job_ownership_failure_rolls_back_prior_menu_and_plugin_writes(
     )
     async with deployment_sessions() as db:
         job = await db.get(SysJob, FIRST_JOB_ID)
+        assert job is not None
         job.remark = 'Existing user-owned task must not be overwritten'
         await db.commit()
     before = await _snapshot(deployment_sessions)

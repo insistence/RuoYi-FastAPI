@@ -1,11 +1,13 @@
 from datetime import UTC, datetime
 from typing import Annotated
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import FastAPI, Query, status
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import Select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from module_admin.dao.config_dao import ConfigDao
 from module_admin.entity.vo.config_vo import ConfigPageQueryModel
@@ -20,10 +22,10 @@ from utils.time_util import TimezoneUtil
 def test_invalid_timezone_is_a_model_validation_error(zone: str) -> None:
     """无效时区触发模型校验错误。"""
     with pytest.raises(ValidationError, match='IANA'):
-        JobModel(timeZone=zone)
+        JobModel(time_zone=zone)
     with pytest.raises(ValidationError, match='IANA'):
         PluginJobManifest(
-            id='daily', callable='module_task.scheduler_test.job', cronExpression='0 0 9 * * ?', timeZone=zone
+            id='daily', callable='module_task.scheduler_test.job', cron_expression='0 0 9 * * ?', time_zone=zone
         )
 
 
@@ -51,13 +53,13 @@ def test_http_boundaries_return_validation_errors() -> None:
 
 def test_instant_query_compares_instants_instead_of_offset_strings() -> None:
     """时间点查询按实际时刻比较。"""
-    query = FileInfoQueryModel(beginTime='2026-08-28T10:00:00+08:00', endTime='2026-08-28T03:00:00Z')
+    query = FileInfoQueryModel(begin_time='2026-08-28T10:00:00+08:00', end_time='2026-08-28T03:00:00Z')
     assert TimezoneUtil.rfc3339_range_to_utc(query.begin_time, query.end_time) == (
         datetime(2026, 8, 28, 2, tzinfo=UTC),
         datetime(2026, 8, 28, 3, tzinfo=UTC),
     )
     with pytest.raises(ValidationError):
-        FileInfoQueryModel(beginTime='2026-08-28T03:00:00Z', endTime='2026-08-28T10:00:00+08:00')
+        FileInfoQueryModel(begin_time='2026-08-28T03:00:00Z', end_time='2026-08-28T10:00:00+08:00')
 
 
 @pytest.mark.asyncio
@@ -74,21 +76,14 @@ async def test_date_query_filters_only_provided_boundaries_in_business_timezone(
     monkeypatch: pytest.MonkeyPatch, boundaries: dict[str, str], expected_times: list[datetime]
 ) -> None:
     """日期查询按业务时区仅过滤指定的边界。"""
-
-    async def capture_query(_db: object, query: Select, *args: object) -> Select:
-        """
-        向调用方返回 ``query``。
-
-        :param _db: 回调签名接收的数据库会话
-        :param query: 限制查询结果的条件
-        :param args: 传给被调用对象的位置参数
-        :return: 限制查询结果的条件
-        """
-        return query
-
-    monkeypatch.setattr(PageUtil, 'paginate', capture_query)
+    paginate = AsyncMock(return_value=[])
+    monkeypatch.setattr(PageUtil, 'paginate', paginate)
     monkeypatch.setattr(TimezoneUtil, 'get_request_timezone', lambda: 'Asia/Shanghai')
-    query = await ConfigDao.get_config_list(None, ConfigPageQueryModel(**boundaries))
+    await ConfigDao.get_config_list(AsyncSession(), ConfigPageQueryModel.model_validate(boundaries))
+    paginate.assert_awaited_once()
+    assert paginate.await_args is not None
+    query = paginate.await_args.args[1]
+    assert isinstance(query, Select)
     sql = str(query)
     assert ('sys_config.create_time >=' in sql) == ('beginTime' in boundaries)
     assert ('sys_config.create_time <' in sql) == ('endTime' in boundaries)

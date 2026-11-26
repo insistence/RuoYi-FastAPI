@@ -30,6 +30,8 @@ class DevCommandPresenter:
         lines.extend(self._build_command_result_section('check', payload.get('check')))
         if 'docstrings' in payload:
             lines.extend(self._build_command_result_section('docstrings', payload['docstrings']))
+        if 'ty' in payload:
+            lines.extend(self._build_command_result_section('ty', payload['ty']))
         return '\n'.join(lines)
 
     def build_dev_test_text(self, payload: dict[str, object]) -> str:
@@ -56,7 +58,7 @@ class DevCommandPresenter:
         return '\n'.join(lines)
 
     @staticmethod
-    def _build_command_result_section(title: str, payload: dict[str, object] | None) -> list[str]:
+    def _build_command_result_section(title: str, payload: object) -> list[str]:
         """
         构建单个子命令执行结果段落。
 

@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import and_, case, delete, func, or_, select, update
+from sqlalchemy import and_, case, delete, func, or_, select, true, update
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -74,11 +74,11 @@ class NoticeDao:
         query = (
             select(SysNotice)
             .where(
-                SysNotice.notice_title.like(f'%{query_object.notice_title}%') if query_object.notice_title else True,
-                SysNotice.create_by.like(f'%{query_object.create_by}%') if query_object.create_by else True,
-                SysNotice.notice_type == query_object.notice_type if query_object.notice_type else True,
-                SysNotice.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysNotice.create_time < time_range[1] if time_range and time_range[1] is not None else True,
+                SysNotice.notice_title.like(f'%{query_object.notice_title}%') if query_object.notice_title else true(),
+                SysNotice.create_by.like(f'%{query_object.create_by}%') if query_object.create_by else true(),
+                SysNotice.notice_type == query_object.notice_type if query_object.notice_type else true(),
+                SysNotice.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysNotice.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
             )
             .order_by(SysNotice.notice_id.desc())
             .distinct()
@@ -172,12 +172,14 @@ class NoticeDao:
                     SysUser.nick_name.like(f'%{search_value}%'),
                 )
                 if search_value
-                else True,
+                else true(),
             )
             .order_by(SysNoticeRead.read_time.desc())
         )
 
-        return await PageUtil.paginate(db, query, query_object.page_num, query_object.page_size, is_page)
+        return await PageUtil.paginate(
+            db, query, query_object.page_num, query_object.page_size, is_page, as_mappings=True
+        )
 
     @classmethod
     async def add_notice_reads(cls, db: AsyncSession, user_id: int, notice_ids: list[int]) -> None:

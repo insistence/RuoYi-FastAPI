@@ -2,11 +2,11 @@ import asyncio
 import hashlib
 import uuid
 from dataclasses import dataclass
-from typing import Any
 
 import anyio
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
+from redis.typing import EncodableT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -171,8 +171,7 @@ return #KEYS
         try:
             current_user = CurrentUserModel.model_validate_json(result[4])
             if (
-                current_user.user is None
-                or current_user.user.user_id != user_id
+                current_user.user.user_id != user_id
                 or current_user.user.password is not None
                 or current_user.user.status not in (None, '0')
                 or current_user.user.del_flag not in (None, '0')
@@ -202,7 +201,7 @@ return #KEYS
         :param ticket: 查询开始前取得的版本和有效期
         :return: 是否写入成功
         """
-        if current_user.user is None or current_user.user.user_id != user_id:
+        if current_user.user.user_id != user_id:
             return False
         try:
             payload = current_user.model_dump_json(
@@ -246,20 +245,21 @@ return #KEYS
             else [cls._keys(namespace, user_id)[1] for user_id in sorted(user_ids)]
         )
         try:
-            return await cls._eval(
+            invalidated = await cls._eval(
                 redis,
                 cls._INVALIDATE_SCRIPT,
                 len(keys),
                 *keys,
                 *(uuid.uuid4().hex for _ in keys),
                 cls._USER_EPOCH_TTL_SECONDS if user_ids is not None else 0,
-            ) == len(keys)
+            )
+            return invalidated == len(keys)
         except (RedisError, TimeoutError):
             logger.warning('当前用户缓存失效失败，等待快照硬过期')
             return False
 
     @classmethod
-    async def _eval(cls, redis: Redis, script: str, key_count: int, *args: object) -> Any:
+    async def _eval(cls, redis: Redis, script: str, key_count: int, *args: EncodableT) -> object:
         """
         限时执行Redis脚本，取消后等待连接归还。
 

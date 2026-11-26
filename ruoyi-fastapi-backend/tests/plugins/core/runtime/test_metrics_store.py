@@ -83,7 +83,9 @@ def reporter(worker_id: str) -> PluginMetricsReporter:
     """
     metrics = PluginRuntimeMetrics(worker_id=worker_id)
     metrics.register('metric_demo', '1.0.0', None, None)
-    metrics.begin('metric_demo', 'http', f'trace-{worker_id}').finish('succeeded')
+    invocation = metrics.begin('metric_demo', 'http', f'trace-{worker_id}')
+    assert invocation is not None
+    invocation.finish('succeeded')
     return PluginMetricsReporter(metrics)
 
 
@@ -96,7 +98,9 @@ async def test_reporting_workers_aggregate_without_double_counting_local_snapsho
         item.start(redis, namespace)
         await item.publish()
     try:
-        first.metrics.begin('metric_demo', 'http', 'new').finish('succeeded')
+        invocation = first.metrics.begin('metric_demo', 'http', 'new')
+        assert invocation is not None
+        invocation.finish('succeeded')
         result = await first.read('metric_demo')
         assert result['scope'] == 'reporting_workers'
         expected_workers = 2

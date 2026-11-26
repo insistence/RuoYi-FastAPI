@@ -822,7 +822,7 @@ async def delete_system_file(
     delete_file_result = await FileLifecycleService.delete_file_services(
         query_db,
         current_user,
-        DeleteFileModel(fileIds=file_ids),
+        DeleteFileModel(file_ids=file_ids),
         file_data_scope_sql,
         request=request,
     )

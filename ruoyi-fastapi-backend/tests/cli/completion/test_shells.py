@@ -28,3 +28,35 @@ def test_powershell_completion_preserves_script_protocol_with_existing_registrat
     captured = capsys.readouterr()
     assert captured.err == ''
     assert any(line.split('\t', 2)[:2] == ['plain', 'completion'] for line in captured.out.splitlines())
+
+
+@pytest.mark.parametrize(
+    ('instruction', 'cursor', 'expected'),
+    [
+        ('bash_complete', '2', 'plain,show'),
+        ('zsh_complete', '2', 'plain\nshow\n'),
+        ('fish_complete', 'sh', 'plain,show'),
+        ('powershell_complete', 'sh', 'plain\tshow\t'),
+        ('complete_bash', '2', 'show'),
+    ],
+)
+def test_nested_command_completion_uses_shell_protocol(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], instruction: str, cursor: str, expected: str
+) -> None:
+    """嵌套命令按各个 shell 的协议返回候选项。"""
+    monkeypatch.setenv('_RUOYI_COMPLETE', instruction)
+    monkeypatch.setenv('COMP_WORDS', 'ruoyi config sh')
+    monkeypatch.setenv('COMP_CWORD', cursor)
+    app = typer.Typer(add_completion=False)
+    config = typer.Typer()
+    app.add_typer(config, name='config')
+
+    @config.command()
+    def show() -> None:
+        """显示配置。"""
+
+    with pytest.raises(SystemExit) as result:
+        CompletionDispatcher().dispatch(app)
+
+    assert result.value.code == 0
+    assert expected in capsys.readouterr().out

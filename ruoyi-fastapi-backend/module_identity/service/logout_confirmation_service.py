@@ -95,7 +95,15 @@ return value
             OidcUtil.logout_confirmation_digest(bound_sso, browser_nonce, pepper=OidcConfig.oidc_token_hash_pepper),
         ):
             raise ValueError('退出确认的浏览器会话已变更，请重新发起退出')
-        return record['parameters']
+        parameters = record['parameters']
+        if not isinstance(parameters, dict):
+            raise ValueError('退出确认参数无效')
+        result: dict[str, str] = {}
+        for key, value in parameters.items():
+            if not isinstance(key, str) or not isinstance(value, str):
+                raise ValueError('退出确认参数无效')
+            result[key] = value
+        return result
 
     @classmethod
     async def form_redirect_origin(cls, db: AsyncSession, parameters: dict[str, str]) -> str | None:
@@ -110,9 +118,11 @@ return value
         """
         hint = parameters.get('id_token_hint')
         uri = parameters.get('post_logout_redirect_uri')
-        if not hint or not OidcUtil.is_safe_post_logout_uri(uri):
+        if not hint or not uri or not OidcUtil.is_safe_post_logout_uri(uri):
             return None
         parsed = urlsplit(uri)
+        if parsed.hostname is None:
+            return None
         hostname = parsed.hostname.encode('idna').decode('ascii')
         if not re.fullmatch(r'[A-Za-z0-9.:-]+', hostname):
             return None

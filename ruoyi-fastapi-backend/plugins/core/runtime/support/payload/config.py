@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import TypeAlias, cast
 
 from pydantic import Field
@@ -109,7 +109,7 @@ class PluginConfigPayloadBuilder:
     """
 
     @classmethod
-    def build_read_payload(cls, plugin_id: str, configs: list[SupportsModelDump]) -> PluginConfigStatePayloadDict:
+    def build_read_payload(cls, plugin_id: str, configs: Sequence[SupportsModelDump]) -> PluginConfigStatePayloadDict:
         """
         构建插件配置读取负载。
 
@@ -205,9 +205,9 @@ class PluginConfigPayloadBuilder:
             reveal_secret=reveal_secret,
             configs=config_items,
             values={
-                config.get('key'): cast('PluginConfigValue', config.get('value'))
+                key: cast('PluginConfigValue', config.get('value'))
                 for config in config_items
-                if isinstance(config.get('key'), str)
+                if isinstance(key := config.get('key'), str)
             },
             metadata=[cls._build_export_metadata(config) for config in config_items],
         ).to_payload()
@@ -219,7 +219,7 @@ class PluginConfigPayloadBuilder:
         *,
         operation: str,
         message: str,
-        configs: list[SupportsModelDump],
+        configs: Sequence[SupportsModelDump],
     ) -> PluginConfigStatePayloadDict:
         """
         构建插件配置更新负载。
@@ -268,8 +268,8 @@ class PluginConfigPayloadBuilder:
         *,
         operation: str,
         values: dict[str, PluginConfigValue],
-        before_configs: list[SupportsModelDump],
-        after_configs: list[SupportsModelDump],
+        before_configs: Sequence[SupportsModelDump],
+        after_configs: Sequence[SupportsModelDump],
         message: str,
     ) -> PluginConfigAuditPayloadDict:
         """
@@ -307,7 +307,7 @@ class PluginConfigPayloadBuilder:
         *,
         plugin_id: str,
         message: str,
-        configs: list[SupportsModelDump],
+        configs: Sequence[SupportsModelDump],
         operation: str | None = None,
     ) -> PluginConfigStatePayloadDict:
         """
@@ -356,7 +356,7 @@ class PluginConfigPayloadBuilder:
         }
 
     @staticmethod
-    def _build_audit_map(configs: list[SupportsModelDump]) -> dict[str, dict[str, PluginConfigValue]]:
+    def _build_audit_map(configs: Sequence[SupportsModelDump]) -> dict[str, dict[str, PluginConfigValue]]:
         """
         构建按配置键索引的审计配置映射。
 
@@ -378,7 +378,7 @@ class PluginConfigPayloadBuilder:
         key: str,
         before_config: dict[str, PluginConfigValue],
         after_config: dict[str, PluginConfigValue],
-    ) -> PluginConfigAuditChangePayload:
+    ) -> dict[str, object]:
         """
         构建单个配置项的脱敏变更摘要。
 

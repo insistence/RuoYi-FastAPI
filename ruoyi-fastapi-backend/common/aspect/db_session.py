@@ -1,7 +1,7 @@
 from collections.abc import AsyncIterator
 from functools import cache
 
-from fastapi import Depends, params
+from fastapi import params
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.database import DataSourceRegistry
@@ -50,4 +50,4 @@ def DBSessionDependency(source_name: str | None = None) -> params.Depends:  # no
     :param source_name: 数据源名称，为空时使用默认数据源
     :return: 数据库会话依赖
     """
-    return Depends(get_db_session_provider(source_name))
+    return params.Depends(get_db_session_provider(source_name))

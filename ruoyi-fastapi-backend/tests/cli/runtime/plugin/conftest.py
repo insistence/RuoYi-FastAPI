@@ -4,7 +4,8 @@ from subprocess import CompletedProcess
 
 from cli.runtime.plugin.service import CliPluginRuntimeService
 from plugins.core.environment import PluginRuntimeEnvironmentService
-from plugins.core.frontend import PluginFrontendFrameworkResolver
+from plugins.core.management.service.gateway import PluginManagementRuntimeGateway
+from plugins.core.runtime.service.gateway import PluginCommandOutputCallback
 from plugins.core.validation.dependencies import (
     NpmDependencyInspector,
     PluginDependencyChecker,
@@ -14,96 +15,27 @@ from plugins.core.validation.dependencies import (
 EXPECTED_FRONTEND_BUILD_TIMEOUT = 300
 
 
-class FakeRuntimeEnvironment:
+class FakeRuntimeEnvironment(PluginRuntimeEnvironmentService):
     """
-    测试用插件 CLI 运行时环境服务。
+    使用测试目录和当前 Python 解释器的开发环境。
 
-    :ivar backend_dir: 后端项目目录
-    :ivar frontend_dir: 前端项目目录
+    :ivar frontend_mode: 测试固定使用的前端开发模式
+    :ivar backend_runtime_mode: 测试固定使用的后端开发模式
     """
 
     def __init__(self, backend_dir: Path, frontend_dir: Path | None = None) -> None:
         """
-        初始化测试用插件 CLI 运行时环境服务。
+        设置测试用插件目录和解释器。
 
-        :param backend_dir: 后端项目目录
-        :param frontend_dir: 前端项目目录
+        :param backend_dir: 后端根目录
+        :param frontend_dir: 前端根目录
         """
-        self.backend_dir = backend_dir
-        self.frontend_dir = frontend_dir or Path(
-            PluginRuntimeEnvironmentService(backend_root=backend_dir).get_frontend_dir()
-        )
-
-    def get_backend_dir(self) -> str:
-        """
-        获取后端项目根目录。
-
-        :return: 后端项目根目录
-        """
-        return str(self.backend_dir)
-
-    def get_backend_plugins_dir(self) -> str:
-        """
-        获取后端插件根目录。
-
-        :return: 后端插件根目录
-        """
-        return str(self.backend_dir / 'plugins')
-
-    def get_frontend_dir(self) -> str:
-        """
-        获取前端项目根目录。
-
-        :return: 前端项目根目录
-        """
-        return str(self.frontend_dir)
-
-    def get_frontend_framework(self, frontend_root: Path | None = None) -> str:
-        """
-        获取指定测试前端工程的框架标识。
-
-        :param frontend_root: 前端项目的根目录
-        :return: 指定测试前端工程的框架标识
-        """
-        return PluginFrontendFrameworkResolver.resolve(frontend_root or self.frontend_dir)
-
-    def get_frontend_plugins_dir(self) -> str:
-        """
-        获取前端插件根目录。
-
-        :return: 前端插件根目录
-        """
-        return str(self.frontend_dir / 'plugins')
-
-    @staticmethod
-    def get_frontend_mode() -> str:
-        """
-        获取测试用前端运行模式。
-
-        :return: 此分支的固定值 ``'dev'``
-        """
-        return 'dev'
-
-    @staticmethod
-    def get_backend_runtime_mode() -> str:
-        """
-        获取测试用后端运行模式。
-
-        :return: 此分支的固定值 ``'dev'``
-        """
-        return 'dev'
-
-    @staticmethod
-    def get_python_executable() -> str:
-        """
-        获取测试用 Python 解释器。
-
-        :return: 测试用 Python 解释器
-        """
-        return sys.executable
+        super().__init__(backend_root=backend_dir, frontend_root=frontend_dir, python_executable=sys.executable)
+        self.frontend_mode = 'dev'
+        self.backend_runtime_mode = 'dev'
 
 
-class FakePluginRuntimeGateway:
+class FakePluginRuntimeGateway(PluginManagementRuntimeGateway):
     """
     测试用插件 CLI 运行时适配器。
 
@@ -122,12 +54,14 @@ class FakePluginRuntimeGateway:
         workdir: str,
         *,
         timeout: int | None = None,
+        output_callback: PluginCommandOutputCallback | None = None,
     ) -> CompletedProcess[str]:
         """
         记录测试用系统命令。
 
         :param command: 执行的命令及其参数
         :param workdir: 命令执行时使用的工作目录
+        :param output_callback: 接收命令输出的回调
         :param timeout: 等待操作完成的超时限制
         :return: 供调用方使用的 ``self.completed_process``
         """

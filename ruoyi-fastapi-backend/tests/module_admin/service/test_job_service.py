@@ -1,3 +1,4 @@
+from functools import partial
 from unittest.mock import AsyncMock
 
 import pytest
@@ -10,6 +11,7 @@ from module_admin.entity.do.job_do import SysJob
 from module_admin.entity.do.job_runtime_do import SysJobSync
 from module_admin.entity.vo.job_vo import DeleteJobModel, EditJobModel, JobModel
 from module_admin.service.job_service import JobService
+from tests.module_admin.service.helpers import make_query_db
 from tests.scheduler_helpers import Runtime, job_info
 
 
@@ -55,19 +57,20 @@ async def test_job_mutations_only_request_targeted_sync_after_commit(
 
         monkeypatch.setattr(db, 'commit', committing)
         monkeypatch.setattr(SchedulerManager, 'request_scheduler_sync', sync)
-        method, argument = {
-            'add': (JobService.add_job_services, job_info()),
-            'edit': (JobService.edit_job_services, EditJobModel(jobId=42, timeZone='UTC')),
-            'disable': (JobService.edit_job_services, EditJobModel(jobId=42, status='1', type='status')),
-            'delete': (JobService.delete_job_services, DeleteJobModel(jobIds='42')),
+        mutate = {
+            'add': partial(JobService.add_job_services, db, job_info()),
+            'edit': partial(JobService.edit_job_services, db, EditJobModel(job_id=42, time_zone='UTC')),
+            'disable': partial(JobService.edit_job_services, db, EditJobModel(job_id=42, status='1', type='status')),
+            'delete': partial(JobService.delete_job_services, db, DeleteJobModel(job_ids='42')),
         }[action]
         if commit_fails:
             with pytest.raises(RuntimeError, match='transaction failed'):
-                await method(db, argument)
+                await mutate()
             assert events == ['commit']
             assert runtime.scheduler.get_job('42') is original
         else:
-            result = await method(db, argument)
+            result = await mutate()
+            assert isinstance(result.result, dict)
             assert result.result['saved']
             assert result.result['syncStatus'] == 'applied'
             assert events == ['commit', 'sync']
@@ -83,11 +86,10 @@ async def test_job_mutations_only_request_targeted_sync_after_commit(
             assert job is None
             assert await db.scalar(select(func.count()).select_from(SysJobSync)) == 0
             assert runtime.scheduler.get_jobs() == []
-        if action == 'disable' and not commit_fails:
-            assert job.time_zone == 'America/New_York'
-        if commit_fails and action != 'add':
-            assert job.time_zone == 'America/New_York'
-            assert job.status == '0'
+        elif commit_fails or action == 'disable':
+            assert job is not None and job.time_zone == 'America/New_York'
+            if commit_fails:
+                assert job.status == '0'
 
 
 @pytest.mark.asyncio
@@ -100,13 +102,15 @@ async def test_sync_failure_after_commit_reports_saved_and_keeps_retryable_state
         SchedulerManager, 'request_scheduler_sync', AsyncMock(side_effect=RuntimeError('sync unavailable'))
     )
     async with runtime.sessions() as db:
-        result = await JobService.delete_job_services(db, DeleteJobModel(jobIds='42'))
+        result = await JobService.delete_job_services(db, DeleteJobModel(job_ids='42'))
+    assert isinstance(result.result, dict)
     assert result.result['saved'] is True
     assert result.result['syncStatus'] == 'failed'
     assert '删除已提交' in result.message
     async with runtime.sessions() as db:
         assert (await db.scalars(select(SysJob))).first() is None
         state = await db.get(SysJobSync, 42)
+        assert state is not None
         assert state.deleted
         assert state.sync_status == 'pending'
 
@@ -116,29 +120,33 @@ async def test_disable_broken_target_remains_possible_but_enable_is_rejected(run
     """允许停用损坏的任务目标并拒绝启用。"""
     await runtime.save(job_info(invokeTarget='module_task.scheduler_test.missing'))
     async with runtime.sessions() as db:
-        result = await JobService.edit_job_services(db, EditJobModel(jobId=42, status='1', type='status'))
+        result = await JobService.edit_job_services(db, EditJobModel(job_id=42, status='1', type='status'))
+        assert isinstance(result.result, dict)
     assert result.result['syncStatus'] == 'applied'
     async with runtime.sessions() as db:
         with pytest.raises(ServiceException):
-            await JobService.edit_job_services(db, EditJobModel(jobId=42, status='0', type='status'))
-        assert (await JobDao.get_job_detail_by_id(db, 42)).status == '1'
+            await JobService.edit_job_services(db, EditJobModel(job_id=42, status='0', type='status'))
+        job = await JobDao.get_job_detail_by_id(db, 42)
+        assert job is not None
+        assert job.status == '1'
 
 
 @pytest.mark.asyncio
 async def test_add_job_rejects_plugin_invoke_target_from_system_job_form() -> None:
     """校验系统定时任务入口不会放开到整个 plugins 包。"""
     job = JobModel(
-        jobName='plugin-core-task',
-        jobGroup='default',
-        jobExecutor='default',
-        invokeTarget='plugins.core.lifecycle.jobs.PluginJobInstaller.pause_plugin_jobs',
-        cronExpression='0/5 * * * * ?',
-        misfireGraceTime=1,
-        maxInstances=1,
+        job_name='plugin-core-task',
+        job_group='default',
+        job_executor='default',
+        invoke_target='plugins.core.lifecycle.jobs.PluginJobInstaller.pause_plugin_jobs',
+        cron_expression='0/5 * * * * ?',
+        misfire_grace_time=1,
+        max_instances=1,
         status='1',
     )
 
     with pytest.raises(ServiceException) as exc_info:
-        await JobService.add_job_services(object(), job)
+        await JobService.add_job_services(make_query_db(), job)
 
+    assert exc_info.value.message is not None
     assert '目标字符串不在白名单内' in exc_info.value.message

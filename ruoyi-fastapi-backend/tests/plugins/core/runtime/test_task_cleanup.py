@@ -19,7 +19,9 @@ async def test_batch_cancellation_releases_cooperative_tasks_and_ignores_caller(
 
     tasks = {asyncio.create_task(work()) for _ in range(3)}
     await asyncio.sleep(0)
-    assert await cancel_plugin_tasks(tasks | {asyncio.current_task()}, grace_seconds=0.01) == set()
+    current = asyncio.current_task()
+    assert current is not None
+    assert await cancel_plugin_tasks(tasks | {current}, grace_seconds=0.01) == set()
     assert len(stopped) == len(tasks)
     assert all(task.cancelled() for task in tasks)
 

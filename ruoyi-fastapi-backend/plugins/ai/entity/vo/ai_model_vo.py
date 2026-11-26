@@ -1,17 +1,17 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 from pydantic_validation_decorator import NotBlank, Size
 
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 from i18n.message import I18nMessage
 
 
-class AiModelModel(BaseModel):
+class AiModelModel(CamelModel):
     """AI模型表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     model_id: int | None = Field(default=None, description='模型主键')
     model_code: str | None = Field(default=None, description='模型编码')
@@ -72,9 +72,7 @@ class AiModelPageQueryModel(AiModelModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteAiModelModel(BaseModel):
+class DeleteAiModelModel(CamelModel):
     """删除AI模型模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     model_ids: str = Field(description='需要删除的模型主键')

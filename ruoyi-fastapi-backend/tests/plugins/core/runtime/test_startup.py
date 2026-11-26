@@ -1,4 +1,4 @@
-from contextlib import asynccontextmanager
+from contextlib import AbstractContextManager, asynccontextmanager
 from pathlib import Path
 from subprocess import CompletedProcess
 from types import SimpleNamespace
@@ -15,7 +15,7 @@ from plugins.core.runtime.startup import PluginRuntimeStartupManager, PluginStar
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 
 
-def patch_startup_get_db(fake_get_db: Any) -> object:
+def patch_startup_get_db(fake_get_db: Any) -> AbstractContextManager:
     """
     替换启动管理器方法使用的默认数据源会话。
 
@@ -29,7 +29,7 @@ def patch_startup_get_db(fake_get_db: Any) -> object:
     )
 
 
-def patch_startup_global(name: str, value: object) -> object:
+def patch_startup_global(name: str, value: object) -> AbstractContextManager:
     """
     替换启动管理器方法使用的模块全局引用。
 
@@ -841,10 +841,11 @@ async def test_check_enabled_plugin_python_dependencies_never_installs_during_st
         stdout='installed',
         stderr='',
     )
+    inspector_factory = MagicMock()
     startup_manager = PluginRuntimeStartupManager(
         MagicMock(),
         python_dependency_inspector=first_inspector,
-        python_dependency_inspector_factory=MagicMock(),
+        python_dependency_inspector_factory=inspector_factory,
         command_runner_gateway=command_runner_gateway,
     )
 
@@ -856,7 +857,7 @@ async def test_check_enabled_plugin_python_dependencies_never_installs_during_st
         await startup_manager.check_enabled_plugin_python_dependencies(app)
 
     command_runner_gateway.run_command.assert_not_called()
-    startup_manager.python_dependency_inspector_factory.assert_not_called()
+    inspector_factory.assert_not_called()
     mark_plugin_runtime_error.assert_awaited_once_with(
         app,
         'ai',

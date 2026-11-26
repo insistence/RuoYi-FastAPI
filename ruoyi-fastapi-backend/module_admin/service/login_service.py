@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 from sqlalchemy import Engine, Row
 from sqlalchemy.exc import UnboundExecutionError
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import HTTPConnection
 
 from common.aspect.db_session import DBSessionDependency
 from common.auth_policy import AuthPolicy
@@ -30,7 +31,6 @@ from module_admin.entity.vo.user_vo import (
     AddUserModel,
     CurrentUserModel,
     ResetUserModel,
-    TokenData,
     UserInfoModel,
     UserLocaleModel,
 )
@@ -53,7 +53,7 @@ from utils.time_util import TimezoneUtil
 class PreAuthOAuth2PasswordBearer(OAuth2PasswordBearer):
     """支持公开路由排除的登录令牌依赖。"""
 
-    async def __call__(self, request: Request) -> str | None:
+    async def __call__(self, request: HTTPConnection) -> str | None:
         """
         根据路由认证要求读取登录令牌。
 
@@ -62,6 +62,8 @@ class PreAuthOAuth2PasswordBearer(OAuth2PasswordBearer):
         :raises AuthException: 用户未登录，请先完成登录；用户token已失效，请重新登录
         :raises HTTPException: 当前路由要求认证且请求未提供有效凭据
         """
+        if not isinstance(request, Request):
+            return await super().__call__(request)
         mode = AuthPolicy.get_auth_mode(request, (LoginService.get_current_user, oauth2_scheme))
         if mode == 'excluded':
             return None
@@ -151,7 +153,7 @@ class LoginService:
     @classmethod
     async def authenticate_user(
         cls, request: Request, query_db: AsyncSession, login_user: UserLogin
-    ) -> Row[tuple[SysUser, SysDept]]:
+    ) -> Row[SysUser, SysDept | None]:
         """
         根据用户名密码校验用户登录。
 
@@ -193,7 +195,7 @@ class LoginService:
         user = await UserDao.get_user_by_name(query_db, current_user.user.user_name)
         if not user:
             raise ServiceException(message='服务器超时，请重新登录', msg_key='auth.serverTimeout')
-        if not PwdUtil.verify_password(password, user.password):
+        if not user.password or not PwdUtil.verify_password(password, user.password):
             raise ServiceException(message='密码错误，请重新输入', msg_key='auth.incorrectPassword')
 
         return True
@@ -217,9 +219,9 @@ class LoginService:
     @classmethod
     async def get_current_user(
         cls,
-        request: Request = Request,
-        token: str | None = Depends(oauth2_scheme),
-        query_db: AsyncSession = DBSessionDependency(),
+        request: Request,
+        token: Annotated[str | None, Depends(oauth2_scheme)],
+        query_db: Annotated[AsyncSession, DBSessionDependency()],
     ) -> CurrentUserModel | None:
         """
         根据token获取当前用户信息。
@@ -268,23 +270,23 @@ class LoginService:
             if token.startswith('Bearer '):
                 token = token.removeprefix('Bearer ').strip()
             payload = JwtUtil.decode(token)
-            user_id: str = payload.get('user_id')
-            session_id: str = payload.get('session_id')
-            if not user_id:
+            user_id = payload.get('user_id')
+            session_id = payload.get('session_id')
+            if not user_id or (AppConfig.app_same_time_login and not session_id):
                 logger.warning('用户token不合法')
                 raise AuthException(data='', message='用户token不合法', msg_key='auth.invalidToken')
-            token_data = TokenData(user_id=int(user_id))
+            authenticated_user_id = int(user_id)
         except (TypeError, ValueError) as e:
             logger.warning('用户token已失效，请重新登录')
             raise AuthException(data='', message='用户token已失效，请重新登录', msg_key='auth.tokenExpired') from e
         redis = request.app.state.redis
-        token_key = f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id if AppConfig.app_same_time_login else token_data.user_id}'
+        token_key = f'{RedisInitKeyConfig.ACCESS_TOKEN.key}:{session_id if AppConfig.app_same_time_login else authenticated_user_id}'
         redis_token = await redis.get(token_key)
         if token != redis_token:
             logger.warning('用户token已失效，请重新登录')
             raise AuthException(data='', message='用户token已失效，请重新登录', msg_key='auth.tokenExpired')
 
-        current_user = await cls._get_current_user_snapshot(redis, query_db, token_data.user_id)
+        current_user = await cls._get_current_user_snapshot(redis, query_db, authenticated_user_id)
         # 密码策略及过期状态在本次鉴权时计算
         current_user.app_timezone = AppConfig.app_timezone
         current_user.pwd_chrtype = await cls.get_sys_account_chrtype(request)
@@ -381,8 +383,8 @@ class LoginService:
             roles=[role.role_key for role in roles],
             user=UserInfoModel(
                 **user_info,
-                postIds=','.join(str(post.post_id) for post in query_user.get('user_post_info') or []),
-                roleIds=','.join(str(role.role_id) for role in roles),
+                post_ids=','.join(str(post.post_id) for post in query_user.get('user_post_info') or []),
+                role_ids=','.join(str(role.role_id) for role in roles),
                 dept=CamelCaseUtil.transform_result(query_user.get('user_dept_info')),
                 role=CamelCaseUtil.transform_result(roles),
             ),
@@ -399,10 +401,12 @@ class LoginService:
         """
         pwd_chrtype = await request.app.state.redis.get(f'{RedisInitKeyConfig.SYS_CONFIG.key}:sys.account.chrtype')
 
-        return pwd_chrtype or '0'
+        if isinstance(pwd_chrtype, bytes):
+            return pwd_chrtype.decode() or '0'
+        return pwd_chrtype if isinstance(pwd_chrtype, str) and pwd_chrtype else '0'
 
     @classmethod
-    async def __init_password_is_modify(cls, request: Request, pwd_update_date: datetime) -> bool:
+    async def __init_password_is_modify(cls, request: Request, pwd_update_date: datetime | None) -> bool:
         """
         判断当前用户是否初始密码登录。
 
@@ -413,10 +417,10 @@ class LoginService:
         init_password_is_modify = await request.app.state.redis.get(
             f'{RedisInitKeyConfig.SYS_CONFIG.key}:sys.account.initPasswordModify'
         )
-        return init_password_is_modify == '1' and pwd_update_date is None
+        return pwd_update_date is None and bool(init_password_is_modify == '1')
 
     @classmethod
-    async def __password_is_expired(cls, request: Request, pwd_update_date: datetime) -> bool:
+    async def __password_is_expired(cls, request: Request, pwd_update_date: datetime | None) -> bool:
         """
         判断当前用户密码是否过期。
 
@@ -448,7 +452,7 @@ class LoginService:
         user_router_menu = sorted(
             [
                 row
-                for row in query_user.get('user_menu_info')
+                for row in query_user['user_menu_info']
                 if row.menu_type in [MenuConstant.TYPE_DIR, MenuConstant.TYPE_MENU]
             ],
             key=lambda x: x.order_num,
@@ -493,6 +497,7 @@ class LoginService:
         """
         router_list: list[RouterModel] = []
         for permission in permission_list:
+            title_translations = {key: text for key, text in permission.menu_name_i18n.items() if text is not None}
             router = RouterModel(
                 hidden=permission.visible == '1',
                 name=RouterUtil.get_router_name(permission),
@@ -501,9 +506,9 @@ class LoginService:
                 query=permission.query,
                 meta=MetaModel(
                     title=permission.menu_name,
-                    titleI18n=permission.menu_name_i18n or {},
+                    title_i18n=title_translations,
                     icon=permission.icon,
-                    noCache=permission.is_cache == 1,
+                    no_cache=permission.is_cache == 1,
                     link=permission.path if RouterUtil.is_http(permission.path) else None,
                 ),
             )
@@ -521,9 +526,9 @@ class LoginService:
                     name=RouterUtil.get_route_name(permission.route_name, permission.path),
                     meta=MetaModel(
                         title=permission.menu_name,
-                        titleI18n=permission.menu_name_i18n or {},
+                        title_i18n=title_translations,
                         icon=permission.icon,
-                        noCache=permission.is_cache == 1,
+                        no_cache=permission.is_cache == 1,
                         link=permission.path if RouterUtil.is_http(permission.path) else None,
                     ),
                     query=permission.query,
@@ -531,19 +536,17 @@ class LoginService:
                 children_list.append(children)
                 router.children = children_list
             elif permission.parent_id == MenuConstant.ROOT_ID and RouterUtil.is_inner_link(permission):
-                router.meta = MetaModel(
-                    title=permission.menu_name, titleI18n=permission.menu_name_i18n or {}, icon=permission.icon
-                )
+                router.meta = MetaModel(title=permission.menu_name, title_i18n=title_translations, icon=permission.icon)
                 router.path = '/'
                 children_list: list[RouterModel] = []
-                router_path = RouterUtil.inner_link_replace_each(permission.path)
+                router_path = RouterUtil.inner_link_replace_each(permission.path or '')
                 children = RouterModel(
                     path=router_path,
                     component=MenuConstant.INNER_LINK,
                     name=RouterUtil.get_route_name(permission.route_name, permission.path),
                     meta=MetaModel(
                         title=permission.menu_name,
-                        titleI18n=permission.menu_name_i18n or {},
+                        title_i18n=title_translations,
                         icon=permission.icon,
                         link=permission.path if RouterUtil.is_http(permission.path) else None,
                     ),
@@ -596,10 +599,10 @@ class LoginService:
                     request.app.state.redis, user_register.password, PasswordCharacterType.DEFAULT
                 )
                 add_user = AddUserModel(
-                    userName=user_register.username,
-                    nickName=user_register.username,
+                    user_name=user_register.username,
+                    nick_name=user_register.username,
                     password=PwdUtil.get_password_hash(user_register.password),
-                    pwdUpdateDate=TimezoneUtil.utc_now(),
+                    pwd_update_date=TimezoneUtil.utc_now(),
                 )
                 result = await UserService.add_user_services(query_db, add_user)
                 return result
@@ -619,7 +622,7 @@ class LoginService:
         redis_sms_result = await request.app.state.redis.get(f'{RedisInitKeyConfig.SMS_CODE.key}:{user.session_id}')
         if redis_sms_result:
             return SmsCode(is_success=False, sms_code='', session_id='', message='短信验证码仍在有效期内')
-        is_user = await UserDao.get_user_by_name(query_db, user.user_name)
+        is_user = await UserDao.get_user_by_name(query_db, user.user_name) if user.user_name else None
         if is_user:
             sms_code = str(random.randint(100000, 999999))
             session_id = str(uuid.uuid4())
@@ -648,21 +651,20 @@ class LoginService:
         redis_sms_result = await request.app.state.redis.get(
             f'{RedisInitKeyConfig.SMS_CODE.key}:{forget_user.session_id}'
         )
-        if forget_user.sms_code == redis_sms_result:
-            await UserService.validate_password_services(
-                request.app.state.redis, forget_user.password, PasswordCharacterType.DEFAULT
-            )
-            forget_user.password = PwdUtil.get_password_hash(forget_user.password)
-            forget_user.user_id = (await UserDao.get_user_by_name(query_db, forget_user.user_name)).user_id
-            edit_result = await UserService.reset_user_services(query_db, forget_user)
-            result = edit_result.dict()
-        elif not redis_sms_result:
-            result = {'is_success': False, 'message': '短信验证码已过期'}
-        else:
+        if not redis_sms_result:
+            return CrudResponseModel(is_success=False, message='短信验证码已过期')
+        if forget_user.sms_code != redis_sms_result:
             await request.app.state.redis.delete(f'{RedisInitKeyConfig.SMS_CODE.key}:{forget_user.session_id}')
-            result = {'is_success': False, 'message': '短信验证码不正确'}
+            return CrudResponseModel(is_success=False, message='短信验证码不正确')
 
-        return CrudResponseModel(**result)
+        user = await UserDao.get_user_by_name(query_db, forget_user.user_name) if forget_user.user_name else None
+        if user is None:
+            return CrudResponseModel(is_success=False, message='用户不存在', msg_key='user.notFound')
+        await UserService.validate_password_services(
+            request.app.state.redis, forget_user.password, PasswordCharacterType.DEFAULT
+        )
+        forget_user.user_id = user.user_id
+        return await UserService.reset_user_services(query_db, forget_user)
 
     @classmethod
     async def logout_services(cls, request: Request, token_id: str, token: str) -> bool:
@@ -700,7 +702,7 @@ class RouterUtil:
         return cls.get_route_name(menu.route_name, menu.path)
 
     @classmethod
-    def get_route_name(cls, name: str, path: str) -> str:
+    def get_route_name(cls, name: str | None, path: str | None) -> str:
         """
         获取路由名称，如没有配置路由名称则取路由地址。
 
@@ -708,7 +710,7 @@ class RouterUtil:
         :param path: 路由地址
         :return: 路由名称（驼峰格式）
         """
-        router_name = name if name else path
+        router_name = name or path or ''
         return router_name.capitalize()
 
     @classmethod
@@ -722,7 +724,7 @@ class RouterUtil:
         # 内链打开外网方式
         router_path = menu.path
         if menu.parent_id != MenuConstant.ROOT_ID and cls.is_inner_link(menu):
-            router_path = cls.inner_link_replace_each(router_path)
+            router_path = cls.inner_link_replace_each(router_path or '')
         # 非外链并且是一级目录（类型为目录）
         if (
             menu.parent_id == MenuConstant.ROOT_ID
@@ -791,14 +793,14 @@ class RouterUtil:
         return menu.parent_id != MenuConstant.ROOT_ID and menu.menu_type == MenuConstant.TYPE_DIR
 
     @classmethod
-    def is_http(cls, link: str) -> bool:
+    def is_http(cls, link: str | None) -> bool:
         """
         判断是否为http(s)://开头。
 
         :param link: 链接
         :return: 是否为http(s)://开头
         """
-        return link.startswith((CommonConstant.HTTP, CommonConstant.HTTPS))
+        return bool(link and link.startswith((CommonConstant.HTTP, CommonConstant.HTTPS)))
 
     @classmethod
     def inner_link_replace_each(cls, path: str) -> str:

@@ -1,10 +1,10 @@
-from collections.abc import Awaitable, Callable
-from typing import Any
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from urllib.parse import urlsplit
 
 import httpcore
 import httpx
 from httpcore._backends.auto import AutoBackend
+from typing_extensions import override
 
 _MAX_BACKCHANNEL_RESPONSE_BYTES = 64 * 1024
 _HTTP_CLIENT_ERROR_MIN = 400
@@ -53,13 +53,23 @@ class _PinnedNetworkBackend(httpcore.AsyncNetworkBackend):
         self._addresses = addresses
         self._backend = AutoBackend()
 
-    async def connect_tcp(self, host: str, port: int, **kwargs: Any) -> httpcore.AsyncNetworkStream:
+    @override
+    async def connect_tcp(
+        self,
+        host: str,
+        port: int,
+        timeout: float | None = None,
+        local_address: str | None = None,
+        socket_options: Iterable[httpcore.SOCKET_OPTION] | None = None,
+    ) -> httpcore.AsyncNetworkStream:
         """
         连接已验证主机对应的固定公网地址。
 
         :param host: HTTP Core 请求的原始主机名
         :param port: 目标 TCP 端口
-        :param kwargs: HTTP Core 连接参数
+        :param timeout: 建立连接的超时秒数
+        :param local_address: 本地绑定地址
+        :param socket_options: 传给底层套接字的选项
         :return: 已建立的异步网络流
         :raises OSError: 主机未验证、地址为空或全部地址连接失败
         """
@@ -69,7 +79,9 @@ class _PinnedNetworkBackend(httpcore.AsyncNetworkBackend):
         last_error: OSError | None = None
         for address in sorted(self._addresses):
             try:
-                return await self._backend.connect_tcp(address, port, **kwargs)
+                return await self._backend.connect_tcp(
+                    address, port, timeout=timeout, local_address=local_address, socket_options=socket_options
+                )
             except OSError as exc:
                 last_error = exc
         raise last_error or OSError('没有通过安全校验的网络目标')
@@ -123,14 +135,14 @@ class PinnedHttpxTransport(httpx.AsyncBaseTransport):
                 """初始化已接收字节计数器。"""
                 self._received = 0
 
-            async def __aiter__(self) -> Any:
+            async def __aiter__(self) -> AsyncIterator[bytes]:
                 """
                 逐块读取响应并执行大小限制。
 
                 :yield: HTTP 响应字节块异步迭代器
                 :raises OSError: 响应体超过大小限制
                 """
-                async for chunk in response.stream:
+                async for chunk in response.aiter_stream():
                     self._received += len(chunk)
                     if self._received > _MAX_BACKCHANNEL_RESPONSE_BYTES:
                         await response.aclose()

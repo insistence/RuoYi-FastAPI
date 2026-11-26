@@ -237,6 +237,7 @@ class JobManagementTest(SystemPage):
         confirm = dialog.get_by_role('button', name=button_name('确定'))
         execution = await self.submit(confirm.click, 'PUT', '/monitor/job/run')
         execution_id = execution['executionId']
+        assert isinstance(execution_id, str)
         result = await self.poll_api(
             f'/monitor/job/execution/{execution_id}',
             lambda payload: payload['data']['status'] not in ('pending', 'submitted', 'running'),

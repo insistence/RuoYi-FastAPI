@@ -2,6 +2,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from pytest import MonkeyPatch
 
 import plugins.core.validation.manifest as manifest_module
 from plugins.core.manifest.schema import FrontendManifest, PluginDependencyManifest, PluginManifest
@@ -220,7 +221,7 @@ def test_manifest_checker_accepts_satisfied_compatibility(tmp_path: Path) -> Non
     assert result.issues == []
 
 
-def test_manifest_checker_accepts_supported_database(monkeypatch: object) -> None:
+def test_manifest_checker_accepts_supported_database(monkeypatch: MonkeyPatch) -> None:
     """校验当前数据库在插件支持列表内时不产生问题。"""
     monkeypatch.setattr(manifest_module.DataBaseConfig.default_source, 'db_type', 'postgresql')
     manifest = PluginManifest.model_validate(
@@ -239,7 +240,7 @@ def test_manifest_checker_accepts_supported_database(monkeypatch: object) -> Non
     assert result.issues == []
 
 
-def test_manifest_checker_caches_resolved_node_version(tmp_path: Path, monkeypatch: object) -> None:
+def test_manifest_checker_caches_resolved_node_version(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     """校验 Node.js 版本解析会缓存 subprocess 结果。"""
     backend_root = tmp_path / 'backend'
     frontend_root = tmp_path / 'frontend'
@@ -311,7 +312,7 @@ def test_manifest_checker_reports_unsatisfied_compatibility(tmp_path: Path) -> N
     assert result.error_issues[0].path == 'compatibility.pythonVersion'
 
 
-def test_manifest_checker_reports_unsupported_database(monkeypatch: object) -> None:
+def test_manifest_checker_reports_unsupported_database(monkeypatch: MonkeyPatch) -> None:
     """校验当前数据库不在插件支持列表内时产生 error。"""
     monkeypatch.setattr(manifest_module.DataBaseConfig.default_source, 'db_type', 'postgresql')
     manifest = PluginManifest.model_validate(

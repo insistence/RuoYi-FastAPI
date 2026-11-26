@@ -2,25 +2,28 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from module_admin.entity.do.user_do import SysUser
 from module_identity.controller import token_controller as controller
 from module_identity.dependencies import AccessTokenContext
 from module_identity.service import token_protocol_service as service
+from tests.module_identity.support.http import make_request
 
 _OK = 200
 _NOT_FOUND = 404
 _UNAUTHORIZED = 401
 
 
-def _request(redis: object | None = None) -> SimpleNamespace:
+def _request(redis: object | None = None) -> Request:
     """
     构造 UserInfo 请求替身。
 
     :param redis: 用于缓存或发布消息的 Redis 客户端
     :return: UserInfo 请求替身
     """
-    return SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(redis=redis or object())))
+    return make_request(redis or object())
 
 
 class _ActiveRedis:
@@ -132,7 +135,7 @@ async def test_userinfo_returns_only_minimal_claims(monkeypatch: pytest.MonkeyPa
             'exp': 1,
         },
     )
-    response = await controller.userinfo(_request(_ActiveRedis()), context, SimpleNamespace())
+    response = await controller.userinfo(_request(_ActiveRedis()), context, AsyncSession())
     assert response.status_code == _OK
     assert b'"sub":"subject-1"' in response.body
     assert '数据库用户'.encode() in response.body
@@ -197,7 +200,7 @@ async def test_userinfo_uses_current_database_claims_not_token_claims(monkeypatc
             'ver': 3,
         },
     )
-    response = await controller.userinfo(_request(_ActiveRedis()), context, SimpleNamespace())
+    response = await controller.userinfo(_request(_ActiveRedis()), context, AsyncSession())
     assert b'subject-1' in response.body
     assert b'Forged Name' not in response.body
     assert b'database-role' in response.body
@@ -246,7 +249,7 @@ async def test_userinfo_live_state_failures_are_bearer_401(monkeypatch: pytest.M
             None if failure == 'session' else SimpleNamespace(user_id=2, subject_id='subject-1', auth_version=3)
         ),
     )
-    response = await controller.userinfo(_request(_Redis()), AccessTokenContext('token', claims), SimpleNamespace())
+    response = await controller.userinfo(_request(_Redis()), AccessTokenContext('token', claims), AsyncSession())
     assert response.status_code == _UNAUTHORIZED
     assert response.headers['www-authenticate'] == 'Bearer error="invalid_token"'
     assert b'redis unavailable' not in response.body
@@ -256,7 +259,7 @@ async def test_userinfo_live_state_failures_are_bearer_401(monkeypatch: pytest.M
 async def test_userinfo_disabled_is_local_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     """OIDC 关闭时 UserInfo 返回本地 404，不进入重定向流程。"""
     monkeypatch.setattr(controller.OidcConfig, 'oidc_enabled', False)
-    response = await controller.userinfo(_request(), SimpleNamespace(), SimpleNamespace())
+    response = await controller.userinfo(_request(), AccessTokenContext('token', {}), AsyncSession())
     assert response.status_code == _NOT_FOUND
     assert b'not_found' in response.body
 

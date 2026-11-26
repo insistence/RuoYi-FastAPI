@@ -150,7 +150,11 @@ def _block_docstring(path: Path, node: ast.FunctionDef | ast.AsyncFunctionDef) -
     if not node.body or not isinstance(node.body[0], ast.Expr):
         return False
     expression = node.body[0].value
-    if not isinstance(expression, ast.Constant) or not isinstance(expression.value, str):
+    if (
+        not isinstance(expression, ast.Constant)
+        or not isinstance(expression.value, str)
+        or expression.end_lineno is None
+    ):
         return False
     lines = path.read_text(encoding='utf-8').splitlines()
     opening_index = expression.lineno - 1

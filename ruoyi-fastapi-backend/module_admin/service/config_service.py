@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal, overload
 
 from fastapi import Request
 from redis import asyncio as aioredis
@@ -17,6 +17,18 @@ from utils.excel_util import ExcelUtil
 
 class ConfigService:
     """参数配置管理模块服务层。"""
+
+    @classmethod
+    @overload
+    async def get_config_list_services(
+        cls, query_db: AsyncSession, query_object: ConfigPageQueryModel, is_page: Literal[True]
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_config_list_services(
+        cls, query_db: AsyncSession, query_object: ConfigPageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_config_list_services(
@@ -47,11 +59,11 @@ class ConfigService:
         # 删除匹配的键
         if keys:
             await redis.delete(*keys)
-        config_all = await ConfigDao.get_config_list(query_db, ConfigPageQueryModel(), is_page=False)
+        config_all = await cls.get_config_list_services(query_db, ConfigPageQueryModel(), is_page=False)
         for config_obj in config_all:
             await redis.set(
                 f'{RedisInitKeyConfig.SYS_CONFIG.key}:{config_obj.get("configKey")}',
-                config_obj.get('configValue'),
+                config_obj['configValue'],
             )
 
     @classmethod
@@ -77,7 +89,7 @@ class ConfigService:
         :return: 校验结果
         """
         config_id = -1 if page_object.config_id is None else page_object.config_id
-        config = await ConfigDao.get_config_detail_by_info(query_db, ConfigModel(configKey=page_object.config_key))
+        config = await ConfigDao.get_config_detail_by_info(query_db, ConfigModel(config_key=page_object.config_key))
         if config and config.config_id != config_id:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
@@ -179,7 +191,7 @@ class ConfigService:
                             msg_key='config.builtInProtected',
                             msg_params={'config_key': str(config_info.config_key)},
                         )
-                    await ConfigDao.delete_config_dao(query_db, ConfigModel(configId=int(config_id)))
+                    await ConfigDao.delete_config_dao(query_db, ConfigModel(config_id=int(config_id)))
                     delete_config_key_list.append(f'{RedisInitKeyConfig.SYS_CONFIG.key}:{config_info.config_key}')
                 await query_db.commit()
                 if delete_config_key_list:
@@ -192,7 +204,7 @@ class ConfigService:
             raise ServiceException(message='传入参数配置id为空', msg_key='config.idRequired')
 
     @classmethod
-    async def config_detail_services(cls, query_db: AsyncSession, config_id: int) -> ConfigModel:
+    async def config_detail_services(cls, query_db: AsyncSession, config_id: int | None) -> ConfigModel:
         """
         获取参数配置详细信息service。
 
@@ -200,6 +212,8 @@ class ConfigService:
         :param config_id: 参数配置id
         :return: 参数配置id对应的信息
         """
+        if config_id is None:
+            return ConfigModel()
         config = await ConfigDao.get_config_detail_by_id(query_db, config_id=config_id)
         result = ConfigModel(**CamelCaseUtil.transform_result(config)) if config else ConfigModel()
 

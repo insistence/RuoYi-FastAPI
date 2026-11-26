@@ -47,7 +47,40 @@ def test_runtime_and_integration_are_independent(native: bool, asgi: bool) -> No
     assert manifest.integration_kind == ('asgi' if asgi else 'router')
     assert manifest.backend.routers.auto_scan is False
     if asgi:
+        assert manifest.backend.asgi is not None
         assert manifest.backend.asgi.mount_path == '/apps/demo'
+
+
+@pytest.mark.parametrize('explicit', [False, True], ids=['v1', 'v2'])
+def test_manifest_round_trip_preserves_version_specific_fields(explicit: bool) -> None:
+    """按别名往返序列化后，任务执行器、前端交付和兼容性仍使用对应版本的模型。"""
+    payload = (
+        manifest_data(asgi=True, bundle=True)
+        if explicit
+        else {'id': 'demo', 'name': 'Demo', 'version': '1.0.0', 'backend': {'module': 'plugins.demo'}}
+    )
+    job: dict[str, object] = {'id': 'sync', 'callable': 'plugins.demo.jobs.sync', 'cronExpression': '0 0 1 * * ?'}
+    if explicit:
+        job['timeoutSeconds'] = 7
+        payload['compatibility'] = {'hostApiVersion': '^2.0.0'}
+    else:
+        job['executor'] = 'processpool'
+    payload['backend']['jobs'] = [job]
+
+    manifest = PluginManifestFactory.create(payload)
+    data = manifest.model_dump(by_alias=True)
+    assert isinstance(manifest, PluginManifest)
+    assert type(manifest) is (PluginManifestV2 if explicit else PluginManifest)
+    assert data['backend']['jobs'][0]['executor'] == ('default' if explicit else 'processpool')
+    if explicit:
+        assert data['backend']['jobs'][0]['timeoutSeconds'] == job['timeoutSeconds']
+        assert data['frontend']['bundle']['entry'] == 'index.html'
+        assert data['compatibility']['hostApiVersion'] == '^2.0.0'
+    else:
+        assert 'timeoutSeconds' not in data['backend']['jobs'][0]
+        assert 'bundle' not in data['frontend']
+        assert 'hostApiVersion' not in data['compatibility']
+    assert PluginManifestFactory.create(data) == manifest
 
 
 def test_v1_keeps_defaults_and_rejects_v2_fields() -> None:

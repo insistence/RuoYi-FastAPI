@@ -1,4 +1,5 @@
 from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
 
 from pytest import MonkeyPatch
 
@@ -8,7 +9,7 @@ def test_prod_check_wizard_aggregates_nested_cli_payloads(
     prod_check_flow: ModuleType,
 ) -> None:
     """生产检查向导汇总嵌套命令的结果。"""
-    captured: dict[str, object] = {}
+    complete_payload = Mock()
     answers = iter(['prod', True, True])
     monkeypatch.setattr(
         prod_check_flow.ProdCheckWizardFlow,
@@ -69,16 +70,18 @@ def test_prod_check_wizard_aggregates_nested_cli_payloads(
     monkeypatch.setattr(
         prod_check_flow.ProdCheckWizardFlow.execution_service,
         'complete_payload',
-        lambda ctx, payload, default_exit_code=0: captured.update({'ctx': ctx, 'payload': payload}),
+        complete_payload,
     )
 
     prod_check_flow.run_prod_check_wizard('json')
 
-    assert captured['ctx'].env == 'prod'
-    assert captured['payload']['ok'] is True
-    assert captured['payload']['doctor']['message'] == '应用启动前检查通过'
-    assert captured['payload']['runtime']['cliEnv'] == 'prod'
-    assert captured['payload']['config']['name'] == 'demo'
+    complete_payload.assert_called_once()
+    ctx, payload = complete_payload.call_args.args
+    assert ctx.env == 'prod'
+    assert payload['ok'] is True
+    assert payload['doctor']['message'] == '应用启动前检查通过'
+    assert payload['runtime']['cliEnv'] == 'prod'
+    assert payload['config']['name'] == 'demo'
 
 
 def test_prod_check_wizard_accepts_default_context_values(

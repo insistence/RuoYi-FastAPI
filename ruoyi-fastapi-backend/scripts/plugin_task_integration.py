@@ -155,6 +155,7 @@ async def exercise_task_api(plugin: Any, sessions: Any) -> None:
     :param sessions: 隔离数据库会话工厂
     :raises AssertionError: 迁移改变原业务数据、权限边界失效或 CRUD 结果不符
     """
+    from fastapi import FastAPI  # noqa: PLC0415
     from httpx import ASGITransport, AsyncClient  # noqa: PLC0415
 
     from plugins.core.runtime.entrypoint import PluginEntrypointLoader  # noqa: PLC0415
@@ -162,7 +163,9 @@ async def exercise_task_api(plugin: Any, sessions: Any) -> None:
 
     host = PluginHostContext(TASK_PLUGIN_ID, plugin.backend_path, session_factory=sessions)
     definition = PluginEntrypointLoader(plugin).load(host)
+    assert definition.app_factory is not None, '任务插件缺少应用工厂'
     app = definition.app_factory(host)
+    assert isinstance(app, FastAPI), '任务插件必须提供 FastAPI 子应用'
     permissions = frozenset({'task_demo:view', 'task_demo:write'})
 
     @app.middleware('http')

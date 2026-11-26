@@ -1,9 +1,9 @@
 import asyncio
 import importlib
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -19,7 +19,7 @@ class RuntimeQueryStub:
     :ivar runner: 执行命令或后台任务的对象
     """
 
-    def __init__(self, runner: Callable[..., object]) -> None:
+    def __init__(self, runner: Callable[..., SimpleNamespace]) -> None:
         """
         初始化测试夹具的 ``runner``。
 
@@ -307,14 +307,17 @@ class RuntimeQueryStub:
 
 
 @pytest.fixture
-def install_query_service() -> Callable[[ModuleType, Callable[..., object]], RuntimeQueryStub]:
+def install_query_service(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Callable[[ModuleType, Callable[..., SimpleNamespace]], RuntimeQueryStub]:
     """
     向适配器及其采集/分区协作对象注入异步查询桩。
 
+    :param monkeypatch: 测试结束后恢复原查询服务的夹具
     :return: 供调用方使用的 ``install``
     """
 
-    def install(module: ModuleType, runner: Callable[..., object]) -> RuntimeQueryStub:
+    def install(module: ModuleType, runner: Callable[..., SimpleNamespace]) -> RuntimeQueryStub:
         """
         安装测试使用的运行时查询适配器。
 
@@ -335,7 +338,7 @@ def install_query_service() -> Callable[[ModuleType, Callable[..., object]], Run
                 return
             visited.add(id(target))
             if hasattr(target, 'query_service'):
-                target.query_service = query_service
+                monkeypatch.setattr(target, 'query_service', query_service)
             for attribute_name in ('snapshot_collector', 'section_builder'):
                 child = getattr(target, attribute_name, None)
                 if child is not None:
@@ -462,7 +465,7 @@ def load_adapter_module() -> Callable[[str], ModuleType]:
 
 
 @pytest.fixture(autouse=True)
-def dispose_async_db_engine_after_test() -> None:
+def dispose_async_db_engine_after_test() -> Iterator[None]:
     """
     在每个 TUI adapter 测试结束后尝试释放全局异步数据库连接池。
 

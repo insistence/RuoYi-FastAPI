@@ -103,6 +103,7 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
     )
     async with runtime.sessions() as db:
         response = await JobService.execute_job_once_services(db, job)
+        assert isinstance(response.result, dict)
     execution_id = response.result['executionId']
     runtime.scheduler.resume()
     try:
@@ -112,10 +113,10 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
             await JobService.edit_job_services(
                 db,
                 EditJobModel(
-                    jobId=42,
-                    jobExecutor='default',
-                    invokeTarget='module_task.scheduler_test.runtime_harmless',
-                    jobArgs=[],
+                    job_id=42,
+                    job_executor='default',
+                    invoke_target='module_task.scheduler_test.runtime_harmless',
+                    job_args=[],
                 ),
             )
         cron = runtime.scheduler.get_job('42')
@@ -134,7 +135,7 @@ async def test_running_process_blocks_new_executor_and_can_finish_after_delete(
         await SchedulerManager._drain_execution_requests()
         monkeypatch.setattr(SchedulerManager, '_is_leader', True)
         async with runtime.sessions() as db:
-            await JobService.delete_job_services(db, DeleteJobModel(jobIds='42'))
+            await JobService.delete_job_services(db, DeleteJobModel(job_ids='42'))
         assert (await runtime.execution(execution_id))['status'] == 'running'
     finally:
         release.touch()
@@ -149,7 +150,9 @@ async def test_expired_dispatch_token_cannot_run_reclaimed_request(runtime: Runt
     async with runtime.sessions() as db:
         request = await JobRuntimeDao.create_request(db, job, None)
         await db.commit()
+        assert job.job_id is not None
         old = await JobRuntimeDao.claim_request(db, request.execution_id, job.job_id)
+        assert old is not None and old.owner_token is not None
         old_token = old.owner_token
         await db.commit()
         await db.execute(
@@ -180,10 +183,11 @@ async def test_only_original_owner_can_finish_unknown_execution(runtime: Runtime
     job = await runtime.save()
     execution_id = uuid4().hex
     now = TimezoneUtil.utc_now()
+    assert job.job_id is not None
     claim = await asyncio.to_thread(
         JobExecutionStore.claim, execution_id, job.job_id, job.model_dump(mode='json', by_alias=True), now
     )
-    assert claim.accepted
+    assert claim.accepted and claim.token is not None
     async with runtime.sessions() as db:
         await db.execute(
             update(SysJobExecution)

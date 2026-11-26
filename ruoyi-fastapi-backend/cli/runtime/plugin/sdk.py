@@ -3,7 +3,7 @@ import json
 import os
 import re
 import stat
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -298,11 +298,11 @@ class PluginBridgeSdk:
         :param content: JS 或类型声明内容
         :return: 所有可明确识别的协议版本字面量
         """
-        return re.findall(
+        pattern = re.compile(
             r'^\s*export\s+(?:declare\s+)?const\s+PLUGIN_BRIDGE_VERSION\s*[:=]\s*(\d+)\s*;?\s*$',
-            content,
             re.MULTILINE,
         )
+        return [match.group(1) for match in pattern.finditer(content)]
 
     @classmethod
     def _validate_exports(cls, contents: dict[str, str], metadata: dict[str, Any]) -> None:
@@ -455,7 +455,7 @@ class PluginBridgeSdk:
 
     @classmethod
     @contextmanager
-    def _lock(cls, root: Path) -> Iterator[None]:
+    def _lock(cls, root: Path) -> Generator[None, None, None]:
         """
         用工程局部独占文件串行更新，不自动抢占可能仍被使用的旧锁。
 
@@ -537,10 +537,11 @@ class PluginBridgeSdk:
             for name in VENDOR_FILES:
                 try:
                     path = cls._safe_path(vendor / name)
-                    if originals[name] is None:
+                    original = originals[name]
+                    if original is None:
                         path.unlink(missing_ok=True)
                     else:
-                        cls._write(path, originals[name])
+                        cls._write(path, original)
                 except (OSError, ValueError) as rollback_error:
                     failures.append(f'{name}: {rollback_error}')
             if failures:

@@ -3,7 +3,8 @@ from typing import Literal
 
 from i18n.message import I18nMessage
 from plugins.core.discovery.scanner import DiscoveredPlugin
-from plugins.core.manifest.schema import PluginDependencyManifest, PluginManifest
+from plugins.core.manifest.schema import PluginDependencyManifest
+from plugins.core.manifest.v2 import VersionedPluginManifest
 from plugins.core.state import PluginStateResolver
 from plugins.core.types import PluginStateRecord
 from plugins.core.validation.dependencies import DependencyRequirementParser, ParsedDependency
@@ -242,7 +243,7 @@ class PluginDependencyChecker:
         self.discovered_plugin_map = {plugin.manifest.id: plugin for plugin in discovered_plugins}
         self.database_plugin_map = {plugin.plugin_id: plugin for plugin in database_plugins or []}
 
-    def check_manifest(self, manifest: PluginManifest) -> PluginDependencyCheckResult:
+    def check_manifest(self, manifest: VersionedPluginManifest) -> PluginDependencyCheckResult:
         """
         检查单个插件清单的插件间依赖。
 
@@ -379,7 +380,7 @@ class PluginDependencyChecker:
         :param database_plugin: 数据库插件状态
         :return: 已安装版本
         """
-        installed_version = getattr(database_plugin, 'installed_version', None)
+        installed_version = database_plugin.installed_version if database_plugin else None
         if installed_version:
             return installed_version
         return discovered_plugin.manifest.version if discovered_plugin else None
@@ -702,7 +703,7 @@ class PluginDependencyPlanBuilder:
 
     def _build_dependency_blockers(
         self,
-        manifest: PluginManifest,
+        manifest: VersionedPluginManifest,
         operation: PluginBatchOperation,
     ) -> list[PluginDependencyPlanBlocker]:
         """
@@ -720,7 +721,7 @@ class PluginDependencyPlanBuilder:
 
     def _build_single_dependency_blocker(
         self,
-        manifest: PluginManifest,
+        manifest: VersionedPluginManifest,
         dependency: PluginDependencyManifest,
         operation: PluginBatchOperation,
     ) -> list[PluginDependencyPlanBlocker]:

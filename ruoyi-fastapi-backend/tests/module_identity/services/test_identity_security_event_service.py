@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -23,7 +24,7 @@ _ROLE_REFRESH_COUNT = 4
 
 
 @pytest_asyncio.fixture
-async def security_session() -> AsyncSession:
+async def security_session() -> AsyncIterator[AsyncSession]:
     """
     创建身份安全事件涉及表的真实异步数据库会话。
 
@@ -31,12 +32,12 @@ async def security_session() -> AsyncSession:
     """
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     tables = [
-        SysUser.__table__,
-        SysUserRole.__table__,
-        SysIdentitySubject.__table__,
-        SysSsoSession.__table__,
-        SysOAuthRefreshToken.__table__,
-        SysOAuthAuditLog.__table__,
+        SysUser.get_table(),
+        SysUserRole.get_table(),
+        SysIdentitySubject.get_table(),
+        SysSsoSession.get_table(),
+        SysOAuthRefreshToken.get_table(),
+        SysOAuthAuditLog.get_table(),
     ]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync_connection: Base.metadata.create_all(sync_connection, tables=tables))
@@ -121,7 +122,9 @@ async def test_password_change_increments_version_and_keeps_only_current_session
     )
     assert result.revoked_sessions == 1
     assert result.revoked_refresh_tokens == _PASSWORD_REFRESH_COUNT
-    assert (await security_session.get(SysIdentitySubject, 1)).auth_version == _INITIAL_VERSION + 1
+    subject = await security_session.get(SysIdentitySubject, 1)
+    assert subject is not None
+    assert subject.auth_version == _INITIAL_VERSION + 1
     sessions = (await security_session.execute(select(SysSsoSession).order_by(SysSsoSession.sid))).scalars().all()
     assert [row.status for row in sessions] == ['active', 'revoked']
     tokens = (
@@ -131,6 +134,7 @@ async def test_password_change_increments_version_and_keeps_only_current_session
     )
     assert all(row.status == 'revoked' for row in tokens)
     audit = (await security_session.execute(select(SysOAuthAuditLog))).scalar_one()
+    assert audit.detail is not None
     assert audit.detail['event'] == 'password_changed'
     assert audit.detail['actor'] == 'admin'
     assert audit.risk_level == 'high'

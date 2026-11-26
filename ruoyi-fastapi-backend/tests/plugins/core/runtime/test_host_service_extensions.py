@@ -1,5 +1,5 @@
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
@@ -34,7 +34,7 @@ async def test_dictionary_service_returns_only_public_enabled_options(tmp_path: 
     db = object()
 
     @asynccontextmanager
-    async def session() -> AsyncIterator[object]:
+    async def session() -> AsyncGenerator[object, None]:
         """
         为当前测试操作提供数据库会话。
 

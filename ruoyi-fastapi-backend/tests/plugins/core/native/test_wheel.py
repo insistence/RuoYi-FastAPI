@@ -12,7 +12,8 @@ import pytest
 from packaging.tags import sys_tags
 
 from plugins.core.discovery.scanner import DiscoveredPlugin
-from plugins.core.manifest.schema import PluginManifest, PluginManifestFactory
+from plugins.core.manifest.schema import PluginManifestFactory
+from plugins.core.manifest.v2 import VersionedPluginManifest
 from plugins.core.native import wheel as wheel_tools
 from plugins.core.native.wheel import install_native_wheel, select_native_wheel
 from plugins.core.runtime.entrypoint import PluginEntrypointLoader
@@ -22,7 +23,7 @@ METADATA = f'{MODULE}-1.0.0.dist-info'
 
 
 @pytest.fixture
-def manifest() -> PluginManifest:
+def manifest() -> VersionedPluginManifest:
     """
     创建原生 wheel 测试使用的插件清单。
 
@@ -75,7 +76,9 @@ def make_wheel(root: Path, *, extra: dict[str, bytes] | None = None, tag: str | 
     return path
 
 
-def test_install_yields_runtime_loadable_metadata_without_import(tmp_path: Path, manifest: PluginManifest) -> None:
+def test_install_yields_runtime_loadable_metadata_without_import(
+    tmp_path: Path, manifest: VersionedPluginManifest
+) -> None:
     """验证安装生成可加载的元数据布局且不导入插件。"""
     wheel = make_wheel(tmp_path)
     make_wheel(tmp_path, tag='cp20-cp20-unsupported_platform')
@@ -100,7 +103,7 @@ def test_install_yields_runtime_loadable_metadata_without_import(tmp_path: Path,
     ],
 )
 def test_unsafe_archive_rejected_before_creating_destination(
-    tmp_path: Path, manifest: PluginManifest, name: str
+    tmp_path: Path, manifest: VersionedPluginManifest, name: str
 ) -> None:
     """验证不安全容器在创建安装目录前被拒绝。"""
     wheel = make_wheel(tmp_path, extra={name: b'bad'})
@@ -112,7 +115,7 @@ def test_unsafe_archive_rejected_before_creating_destination(
 
 
 @pytest.mark.parametrize('mutation', ['tamper', 'unlisted', 'symlink', 'case_collision'])
-def test_record_and_file_types_are_enforced(tmp_path: Path, manifest: PluginManifest, mutation: str) -> None:
+def test_record_and_file_types_are_enforced(tmp_path: Path, manifest: VersionedPluginManifest, mutation: str) -> None:
     """验证 RECORD 完整性与文件类型限制生效。"""
     wheel = make_wheel(tmp_path)
     with ZipFile(wheel) as archive:
@@ -134,7 +137,7 @@ def test_record_and_file_types_are_enforced(tmp_path: Path, manifest: PluginMani
     assert not (tmp_path / 'native').exists()
 
 
-def test_install_never_overwrites_existing_directory(tmp_path: Path, manifest: PluginManifest) -> None:
+def test_install_never_overwrites_existing_directory(tmp_path: Path, manifest: VersionedPluginManifest) -> None:
     """验证 wheel 安装不会覆盖已存在的目录。"""
     wheel = make_wheel(tmp_path)
     destination = tmp_path / 'native'
@@ -146,7 +149,7 @@ def test_install_never_overwrites_existing_directory(tmp_path: Path, manifest: P
     assert sentinel.read_text(encoding='utf-8') == 'keep'
 
 
-def test_archive_size_limit(tmp_path: Path, manifest: PluginManifest, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_archive_size_limit(tmp_path: Path, manifest: VersionedPluginManifest, monkeypatch: pytest.MonkeyPatch) -> None:
     """验证 wheel 文件数量和大小限制生效。"""
     wheel = make_wheel(tmp_path)
     monkeypatch.setattr(wheel_tools, 'MAX_WHEEL_BYTES', 1)
@@ -154,7 +157,7 @@ def test_archive_size_limit(tmp_path: Path, manifest: PluginManifest, monkeypatc
         install_native_wheel(wheel, tmp_path / 'native', manifest)
 
 
-def test_missing_dependency_is_not_installed(tmp_path: Path, manifest: PluginManifest) -> None:
+def test_missing_dependency_is_not_installed(tmp_path: Path, manifest: VersionedPluginManifest) -> None:
     """验证缺失依赖只会导致失败而不会触发安装。"""
     wheel = make_wheel(
         tmp_path,
@@ -167,7 +170,7 @@ def test_missing_dependency_is_not_installed(tmp_path: Path, manifest: PluginMan
         install_native_wheel(wheel, tmp_path / 'native', manifest)
 
 
-def test_incompatible_wheel_has_no_selection(tmp_path: Path, manifest: PluginManifest) -> None:
+def test_incompatible_wheel_has_no_selection(tmp_path: Path, manifest: VersionedPluginManifest) -> None:
     """验证不兼容 wheel 不能被选择为安装候选。"""
     make_wheel(tmp_path, tag='cp20-cp20-unsupported_platform')
     with pytest.raises(ValueError, match='未找到'):
@@ -175,7 +178,7 @@ def test_incompatible_wheel_has_no_selection(tmp_path: Path, manifest: PluginMan
 
 
 def test_extract_failure_cleans_only_new_directory(
-    tmp_path: Path, manifest: PluginManifest, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, manifest: VersionedPluginManifest, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """验证展开失败仅清理本次创建的新目录。"""
     wheel = make_wheel(tmp_path)

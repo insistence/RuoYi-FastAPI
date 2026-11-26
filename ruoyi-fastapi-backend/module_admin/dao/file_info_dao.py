@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import ColumnElement, case, delete, exists, func, or_, select, update
+from sqlalchemy import ColumnElement, case, delete, exists, func, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
+from config.database import execute_rowcount
 from module_admin.entity.do.dept_do import SysDept
 from module_admin.entity.do.file_do import (
     SysFileAcl,
@@ -73,7 +74,7 @@ class FileInfoDao:
                         SysFileInfo.file_id == file_id,
                         SysFileInfo.status == 'active',
                         SysFileInfo.del_flag == '0',
-                        file_data_scope_sql if file_data_scope_sql is not None else True,
+                        file_data_scope_sql if file_data_scope_sql is not None else true(),
                     )
                 )
             )
@@ -172,12 +173,14 @@ class FileInfoDao:
                 SysFileReconcileRun.error_message,
             )
             .where(
-                SysFileReconcileRun.status == query_object.status if query_object.status else True,
-                SysFileReconcileRun.trigger_type == query_object.trigger_type if query_object.trigger_type else True,
+                SysFileReconcileRun.status == query_object.status if query_object.status else true(),
+                SysFileReconcileRun.trigger_type == query_object.trigger_type if query_object.trigger_type else true(),
             )
             .order_by(SysFileReconcileRun.started_time.desc(), SysFileReconcileRun.run_id.desc())
         )
-        return await PageUtil.paginate(db, query, query_object.page_num, query_object.page_size, is_page)
+        return await PageUtil.paginate(
+            db, query, query_object.page_num, query_object.page_size, is_page, as_mappings=True
+        )
 
     @classmethod
     async def get_all_local_file_infos(cls, db: AsyncSession) -> list[dict[str, Any]]:
@@ -291,7 +294,8 @@ class FileInfoDao:
         :param current_time: 当前时间
         :return: 自动关闭数量
         """
-        result = await db.execute(
+        return await execute_rowcount(
+            db,
             update(SysFileReconcileIssue)
             .where(
                 SysFileReconcileIssue.status.in_(['open', 'ignored']),
@@ -303,9 +307,8 @@ class FileInfoDao:
                 handle_reason='异常在后续完整扫描中未再次出现',
                 handled_by='system',
                 handled_time=current_time,
-            )
+            ),
         )
-        return int(result.rowcount or 0)
 
     @classmethod
     async def finish_reconcile_run(
@@ -367,7 +370,7 @@ class FileInfoDao:
         :param is_page: 是否分页
         :return: 对账异常列表
         """
-        keyword_condition: ColumnElement | bool = True
+        keyword_condition: ColumnElement[bool] = true()
         if query_object.keyword:
             keyword = f'%{query_object.keyword}%'
             keyword_condition = or_(
@@ -383,9 +386,9 @@ class FileInfoDao:
             )
             .outerjoin(SysFileInfo, SysFileInfo.file_id == SysFileReconcileIssue.file_id)
             .where(
-                SysFileReconcileIssue.issue_type == query_object.issue_type if query_object.issue_type else True,
-                SysFileReconcileIssue.severity == query_object.severity if query_object.severity else True,
-                SysFileReconcileIssue.status == query_object.status if query_object.status else True,
+                SysFileReconcileIssue.issue_type == query_object.issue_type if query_object.issue_type else true(),
+                SysFileReconcileIssue.severity == query_object.severity if query_object.severity else true(),
+                SysFileReconcileIssue.status == query_object.status if query_object.status else true(),
                 keyword_condition,
             )
             .order_by(
@@ -561,7 +564,7 @@ class FileInfoDao:
                 await db.execute(
                     select(SysFileInfo).where(
                         SysFileInfo.file_id == file_id,
-                        file_data_scope_sql if file_data_scope_sql is not None else True,
+                        file_data_scope_sql if file_data_scope_sql is not None else true(),
                     )
                 )
             )
@@ -592,7 +595,7 @@ class FileInfoDao:
                         SysFileInfo.file_id == file_id,
                         SysFileInfo.status == 'active',
                         SysFileInfo.del_flag == '0',
-                        file_data_scope_sql if file_data_scope_sql is not None else True,
+                        file_data_scope_sql if file_data_scope_sql is not None else true(),
                     )
                     .with_for_update()
                 )
@@ -624,7 +627,7 @@ class FileInfoDao:
                         SysFileInfo.file_id.in_(file_ids),
                         SysFileInfo.status == 'active',
                         SysFileInfo.del_flag == '0',
-                        file_data_scope_sql if file_data_scope_sql is not None else True,
+                        file_data_scope_sql if file_data_scope_sql is not None else true(),
                     )
                     .order_by(SysFileInfo.file_id)
                     .with_for_update()
@@ -657,7 +660,7 @@ class FileInfoDao:
                         SysFileInfo.file_id.in_(file_ids),
                         SysFileInfo.status == 'deleted',
                         SysFileInfo.del_flag == '1',
-                        file_data_scope_sql if file_data_scope_sql is not None else True,
+                        file_data_scope_sql if file_data_scope_sql is not None else true(),
                     )
                     .order_by(SysFileInfo.file_id)
                     .with_for_update()
@@ -690,7 +693,7 @@ class FileInfoDao:
                         SysFileInfo.file_id.in_(file_ids),
                         SysFileInfo.status.in_(['deleted', 'purging']),
                         SysFileInfo.del_flag == '1',
-                        file_data_scope_sql if file_data_scope_sql is not None else True,
+                        file_data_scope_sql if file_data_scope_sql is not None else true(),
                     )
                     .order_by(SysFileInfo.file_id)
                     .with_for_update()
@@ -944,7 +947,7 @@ class FileInfoDao:
         cls,
         query_object: FileInfoPageQueryModel,
         current_time: datetime,
-    ) -> list[ColumnElement | bool]:
+    ) -> list[ColumnElement[bool]]:
         """
         构建文件管理查询条件。
 
@@ -954,7 +957,7 @@ class FileInfoDao:
         """
         expiring_time = current_time + timedelta(days=cls.FILE_EXPIRING_DAYS)
         time_range = TimezoneUtil.rfc3339_range_to_utc(query_object.begin_time, query_object.end_time)
-        expiration_condition: ColumnElement | bool = True
+        expiration_condition: ColumnElement[bool] = true()
         if query_object.expiration_status == 'permanent':
             expiration_condition = SysFileInfo.expire_time.is_(None)
         elif query_object.expiration_status == 'expired':
@@ -964,20 +967,20 @@ class FileInfoDao:
         elif query_object.expiration_status == 'valid':
             expiration_condition = SysFileInfo.expire_time > expiring_time
         return [
-            SysFileInfo.original_name.like(f'%{query_object.original_name}%') if query_object.original_name else True,
-            SysFileInfo.access_type == query_object.access_type if query_object.access_type else True,
-            SysFileInfo.status == query_object.status if query_object.status else True,
-            SysFileInfo.create_by.like(f'%{query_object.create_by}%') if query_object.create_by else True,
+            SysFileInfo.original_name.like(f'%{query_object.original_name}%') if query_object.original_name else true(),
+            SysFileInfo.access_type == query_object.access_type if query_object.access_type else true(),
+            SysFileInfo.status == query_object.status if query_object.status else true(),
+            SysFileInfo.create_by.like(f'%{query_object.create_by}%') if query_object.create_by else true(),
             or_(
                 SysUser.user_name.like(f'%{query_object.owner_name}%'),
                 SysUser.nick_name.like(f'%{query_object.owner_name}%'),
             )
             if query_object.owner_name
-            else True,
-            SysFileInfo.dept_id == query_object.dept_id if query_object.dept_id else True,
+            else true(),
+            SysFileInfo.dept_id == query_object.dept_id if query_object.dept_id else true(),
             expiration_condition,
-            SysFileInfo.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-            SysFileInfo.create_time <= time_range[1] if time_range and time_range[1] is not None else True,
+            SysFileInfo.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+            SysFileInfo.create_time <= time_range[1] if time_range and time_range[1] is not None else true(),
         ]
 
     @classmethod

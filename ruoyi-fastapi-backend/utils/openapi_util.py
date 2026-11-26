@@ -9,6 +9,7 @@ from starlette.convertors import Convertor, FloatConvertor, IntegerConvertor, St
 from starlette.routing import BaseRoute
 
 from common.auth_policy import AuthPolicy, AuthRule
+from common.context import CompiledExcludeRoute
 from module_admin.service.login_service import LoginService, oauth2_scheme
 
 
@@ -38,10 +39,16 @@ class OpenAPIUtil:
         :return: 调整后的OpenAPI文档
         """
         for route, method in cls._iter_auth_routes(routes):
-            requirements = list(
-                AuthPolicy.iter_auth_dependencies(route.dependant, (LoginService.get_current_user, oauth2_scheme))
-            )
-            if not requirements or any(item is None for item in requirements):
+            requirements: list[AuthRule] = []
+            for rule in AuthPolicy.iter_auth_dependencies(
+                route.dependant, (LoginService.get_current_user, oauth2_scheme)
+            ):
+                if rule is None:
+                    # 显式登录依赖要求认证，保留原有安全声明。
+                    requirements.clear()
+                    break
+                requirements.append(rule)
+            if not requirements:
                 continue
             # 同名的其他安全依赖仍可能要求凭证，不能随宿主登录声明一起移除。
             if cls._has_external_login_scheme(route.dependant):
@@ -226,7 +233,7 @@ class OpenAPIUtil:
         return any(re.sub(r'\{[^}]+\}', '{}', rule['original_path']) == skeleton for rule in rules)
 
     @staticmethod
-    def _method_rules(pre_auth: AuthRule, method: str) -> list[dict[str, Any]]:
+    def _method_rules(pre_auth: AuthRule, method: str) -> list[CompiledExcludeRoute]:
         """
         获取适用于当前HTTP方法的排除规则。
 
@@ -382,12 +389,14 @@ class OpenAPIUtil:
         :param ignored_paths: 例外路径
         :return: 用于检查规则交集的实际路径
         """
-        values = list(segments)
+        values: list[str] = []
         ignored_segments = [path.split('/') for path in ignored_paths]
-        for index, convertor in convertors.items():
-            if values[index] is not None:
+        for index, segment in enumerate(segments):
+            if segment is not None:
+                values.append(segment)
                 continue
-            excluded = {parts[index] for parts in ignored_segments if len(parts) == len(values)}
+            convertor = convertors[index]
+            excluded = {parts[index] for parts in ignored_segments if len(parts) == len(segments)}
             for number in range(len(excluded) + 1):
                 if convertor.regex == StringConvertor.regex:
                     candidate = f'__openapi_{number}__'
@@ -396,6 +405,6 @@ class OpenAPIUtil:
                 else:
                     candidate = str(number)
                 if candidate not in excluded:
-                    values[index] = candidate
+                    values.append(candidate)
                     break
         return '/'.join(values)

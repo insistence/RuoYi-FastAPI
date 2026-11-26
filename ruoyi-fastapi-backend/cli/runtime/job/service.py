@@ -61,11 +61,11 @@ class JobRuntimeService:
         job_vo_module = self.infrastructure_gateway.get_job_vo_module()
         job_service = self.infrastructure_gateway.get_job_service()
         query_model = job_vo_module.JobPageQueryModel(
-            jobName=job_name or None,
-            jobGroup=job_group or None,
+            job_name=job_name or None,
+            job_group=job_group or None,
             status=status,
-            pageNum=page_num,
-            pageSize=page_size,
+            page_num=page_num,
+            page_size=page_size,
         )
         try:
             async with async_session_local() as session:
@@ -137,13 +137,13 @@ class JobRuntimeService:
         job_log_service = self.infrastructure_gateway.get_job_log_service()
         job_vo_module = self.infrastructure_gateway.get_job_vo_module()
         query_model = job_vo_module.JobLogPageQueryModel(
-            jobName=job_name or None,
-            jobGroup=job_group or None,
+            job_name=job_name or None,
+            job_group=job_group or None,
             status=status,
-            beginTime=begin_date or None,
-            endTime=end_date or None,
-            pageNum=page_num,
-            pageSize=page_size,
+            begin_time=begin_date or None,
+            end_time=end_date or None,
+            page_num=page_num,
+            page_size=page_size,
         )
         try:
             async with async_session_local() as session:
@@ -191,11 +191,11 @@ class JobRuntimeService:
                 await scheduler_manager.init_system_scheduler(redis)
 
                 if operation == 'run-once':
-                    result = await job_service.execute_job_once_services(session, job_vo_module.JobModel(jobId=job_id))
+                    result = await job_service.execute_job_once_services(session, job_vo_module.JobModel(job_id=job_id))
                 elif operation in {'pause', 'resume'}:
                     result = await job_service.edit_job_services(
                         session,
-                        job_vo_module.EditJobModel(jobId=job_id, status=status, type='status'),
+                        job_vo_module.EditJobModel(job_id=job_id, status=status, type='status'),
                     )
                 else:
                     raise ValueError(f'不支持的任务操作：{operation}')

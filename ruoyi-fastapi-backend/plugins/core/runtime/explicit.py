@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException
 from starlette.requests import Request
 from starlette.routing import Mount
-from starlette.types import Scope
+from starlette.types import ASGIApp, Scope
 
 from config.database import Base, DataSourceRegistry
 from exceptions.exception import AuthException
@@ -15,6 +15,7 @@ from i18n.message import I18nMessage
 from module_admin.service.login_service import LoginService
 from plugins.core.discovery.registry import PluginRegistry, RegisteredPlugin
 from plugins.core.discovery.scanner import is_artifact_plugin
+from plugins.core.manifest.v2 import PluginManifestV2
 from plugins.core.runtime.asgi import PluginGatewayASGI, PluginLifespanManager
 from plugins.core.runtime.browser_session import authenticate_browser_session
 from plugins.core.runtime.bundle import PluginBundleASGI
@@ -305,7 +306,6 @@ class ExplicitPluginRuntime:
         :param loaded: 当前 worker 已准备的插件实例
         :param app: 宿主 FastAPI 应用
         :raises RuntimeError: 插件运行时已进入关闭阶段，不能注册路由
-        :raises TypeError: app_factory 必须同步返回 ASGI 应用；app_factory 必须返回 ASGI callable
         :raises ValueError: 挂载路径与应用已有路由冲突
         :raises BaseException: 启动或挂载过程中断，清理资源后传播原异常
         """
@@ -317,20 +317,17 @@ class ExplicitPluginRuntime:
                 raise RuntimeError('插件运行时已进入关闭阶段，不能注册路由')
             self._register_routers(loaded, app)
         else:
-            child = loaded.definition.app_factory(loaded.host)
-            if inspect.isawaitable(child):
-                if inspect.iscoroutine(child):
-                    child.close()
-                raise TypeError('app_factory 必须同步返回 ASGI 应用')
-            if not callable(child):
-                raise TypeError('app_factory 必须返回 ASGI callable')
-            if isinstance(child, FastAPI):
-                child.state.plugin_host = loaded.host
-                child.state.redis = loaded.host.redis
-            mount_path = manifest.backend.asgi.mount_path
+            if (
+                not isinstance(manifest, PluginManifestV2)
+                or (asgi := manifest.backend.asgi) is None
+                or not asgi.mount_path
+            ):
+                raise ValueError('ASGI 插件缺少挂载配置')
+            mount_path = asgi.mount_path
+            child = self._create_asgi_app(loaded)
             if any(getattr(route, 'path', None) == mount_path for route in app.routes):
                 raise ValueError(f'插件挂载路径冲突：{mount_path}')
-            manager = PluginLifespanManager(child, managed=manifest.backend.asgi.lifespan == 'managed')
+            manager = PluginLifespanManager(child, managed=asgi.lifespan == 'managed')
             loaded.lifespan = manager
             try:
                 await manager.startup()
@@ -338,7 +335,7 @@ class ExplicitPluginRuntime:
                 if self._closing:
                     raise RuntimeError('插件运行时已进入关闭阶段，不能挂载子应用')
                 web_app = child
-                if manifest.frontend.delivery.type == 'bundle':
+                if manifest.frontend.bundle is not None:
                     web_app = PluginBundleASGI(child, plugin_id, loaded.plugin.backend_path, manifest.frontend.bundle)
                 gateway = PluginGatewayASGI(web_app, manager, self._authorizer(loaded, app))
                 observed = PluginObservedASGI(gateway, self.metrics, plugin_id)
@@ -350,6 +347,29 @@ class ExplicitPluginRuntime:
                 except Exception:
                     logger.exception(f'插件激活失败后的 ASGI 回收失败：{plugin_id}')
                 raise
+
+    @staticmethod
+    def _create_asgi_app(loaded: LoadedExplicitPlugin) -> ASGIApp:
+        """
+        调用插件工厂创建子应用，并向 FastAPI 子应用传入宿主上下文。
+
+        :param loaded: 当前 worker 已准备的插件实例
+        :return: 插件工厂创建的 ASGI 应用
+        :raises TypeError: 缺少工厂，或工厂未同步返回可调用的 ASGI 应用
+        """
+        if loaded.definition.app_factory is None:
+            raise TypeError('ASGI 插件缺少 app_factory')
+        child = loaded.definition.app_factory(loaded.host)
+        if inspect.isawaitable(child):
+            if inspect.iscoroutine(child):
+                child.close()
+            raise TypeError('app_factory 必须同步返回 ASGI 应用')
+        if not callable(child):
+            raise TypeError('app_factory 必须返回 ASGI callable')
+        if isinstance(child, FastAPI):
+            child.state.plugin_host = loaded.host
+            child.state.redis = loaded.host.redis
+        return child
 
     @staticmethod
     async def _check_health(loaded: LoadedExplicitPlugin, app: FastAPI) -> None:

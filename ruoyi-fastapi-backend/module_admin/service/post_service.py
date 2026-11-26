@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal, overload
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +14,18 @@ from utils.excel_util import ExcelUtil
 
 class PostService:
     """岗位管理模块服务层。"""
+
+    @classmethod
+    @overload
+    async def get_post_list_services(
+        cls, query_db: AsyncSession, query_object: PostPageQueryModel, is_page: Literal[True]
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_post_list_services(
+        cls, query_db: AsyncSession, query_object: PostPageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_post_list_services(
@@ -41,7 +53,7 @@ class PostService:
         :return: 校验结果
         """
         post_id = -1 if page_object.post_id is None else page_object.post_id
-        post = await PostDao.get_post_detail_by_info(query_db, PostModel(postName=page_object.post_name))
+        post = await PostDao.get_post_detail_by_info(query_db, PostModel(post_name=page_object.post_name))
         if post and post.post_id != post_id:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
@@ -56,7 +68,7 @@ class PostService:
         :return: 校验结果
         """
         post_id = -1 if page_object.post_id is None else page_object.post_id
-        post = await PostDao.get_post_detail_by_info(query_db, PostModel(postCode=page_object.post_code))
+        post = await PostDao.get_post_detail_by_info(query_db, PostModel(post_code=page_object.post_code))
         if post and post.post_id != post_id:
             return CommonConstant.NOT_UNIQUE
         return CommonConstant.UNIQUE
@@ -150,7 +162,7 @@ class PostService:
                             msg_key='post.assigned',
                             msg_params={'post_name': str(post.post_name)},
                         )
-                    await PostDao.delete_post_dao(query_db, PostModel(postId=post_id))
+                    await PostDao.delete_post_dao(query_db, PostModel(post_id=post_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
@@ -160,7 +172,7 @@ class PostService:
             raise ServiceException(message='传入岗位id为空', msg_key='post.idRequired')
 
     @classmethod
-    async def post_detail_services(cls, query_db: AsyncSession, post_id: int) -> PostModel:
+    async def post_detail_services(cls, query_db: AsyncSession, post_id: int | None) -> PostModel:
         """
         获取岗位详细信息service。
 
@@ -168,6 +180,8 @@ class PostService:
         :param post_id: 岗位id
         :return: 岗位id对应的信息
         """
+        if post_id is None:
+            return PostModel()
         post = await PostDao.get_post_detail_by_id(query_db, post_id=post_id)
         result = PostModel(**CamelCaseUtil.transform_result(post)) if post else PostModel()
 

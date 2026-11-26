@@ -31,8 +31,11 @@ async def create_plugin_browser_session(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
     runtime = getattr(request.app.state, 'plugin_explicit_runtime', None)
-    loaded = runtime.loaded.get(plugin_id) if isinstance(runtime, ExplicitPluginRuntime) else None
-    if loaded is None or loaded.plugin.discovered_plugin.manifest.frontend.delivery.type != 'bundle':
+    if (
+        not isinstance(runtime, ExplicitPluginRuntime)
+        or (loaded := runtime.loaded.get(plugin_id)) is None
+        or loaded.plugin.discovered_plugin.manifest.frontend.delivery.type != 'bundle'
+    ):
         raise HTTPException(status_code=404, detail=I18nMessage('插件页面不存在', msg_key='plugin.session.pageMissing'))
     if not loaded.active or loaded.lifespan is None or not loaded.lifespan.ready:
         raise HTTPException(status_code=503, detail=I18nMessage('插件页面尚未就绪', msg_key='plugin.session.notReady'))

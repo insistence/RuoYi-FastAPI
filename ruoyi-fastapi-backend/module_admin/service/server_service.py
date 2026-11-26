@@ -29,7 +29,7 @@ class ServerService:
         cpu_used = cpu_usage_percent.user
         cpu_sys = cpu_usage_percent.system
         cpu_free = cpu_usage_percent.idle
-        cpu = CpuInfo(cpuNum=cpu_num, used=cpu_used, sys=cpu_sys, free=cpu_free)
+        cpu = CpuInfo(cpu_num=cpu_num, used=cpu_used, sys=cpu_sys, free=cpu_free)
 
         # 内存信息
         memory_info = psutil.virtual_memory()
@@ -49,7 +49,7 @@ class ServerService:
         os_arch = platform.machine()
         user_dir = str(await anyio.Path.cwd())
         sys = SysInfo(
-            computerIp=computer_ip, computerName=computer_name, osArch=os_arch, osName=os_name, userDir=user_dir
+            computer_ip=computer_ip, computer_name=computer_name, os_arch=os_arch, os_name=os_name, user_dir=user_dir
         )
 
         # python解释器信息
@@ -74,8 +74,8 @@ class ServerService:
         py = PyInfo(
             name=python_name,
             version=python_version,
-            startTime=start_time,
-            runTime=run_time,
+            start_time=start_time,
+            run_time=run_time,
             home=python_home,
             total=bytes2human(memory_info.available),
             used=bytes2human(current_process_memory_info.rss),
@@ -86,7 +86,7 @@ class ServerService:
         # 磁盘信息
         sys_files = ServerService._get_disk_info()
 
-        result = ServerMonitorModel(cpu=cpu, mem=mem, sys=sys, py=py, sysFiles=sys_files)
+        result = ServerMonitorModel(cpu=cpu, mem=mem, sys=sys, py=py, sys_files=sys_files)
 
         return result
 
@@ -137,9 +137,9 @@ class ServerService:
             return None
 
         return SysFiles(
-            dirName=device,
-            sysTypeName=filesystem,
-            typeName='本地固定磁盘（' + mountpoint.replace('\\', '') + '）',
+            dir_name=device,
+            sys_type_name=filesystem,
+            type_name='本地固定磁盘（' + mountpoint.replace('\\', '') + '）',
             total=bytes2human(disk_usage.total),
             used=bytes2human(disk_usage.used),
             free=bytes2human(disk_usage.free),

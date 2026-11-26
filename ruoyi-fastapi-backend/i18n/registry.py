@@ -1,13 +1,29 @@
 import re
 from pathlib import Path
+from typing import NotRequired, TypedDict
 
 from config.env import I18nConfig
+
+
+class _LocaleDefinition(TypedDict):
+    """
+    单个语言标签的启用状态、别名和回退顺序。
+
+    :ivar enabled: 当前语言是否启用
+    :ivar aliases: 可匹配此语言的其他标签
+    :ivar fallback: 译文缺失时依次尝试的语言标签
+    """
+
+    enabled: NotRequired[bool]
+    aliases: tuple[str, ...]
+    fallback: tuple[str, ...]
+
 
 MAX_LOCALE_LENGTH = 63
 _SCRIPT_SUBTAG_LENGTH = 4
 _REGION_SUBTAG_LENGTH = 2
 CATALOG_ROOT = Path(__file__).parent / 'catalogs'
-LOCALES = {
+LOCALES: dict[str, _LocaleDefinition] = {
     'zh-CN': {'enabled': True, 'aliases': ('zh', 'zh-Hans'), 'fallback': ()},
     'en-US': {'enabled': True, 'aliases': ('en',), 'fallback': ('zh-CN',)},
 }
@@ -109,7 +125,7 @@ class LocaleRegistry:
         :param code: 已注册的语言标识
         :return: 包含基准语言的回退链
         """
-        result = []
+        result: list[str] = []
 
         def visit(item: str, stack: tuple[str, ...] = ()) -> None:
             """

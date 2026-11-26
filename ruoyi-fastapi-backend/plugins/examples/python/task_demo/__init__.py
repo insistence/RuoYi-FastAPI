@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, TypeVar
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ValidationError
@@ -16,7 +16,10 @@ VERSION = '1.1.0'
 _runtime = SimpleNamespace(session_factory=None)
 
 
-def _validate(model: type[BaseModel], values: dict[str, Any]) -> Any:
+_Model = TypeVar('_Model', bound=BaseModel)
+
+
+def _validate(model: type[_Model], values: dict[str, Any]) -> _Model:
     """
     校验 SDK 请求快照中的路径和查询参数。
 
@@ -41,7 +44,7 @@ def _task_id(context: PluginRequestContext) -> str:
     :param context: 含 HTTP 请求快照的宿主上下文
     :return: 已校验的任务标识
     """
-    return _validate(TaskIdentifier, {'id': context.request.path_params['task_id']}).id
+    return _validate(TaskIdentifier, {'id': context.http_request.path_params['task_id']}).id
 
 
 async def info(context: PluginRequestContext) -> dict[str, Any]:
@@ -49,9 +52,9 @@ async def info(context: PluginRequestContext) -> dict[str, Any]:
 
 
 async def list_tasks(context: PluginRequestContext) -> dict[str, Any]:
-    if any(len(values) != 1 for values in context.request.query.values()):
+    if any(len(values) != 1 for values in context.http_request.query.values()):
         raise HTTPException(status_code=422, detail='查询参数不能重复')
-    query = _validate(TaskQuery, {key: values[0] for key, values in context.request.query.items()})
+    query = _validate(TaskQuery, {key: values[0] for key, values in context.http_request.query.items()})
     return await service.list_tasks(context, query)
 
 
@@ -60,11 +63,11 @@ async def get_task(context: PluginRequestContext) -> dict[str, Any]:
 
 
 async def create_task(context: PluginRequestContext) -> dict[str, Any]:
-    return await service.create_task(context, context.request.body)
+    return await service.create_task(context, context.http_request.body)
 
 
 async def update_task(context: PluginRequestContext) -> dict[str, Any]:
-    return await service.update_task(context, _task_id(context), context.request.body)
+    return await service.update_task(context, _task_id(context), context.http_request.body)
 
 
 async def delete_task(context: PluginRequestContext) -> dict[str, bool]:

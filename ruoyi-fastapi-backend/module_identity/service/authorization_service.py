@@ -1,6 +1,6 @@
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -24,6 +24,7 @@ from module_identity.entity.do.oauth_resource_do import (
     SysOAuthResource,
     SysOAuthScope,
 )
+from module_identity.entity.types import InteractionRecord
 from module_identity.entity.vo.protocol_vo import AuthorizeRequest
 from module_identity.redis_keys import OidcRedisKey
 from module_identity.security.opaque_token import (
@@ -410,7 +411,8 @@ class AuthorizationService:
             registered_uri = await cls.verified_redirect_for_client(db, client_pk, redirect_uri)
             if registered_uri is None:
                 raise OAuthProtocolException('server_error', 'Validated redirect URI is unavailable', 500)
-            session = await cls.active_session(db, record.get('authenticatedSid', ''), now=TimezoneUtil.utc_now())
+            sid = record.get('authenticatedSid')
+            session = await cls.active_session(db, sid, now=TimezoneUtil.utc_now()) if sid else None
             if session is None:
                 raise OAuthProtocolException('login_required', 'A current login is required', 400)
             grant = await cls._completion_grant(db, record, session)
@@ -455,7 +457,9 @@ class AuthorizationService:
             raise OAuthProtocolException('server_error', 'Authorization code could not be completed', 500) from exc
 
     @classmethod
-    async def _completion_grant(cls, db: AsyncSession, record: dict[str, Any], session: SysSsoSession) -> SysOAuthGrant:
+    async def _completion_grant(
+        cls, db: AsyncSession, record: InteractionRecord, session: SysSsoSession
+    ) -> SysOAuthGrant:
         """
         重新检查访问策略并为免确认流程补齐授权记录。
 
@@ -841,9 +845,7 @@ class AuthorizationService:
         )
 
     @staticmethod
-    async def _load_scope_models(
-        db: AsyncSession, bindings: list[SysOAuthClientScope] | tuple[SysOAuthClientScope, ...]
-    ) -> list[SysOAuthScope]:
+    async def _load_scope_models(db: AsyncSession, bindings: Sequence[SysOAuthClientScope]) -> list[SysOAuthScope]:
         """
         加载 Client Scope 绑定对应的有效 Scope 定义。
 
@@ -859,9 +861,7 @@ class AuthorizationService:
         return [scope for scope in definitions if scope.scope_pk in scope_ids]
 
     @staticmethod
-    async def load_scope_models(
-        db: AsyncSession, bindings: list[SysOAuthClientScope] | tuple[SysOAuthClientScope, ...]
-    ) -> list[SysOAuthScope]:
+    async def load_scope_models(db: AsyncSession, bindings: Sequence[SysOAuthClientScope]) -> list[SysOAuthScope]:
         """
         加载 Client Scope 绑定对应的 Scope 定义。
 
@@ -874,8 +874,8 @@ class AuthorizationService:
     @staticmethod
     def _resolve_resource(
         requested_resource: str | None,
-        resources: list[SysOAuthResource] | tuple[SysOAuthResource, ...],
-        resource_bindings: list[SysOAuthClientResource] | tuple[SysOAuthClientResource, ...],
+        resources: Sequence[SysOAuthResource],
+        resource_bindings: Sequence[SysOAuthClientResource],
         requested_scopes: list[SysOAuthScope],
         redirect_uri: str,
         state: str | None,
@@ -1041,7 +1041,7 @@ return value
         payload: Mapping[str, Any],
         *,
         ttl_seconds: int | None = None,
-        pepper: str | None = None,
+        pepper: str | bytes | None = None,
     ) -> str:
         """
         签发短期 Authorization Code 并以 NX 写入 Redis。
@@ -1075,7 +1075,7 @@ return value
         redis: Redis,
         code: str,
         *,
-        pepper: str | None = None,
+        pepper: str | bytes | None = None,
     ) -> dict[str, Any]:
         """
         使用 Redis Lua 原子校验并消费 Authorization Code。
@@ -1128,7 +1128,7 @@ return value
         redis: Redis,
         code: str,
         *,
-        pepper: str | None = None,
+        pepper: str | bytes | None = None,
     ) -> dict[str, Any] | None:
         """
         读取已消费授权码的短期绑定载荷。
@@ -1260,8 +1260,8 @@ class InteractionCompletionService:
             raise OidcInteractionException(
                 interaction_id, '认证交互已完成，请勿重复提交', error='invalid_request', status_code=409
             )
-        redirect_uri = record.get('redirectUri')
         try:
+            redirect_uri = record['redirectUri']
             registered = await OAuthClientDao.find_exact_uri(db, record['clientPk'], 'redirect', redirect_uri)
         except Exception:
             await InteractionFlowService.best_effort_delete(redis, marker)
@@ -1281,7 +1281,7 @@ class InteractionCompletionService:
         return await InteractionCompletionService._issue_code(db, redis, record, registered.uri, marker)
 
     @staticmethod
-    async def active_session(db: AsyncSession, record: dict[str, Any]) -> SysSsoSession | None:
+    async def active_session(db: AsyncSession, record: InteractionRecord) -> SysSsoSession | None:
         """
         读取活动会话。
 
@@ -1305,7 +1305,7 @@ class InteractionCompletionService:
 
     @staticmethod
     async def _issue_code(
-        db: AsyncSession, redis: Any, record: dict[str, Any], redirect_uri: str, marker: str
+        db: AsyncSession, redis: Any, record: InteractionRecord, redirect_uri: str, marker: str
     ) -> 'InteractionCompletionResult':
         """
         签发授权码。
@@ -1375,7 +1375,7 @@ class InteractionCompletionService:
     @staticmethod
     def _redirect(
         redirect_uri: str,
-        record: dict[str, Any],
+        record: InteractionRecord,
         *,
         code: str | None = None,
         error: str | None = None,
@@ -1394,8 +1394,9 @@ class InteractionCompletionService:
             query.append(('code', code))
         if error is not None:
             query.append(('error', error))
-        if record.get('state') is not None:
-            query.append(('state', record['state']))
+        state = record.get('state')
+        if state is not None:
+            query.append(('state', state))
         query.append(('iss', OidcConfig.oidc_issuer))
         location = OidcUtil.replace_query_parameters(
             redirect_uri, query, {'code', 'error', 'state', 'iss'}, fragment=''

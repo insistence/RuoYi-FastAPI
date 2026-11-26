@@ -14,7 +14,7 @@ class CryptoUtil:
     :cvar _cipher_suite: 对配置内容执行加解密的密码套件
     """
 
-    _cipher_suite = None
+    _cipher_suite: Fernet | None = None
 
     @classmethod
     def _get_cipher_suite(cls) -> Fernet:

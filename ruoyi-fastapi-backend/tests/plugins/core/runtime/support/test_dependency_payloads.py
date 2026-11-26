@@ -1,6 +1,7 @@
 import json
 from dataclasses import replace
 from pathlib import Path
+from typing import Literal
 
 from plugins.core.runtime.support import PluginBatchReportBuilder, PluginNpmPackageJsonSynchronizer
 from plugins.core.validation.dependencies import DependencyInstallPlanItem
@@ -9,7 +10,7 @@ from plugins.core.validation.dependencies import DependencyInstallPlanItem
 def build_npm_plan_item(
     workdir: Path,
     *,
-    kind: str,
+    kind: Literal['npm', 'npmDev'],
     requirement: str,
     name: str,
 ) -> DependencyInstallPlanItem:

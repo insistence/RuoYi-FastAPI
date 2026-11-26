@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -39,8 +39,8 @@ class ConfigDao:
             (
                 await db.execute(
                     select(SysConfig).where(
-                        SysConfig.config_key == config.config_key if config.config_key else True,
-                        SysConfig.config_value == config.config_value if config.config_value else True,
+                        SysConfig.config_key == config.config_key if config.config_key else true(),
+                        SysConfig.config_value == config.config_value if config.config_value else true(),
                     )
                 )
             )
@@ -68,11 +68,11 @@ class ConfigDao:
         query = (
             select(SysConfig)
             .where(
-                SysConfig.config_name.like(f'%{query_object.config_name}%') if query_object.config_name else True,
-                SysConfig.config_key.like(f'%{query_object.config_key}%') if query_object.config_key else True,
-                SysConfig.config_type == query_object.config_type if query_object.config_type else True,
-                SysConfig.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysConfig.create_time < time_range[1] if time_range and time_range[1] is not None else True,
+                SysConfig.config_name.like(f'%{query_object.config_name}%') if query_object.config_name else true(),
+                SysConfig.config_key.like(f'%{query_object.config_key}%') if query_object.config_key else true(),
+                SysConfig.config_type == query_object.config_type if query_object.config_type else true(),
+                SysConfig.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysConfig.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
             )
             .order_by(SysConfig.config_id)
             .distinct()

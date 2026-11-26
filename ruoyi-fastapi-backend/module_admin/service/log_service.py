@@ -3,10 +3,12 @@ import hashlib
 import json
 import os
 import uuid
-from typing import Any
+from collections.abc import Iterator, Mapping, Sequence
+from typing import Any, Literal, overload
 
 from fastapi import Request
 from redis import asyncio as aioredis
+from redis.typing import XReadGroupResponse, XReadGroupStreamResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import CrudResponseModel, PageModel
@@ -32,9 +34,23 @@ from module_admin.service.dict_service import DictDataService
 from utils.excel_util import ExcelUtil
 from utils.log_util import LogSanitizer, logger
 
+LogStreamBatch = tuple[str | bytes, list[tuple[str | bytes, dict[str, str]]]]
+
 
 class OperationLogService:
     """操作日志管理模块服务层。"""
+
+    @classmethod
+    @overload
+    async def get_operation_log_list_services(
+        cls, query_db: AsyncSession, query_object: OperLogPageQueryModel, is_page: Literal[True]
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_operation_log_list_services(
+        cls, query_db: AsyncSession, query_object: OperLogPageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_operation_log_list_services(
@@ -87,7 +103,7 @@ class OperationLogService:
             oper_id_list = page_object.oper_ids.split(',')
             try:
                 for oper_id in oper_id_list:
-                    await OperationLogDao.delete_operation_log_dao(query_db, OperLogModel(operId=oper_id))
+                    await OperationLogDao.delete_operation_log_dao(query_db, OperLogModel(oper_id=oper_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
@@ -147,7 +163,7 @@ class OperationLogService:
         )
         operation_type_option = [
             {
-                'label': TranslationUtil.resolve(item.get('dictLabel'), item.get('dictLabelI18n')),
+                'label': TranslationUtil.resolve(item.get('dictLabel') or '', item.get('dictLabelI18n')),
                 'value': item.get('dictValue'),
             }
             for item in operation_type_list
@@ -160,7 +176,7 @@ class OperationLogService:
             else:
                 item['status'] = I18nMessage('失败', msg_key='export.failure')
             if str(item.get('businessType')) in operation_type_option_dict:
-                item['businessType'] = operation_type_option_dict.get(str(item.get('businessType'))).get('label')
+                item['businessType'] = operation_type_option_dict[str(item.get('businessType'))]['label']
         binary_data = ExcelUtil.export_list2excel(operation_log_list, mapping_dict)
 
         return binary_data
@@ -168,6 +184,18 @@ class OperationLogService:
 
 class LoginLogService:
     """登录日志管理模块服务层。"""
+
+    @classmethod
+    @overload
+    async def get_login_log_list_services(
+        cls, query_db: AsyncSession, query_object: LoginLogPageQueryModel, is_page: Literal[True]
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_login_log_list_services(
+        cls, query_db: AsyncSession, query_object: LoginLogPageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_login_log_list_services(
@@ -220,7 +248,7 @@ class LoginLogService:
             info_id_list = page_object.info_ids.split(',')
             try:
                 for info_id in info_id_list:
-                    await LoginLogDao.delete_login_log_dao(query_db, LogininforModel(infoId=info_id))
+                    await LoginLogDao.delete_login_log_dao(query_db, LogininforModel(info_id=info_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
@@ -410,7 +438,7 @@ class LogAggregatorService:
         if not event_id:
             return False
         key = f'{LogConfig.log_stream_dedup_prefix}:{event_id}'
-        return await redis.set(key, '1', nx=True, ex=LogConfig.log_stream_dedup_ttl)
+        return bool(await redis.set(key, '1', nx=True, ex=LogConfig.log_stream_dedup_ttl))
 
     @classmethod
     async def _release_dedup(cls, redis: aioredis.Redis, event_id: str) -> None:
@@ -453,6 +481,46 @@ class LogAggregatorService:
                 return
             start_id = next_start_id
 
+    @staticmethod
+    def _stream_batches(
+        response: XReadGroupResponse,
+    ) -> Iterator[LogStreamBatch]:
+        """
+        将 Redis 的流读取响应整理成每个流一批消息，兼容 RESP2 和 RESP3。
+
+        :param response: 消费组的读取结果
+        :yield: 流名称和保留顺序的消息列表
+        """
+        streams = response.items() if isinstance(response, dict) else response
+        for stream_name, entries in streams:
+            batch = LogAggregatorService._decode_stream_batch(stream_name, entries)
+            if batch is not None:
+                yield batch
+
+    @staticmethod
+    def _decode_stream_batch(
+        stream_name: str | bytes, entries: XReadGroupStreamResponse | list[XReadGroupStreamResponse]
+    ) -> LogStreamBatch | None:
+        """
+        解码单个日志流的消息字段，并跳过已删除的消息。
+
+        :param stream_name: Redis 返回的流名称
+        :param entries: 当前流的消息或旧版 RESP3 返回的嵌套消息列表
+        :return: 流名称与消息列表，没有有效消息时返回 None
+        """
+        messages = []
+        for item in entries:
+            for message_id, fields, *_ in item if isinstance(item, list) else (item,):
+                if message_id is not None:
+                    decoded_fields = {
+                        key.decode() if isinstance(key, bytes) else key: value.decode()
+                        if isinstance(value, bytes)
+                        else value
+                        for key, value in (fields or {}).items()
+                    }
+                    messages.append((message_id, decoded_fields))
+        return (stream_name, messages) if messages else None
+
     @classmethod
     async def consume_stream(cls, redis: aioredis.Redis) -> None:
         """
@@ -479,7 +547,7 @@ class LogAggregatorService:
                 )
                 if not result:
                     continue
-                for stream_name, messages in result:
+                for stream_name, messages in cls._stream_batches(result):
                     await cls._process_messages(redis, stream_name, messages)
             except asyncio.CancelledError:
                 raise
@@ -488,7 +556,9 @@ class LogAggregatorService:
                 await asyncio.sleep(1)
 
     @classmethod
-    async def _process_messages(cls, redis: aioredis.Redis, stream_name: str, messages: list[tuple[str, dict]]) -> None:
+    async def _process_messages(
+        cls, redis: aioredis.Redis, stream_name: str | bytes, messages: Sequence[tuple[str | bytes, Mapping[str, str]]]
+    ) -> None:
         """
         处理消息并落库。
 
@@ -500,14 +570,14 @@ class LogAggregatorService:
         if not messages:
             return
         async with DataSourceRegistry.session() as session:
-            ack_ids: list[str] = []
+            ack_ids: list[str | bytes] = []
             dedup_event_ids: list[str] = []
             try:
                 for message_id, data in messages:
                     event_type = data.get('event_type')
                     event_id = data.get('event_id')
                     payload_raw = data.get('payload') or '{}'
-                    if event_type not in {'login', 'operation', 'file_access'}:
+                    if not isinstance(event_id, str) or event_type not in {'login', 'operation', 'file_access'}:
                         ack_ids.append(message_id)
                         continue
                     acquired = await cls._acquire_dedup(redis, event_id)

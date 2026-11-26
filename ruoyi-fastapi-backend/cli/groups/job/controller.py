@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -50,7 +51,7 @@ class JobCommandController:
     def list(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         job_name: str,
         job_group: str,
@@ -89,7 +90,7 @@ class JobCommandController:
             text_condition=lambda result_data: bool(result_data.get('ok', False)),
         )
 
-    def run_once(self, job_id: int, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def run_once(self, job_id: int, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         执行一次定时任务。
 
@@ -104,7 +105,7 @@ class JobCommandController:
             ctx, self.execution_service.run_async(self.job_runtime.run_job_once(job_id))
         )
 
-    def detail(self, job_id: int, env: str, output: str) -> None:
+    def detail(self, job_id: int, env: str, output: OutputFormat) -> None:
         """
         查看单个定时任务详情。
 
@@ -124,7 +125,7 @@ class JobCommandController:
     def logs(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         *,
         job_name: str,
         job_group: str,
@@ -169,7 +170,7 @@ class JobCommandController:
             text_condition=lambda result_data: bool(result_data.get('ok', False)),
         )
 
-    def pause(self, job_id: int, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def pause(self, job_id: int, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         暂停定时任务。
 
@@ -184,7 +185,7 @@ class JobCommandController:
             ctx, self.execution_service.run_async(self.job_runtime.pause_job(job_id))
         )
 
-    def resume(self, job_id: int, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def resume(self, job_id: int, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         恢复定时任务。
 
@@ -199,7 +200,7 @@ class JobCommandController:
             ctx, self.execution_service.run_async(self.job_runtime.resume_job(job_id))
         )
 
-    def sync(self, env: str, output: str, allow_prod: bool, yes: bool) -> None:
+    def sync(self, env: str, output: OutputFormat, allow_prod: bool, yes: bool) -> None:
         """
         同步调度任务配置。
 

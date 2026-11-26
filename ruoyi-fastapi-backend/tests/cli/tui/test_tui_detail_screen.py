@@ -1,9 +1,12 @@
 import asyncio
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from pytest import MonkeyPatch
+
+if TYPE_CHECKING:
+    from cli.tui.adapters.models import DetailSectionSnapshot
 
 
 def test_detail_screen_updates_section_detail_view(tui_modules: SimpleNamespace) -> None:
@@ -24,12 +27,12 @@ def test_detail_screen_updates_section_detail_view(tui_modules: SimpleNamespace)
         refreshed_at='2026-04-30 10:00:00',
     )
 
-    recorded_sections: list[object] = []
+    recorded_sections: list[DetailSectionSnapshot] = []
 
     class FakeSectionDetailView:
         """记录传入详情视图的区块。"""
 
-        def show_section(self, section: object, query: str = '') -> None:
+        def show_section(self, section: 'DetailSectionSnapshot', query: str = '') -> None:
             """
             记录详情面板选中的区块。
 

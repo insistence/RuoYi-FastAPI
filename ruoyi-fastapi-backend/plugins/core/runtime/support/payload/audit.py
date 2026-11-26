@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Protocol, TypeAlias, cast
 
 from pydantic import Field
@@ -81,7 +81,7 @@ class PluginAuditPayloadBuilder:
     def build_recent_snapshot_payload(
         cls,
         plugin_id: str,
-        operation_logs: list[object],
+        operation_logs: Sequence[object],
         *,
         audit_limit: int,
     ) -> PluginAuditSnapshotPayloadDict:

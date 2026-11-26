@@ -1,6 +1,6 @@
 import inspect
 from collections.abc import Awaitable, Callable, Sequence
-from typing import ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar, cast
 
 from fastapi import Request
 from redis import asyncio as aioredis
@@ -29,7 +29,7 @@ class ApiAnnotationUtil:
         bound_arguments = signature.bind_partial(*args, **kwargs)
         for argument in bound_arguments.arguments.values():
             if isinstance(argument, Request):
-                return argument
+                return cast('Request', argument)
 
         return None
 
@@ -46,7 +46,7 @@ class ApiAnnotationUtil:
         if redis is None:
             logger.warning(skip_message)
 
-        return redis
+        return cast('aioredis.Redis | None', redis)
 
     @classmethod
     def resolve_request_redis(

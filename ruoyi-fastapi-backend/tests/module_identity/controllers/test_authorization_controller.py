@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from fastapi import Request
 from sqlalchemy import select
 
 from common.constant import OidcAuditEvent
@@ -19,7 +20,9 @@ from module_identity.service.audit_service import AuditService
 from module_identity.service.authorization_service import AuthorizationService
 from module_identity.service.interaction_service import InteractionService
 from tests.module_identity.services.test_authorization_service import _seed_authorization_data
+from tests.module_identity.support.http import make_request
 from tests.module_identity.support.redis_fakes import FakeRedis
+from tests.module_identity.support.sessions import RecordingSession
 
 _REDIRECT_URI = 'https://portal.example/callback?tenant=one'
 _CHALLENGE = 'A' * 43
@@ -29,55 +32,15 @@ _HTTP_SEE_OTHER = 303
 _HTTP_TOO_MANY_REQUESTS = 429
 
 
-class _QueryParams:
+def _request(values: list[tuple[str, str]], redis: FakeRedis | None = None) -> Request:
     """
-    提供 Starlette QueryParams 所需的多值读取接口。
+    构造授权端点接收的查询请求。
 
-    :ivar values: 当前处理的值集合
+    :param values: 请求的查询参数
+    :param redis: 授权流程使用的测试缓存
+    :return: 带有客户端地址和缓存依赖的请求
     """
-
-    def __init__(self, values: list[tuple[str, str]]) -> None:
-        """
-        初始化测试夹具的 ``values``。
-
-        :param values: 当前处理的值集合
-        """
-        self.values = values
-
-    def multi_items(self) -> list[tuple[str, str]]:
-        """
-        向调用方返回 ``self.values``。
-
-        :return: 测试缓存当前保存的值
-        """
-        return self.values
-
-
-class _Request:
-    """
-    构造不携带 Legacy 会话的认证请求。
-
-    :ivar method: 当前请求的 HTTP 方法
-    :ivar query_params: 模拟 HTTP 请求中的查询参数
-    :ivar cookies: 模拟请求或响应携带的 Cookie
-    :ivar headers: 响应或请求携带的 HTTP 头
-    :ivar client: 发起当前调用的客户端
-    :ivar app: 正在配置或处理请求的 ASGI 应用
-    """
-
-    def __init__(self, values: list[tuple[str, str]], redis: FakeRedis | None = None) -> None:
-        """
-        初始化测试夹具的 ``method``, ``query_params``, ``cookies``, ``headers``。
-
-        :param values: 当前处理的值集合
-        :param redis: 用于缓存或发布消息的 Redis 客户端
-        """
-        self.method = 'GET'
-        self.query_params = _QueryParams(values)
-        self.cookies: dict[str, str] = {}
-        self.headers: dict[str, str] = {}
-        self.client = SimpleNamespace(host='198.51.100.10')
-        self.app = SimpleNamespace(state=SimpleNamespace(redis=redis or FakeRedis()))
+    return make_request((redis or FakeRedis()).client, query=values, host='198.51.100.10')
 
 
 class _RateRedis(FakeRedis):
@@ -143,7 +106,7 @@ def oidc_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_authorize_creates_real_interaction_with_fragment_csrf(data_session: Any) -> None:
     """有效请求真实执行校验和 Interaction 创建，CSRF 只进入 Fragment。"""
     await _seed_authorization_data(data_session)
-    response = await authorize(_Request(_values()), data_session)
+    response = await authorize(_request(_values()), data_session)
     assert response.status_code == _HTTP_SEE_OTHER
     location = response.headers['location']
     assert 'interaction=' in location
@@ -158,15 +121,15 @@ async def test_authorize_invalid_redirect_is_local_and_plain_pkce_is_redirectabl
     """未注册 Redirect 不得跳转；精确注册后 plain PKCE 才允许协议错误回跳。"""
     await _seed_authorization_data(data_session)
     with pytest.raises(OAuthProtocolException) as local:
-        await authorize(_Request(_values(redirect_uri='https://evil.example/callback')), data_session)
+        await authorize(_request(_values(redirect_uri='https://evil.example/callback')), data_session)
     assert local.value.can_redirect is False
 
     with pytest.raises(OAuthProtocolException) as redirectable:
-        await authorize(_Request(_values(code_challenge_method='plain')), data_session)
+        await authorize(_request(_values(code_challenge_method='plain')), data_session)
     assert redirectable.value.error == 'invalid_request'
     assert redirectable.value.can_redirect is True
     with pytest.raises(OAuthProtocolException) as unsupported:
-        await authorize(_Request(_values(response_type='token')), data_session)
+        await authorize(_request(_values(response_type='token')), data_session)
     assert unsupported.value.error == 'unsupported_response_type'
     assert unsupported.value.can_redirect is True
 
@@ -195,7 +158,7 @@ async def test_authorize_max_age_discards_stale_sso(monkeypatch: pytest.MonkeyPa
         return stale
 
     monkeypatch.setattr(AuthorizationService, '_load_sso_session', load_stale)
-    response = await authorize(_Request(_values(max_age='1')), data_session)
+    response = await authorize(_request(_values(max_age='1')), data_session)
     assert response.status_code == _HTTP_SEE_OTHER
     assert '/auth-center/login' in response.headers['location']
 
@@ -205,11 +168,10 @@ async def test_authorize_max_age_discards_stale_sso(monkeypatch: pytest.MonkeyPa
 async def test_authorize_ip_limit_is_atomic_and_hashes_ip(monkeypatch: pytest.MonkeyPatch) -> None:
     """授权固定窗口并发计数只使用 HMAC-IP Redis Key。"""
     redis = _RateRedis()
-    request = _Request(_values(), redis)
-    request.client = SimpleNamespace(host='198.51.100.10')
-    await asyncio.gather(*(controller._enforce_authorization_rate_limit(request, redis) for _ in range(30)))
+    request = _request(_values(), redis)
+    await asyncio.gather(*(controller._enforce_authorization_rate_limit(request, redis.client) for _ in range(30)))
     with pytest.raises(OAuthProtocolException) as limited:
-        await controller._enforce_authorization_rate_limit(request, redis)
+        await controller._enforce_authorization_rate_limit(request, redis.client)
     assert limited.value.status_code == _HTTP_TOO_MANY_REQUESTS
     assert limited.value.redirect_uri is None
     assert all('198.51.100.10' not in key for key in redis.values)
@@ -221,7 +183,7 @@ async def test_authorize_ip_limit_is_atomic_and_hashes_ip(monkeypatch: pytest.Mo
 async def test_authorize_audit_events_are_structured_and_secret_free(data_session: Any) -> None:
     """授权成功事件落库且不携带协议秘密。"""
     await _seed_authorization_data(data_session)
-    await authorize(_Request(_values()), data_session)
+    await authorize(_request(_values()), data_session)
     rows = (
         (
             await data_session.execute(
@@ -247,7 +209,7 @@ async def test_authorize_prompt_none_without_sso_returns_login_required_without_
     await _seed_authorization_data(data_session)
     redis = FakeRedis()
     with pytest.raises(OAuthProtocolException) as raised:
-        await authorize(_Request(_values(prompt='none'), redis), data_session)
+        await authorize(_request(_values(prompt='none'), redis), data_session)
     assert raised.value.error == 'login_required'
     assert raised.value.can_redirect is True
     assert not any(key.startswith('oidc:interaction:') for key in redis.values)
@@ -257,7 +219,7 @@ async def test_authorize_prompt_none_without_sso_returns_login_required_without_
 async def test_authorize_disabled_is_local_404(data_session: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     """OIDC 关闭时授权入口返回本地 404。"""
     monkeypatch.setattr(OidcConfig, 'oidc_enabled', False)
-    response = await authorize(_Request(_values()), data_session)
+    response = await authorize(_request(_values()), data_session)
     assert response.status_code == _HTTP_NOT_FOUND
     assert response.headers['cache-control'] == 'no-store'
 
@@ -301,32 +263,10 @@ async def test_complete_code_audit_failure_cleans_code_and_marker(monkeypatch: p
     monkeypatch.setattr(AuthorizationService, 'active_session', lambda *_args, **_kwargs: _async(session))
     monkeypatch.setattr(AuditService, 'record', lambda *_args, **_kwargs: _raise_async(RuntimeError('audit')))
     with pytest.raises(OAuthProtocolException) as raised:
-        await AuthorizationService._complete_authorization(_Db(), redis, interaction_id)
+        await AuthorizationService._complete_authorization(RecordingSession(), redis, interaction_id)
     assert raised.value.error == 'server_error'
     assert await redis.get(marker) is None
     assert not any(key.startswith('oidc:authorization_code:') for key in redis.values)
-
-
-class _Db:
-    """
-    记录授权完成测试的事务动作。
-
-    :ivar commits: 测试中记录的提交次数
-    :ivar rollbacks: 测试中记录的回滚次数
-    """
-
-    def __init__(self) -> None:
-        """初始化测试夹具的 ``commits``, ``rollbacks``。"""
-        self.commits = 0
-        self.rollbacks = 0
-
-    async def commit(self) -> None:
-        """累加 ``commits`` 供后续断言检查。"""
-        self.commits += 1
-
-    async def rollback(self) -> None:
-        """累加 ``rollbacks`` 供后续断言检查。"""
-        self.rollbacks += 1
 
 
 async def _async(value: object) -> Any:

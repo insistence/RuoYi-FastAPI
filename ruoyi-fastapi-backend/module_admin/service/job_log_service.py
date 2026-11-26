@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, Literal, overload
 
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +16,18 @@ from utils.excel_util import ExcelUtil
 
 class JobLogService:
     """定时任务日志管理模块服务层。"""
+
+    @classmethod
+    @overload
+    async def get_job_log_list_services(
+        cls, query_db: AsyncSession, query_object: JobLogPageQueryModel, is_page: Literal[True]
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_job_log_list_services(
+        cls, query_db: AsyncSession, query_object: JobLogPageQueryModel, is_page: Literal[False] = False
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_job_log_list_services(
@@ -45,12 +57,12 @@ class JobLogService:
         try:
             JobLogDao.add_job_log_dao(query_db, page_object)
             query_db.commit()
-            result = {'is_success': True, 'message': '新增成功', 'msg_key': 'common.added'}
+            result = CrudResponseModel(is_success=True, message='新增成功', msg_key='common.added')
         except Exception as e:
             query_db.rollback()
-            result = {'is_success': False, 'message': str(e)}
+            result = CrudResponseModel(is_success=False, message=str(e))
 
-        return CrudResponseModel(**result)
+        return result
 
     @classmethod
     async def delete_job_log_services(cls, query_db: AsyncSession, page_object: DeleteJobLogModel) -> CrudResponseModel:
@@ -66,15 +78,15 @@ class JobLogService:
             job_log_id_list = page_object.job_log_ids.split(',')
             try:
                 for job_log_id in job_log_id_list:
-                    await JobLogDao.delete_job_log_dao(query_db, JobLogModel(jobLogId=job_log_id))
+                    await JobLogDao.delete_job_log_dao(query_db, JobLogModel(job_log_id=job_log_id))
                 await query_db.commit()
-                result = {'is_success': True, 'message': '删除成功', 'msg_key': 'common.deleted'}
+                result = CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
                 await query_db.rollback()
                 raise e
         else:
-            result = {'is_success': False, 'message': '传入定时任务日志id为空'}
-        return CrudResponseModel(**result)
+            result = CrudResponseModel(is_success=False, message='传入定时任务日志id为空')
+        return result
 
     @classmethod
     async def clear_job_log_services(cls, query_db: AsyncSession) -> CrudResponseModel:
@@ -88,12 +100,12 @@ class JobLogService:
         try:
             await JobLogDao.clear_job_log_dao(query_db)
             await query_db.commit()
-            result = {'is_success': True, 'message': '清除成功', 'msg_key': 'common.cleared'}
+            result = CrudResponseModel(is_success=True, message='清除成功', msg_key='common.cleared')
         except Exception as e:
             await query_db.rollback()
             raise e
 
-        return CrudResponseModel(**result)
+        return result
 
     @staticmethod
     async def export_job_log_list_services(request: Request, job_log_list: list) -> bytes:
@@ -133,7 +145,7 @@ class JobLogService:
         )
         job_executor_option = [
             {
-                'label': TranslationUtil.resolve(item.get('dictLabel'), item.get('dictLabelI18n')),
+                'label': TranslationUtil.resolve(item.get('dictLabel') or '', item.get('dictLabelI18n')),
                 'value': item.get('dictValue'),
             }
             for item in job_executor_list
@@ -148,7 +160,7 @@ class JobLogService:
             else:
                 item['status'] = I18nMessage('失败', msg_key='export.failure')
             if str(item.get('jobExecutor')) in job_executor_option_dict:
-                item['jobExecutor'] = job_executor_option_dict.get(str(item.get('jobExecutor'))).get('label')
+                item['jobExecutor'] = job_executor_option_dict[str(item.get('jobExecutor'))]['label']
         binary_data = ExcelUtil.export_list2excel(job_log_list, mapping_dict)
 
         return binary_data

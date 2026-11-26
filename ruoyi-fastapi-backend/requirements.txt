@@ -24,6 +24,7 @@ Sphinx==9.0.4
 SQLAlchemy[asyncio]==2.1.9
 sqlglot==30.33.0
 textual==8.2.8
+ty==0.0.108
 tzdata==2026.6
 user-agents==2.2.0
 .

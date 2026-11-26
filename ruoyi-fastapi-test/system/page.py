@@ -238,7 +238,7 @@ class SystemPage(BasePageTest):
         assert payload.get('code') == HTTPStatus.OK, f'{response.url}: {payload}'
         return payload
 
-    async def action(self, trigger: Callable[[], Awaitable[None]], path: str, method: str = 'GET') -> dict:
+    async def action(self, trigger: Callable[[], Awaitable[object]], path: str, method: str = 'GET') -> dict:
         """
         先监听目标响应，再执行点击，避免固定睡眠和遗漏快速响应。
 

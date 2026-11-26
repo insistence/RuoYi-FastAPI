@@ -9,7 +9,7 @@ import re
 import secrets
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, TypeGuard
 from urllib.parse import parse_qsl, unquote_plus, urlencode, urlsplit, urlunsplit
 from uuid import RFC_4122, UUID
 
@@ -602,7 +602,7 @@ class OidcUtil:
         return value
 
     @classmethod
-    def is_valid_kid(cls, value: Any) -> bool:
+    def is_valid_kid(cls, value: object) -> TypeGuard[str]:
         """
         检查签名密钥标识的字符集和长度。
 
@@ -1281,15 +1281,11 @@ class OidcUtil:
             raise ValueError('签名密钥标识 kid 包含不允许的字符')
         if record_kid is not None and kid != record_kid:
             raise ValueError('公开 JWK 的 kid 与数据库密钥标识不匹配')
-        result = {field: value.get(field) for field in ('kty', 'use', 'kid', 'alg', 'n', 'e')}
-        result.update({'kty': 'RSA', 'use': 'sig', 'kid': kid, 'alg': 'RS256'})
-        if (
-            not isinstance(result.get('n'), str)
-            or not result['n']
-            or not isinstance(result.get('e'), str)
-            or not result['e']
-        ):
+        n = value.get('n')
+        e = value.get('e')
+        if not isinstance(n, str) or not n or not isinstance(e, str) or not e:
             raise ValueError('公开 JWK 必须包含 n 和 e')
+        result = {'kty': 'RSA', 'use': 'sig', 'kid': kid, 'alg': 'RS256', 'n': n, 'e': e}
         try:
             n_bytes = base64.urlsafe_b64decode(result['n'] + '=' * (-len(result['n']) % 4))
             e_bytes = base64.urlsafe_b64decode(result['e'] + '=' * (-len(result['e']) % 4))

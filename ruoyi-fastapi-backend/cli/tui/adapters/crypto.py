@@ -107,8 +107,7 @@ class CryptoSectionBuilder:
         :param payload: ``crypto export-public`` JSON 负载
         :return: 分区快照
         """
-        public_key_payload = payload.get('publicKey') if isinstance(payload, dict) else None
-        if not isinstance(public_key_payload, dict):
+        if not isinstance(payload, dict) or not isinstance(public_key_payload := payload.get('publicKey'), dict):
             return DetailSectionSnapshot(
                 title='公钥身份',
                 status='fail',
@@ -134,8 +133,7 @@ class CryptoSectionBuilder:
         :param payload: ``crypto export-public`` JSON 负载
         :return: 分区快照
         """
-        public_key_payload = payload.get('publicKey') if isinstance(payload, dict) else None
-        if not isinstance(public_key_payload, dict):
+        if not isinstance(payload, dict) or not isinstance(public_key_payload := payload.get('publicKey'), dict):
             return DetailSectionSnapshot(
                 title='兼容版本',
                 status='fail',
@@ -165,8 +163,7 @@ class CryptoSectionBuilder:
         :param payload: ``crypto export-public`` JSON 负载
         :return: 分区快照
         """
-        public_key_payload = payload.get('publicKey') if isinstance(payload, dict) else None
-        if not isinstance(public_key_payload, dict):
+        if not isinstance(payload, dict) or not isinstance(public_key_payload := payload.get('publicKey'), dict):
             return DetailSectionSnapshot(
                 title='公钥预览',
                 status='fail',

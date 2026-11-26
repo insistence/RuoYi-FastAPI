@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
-from cli.tui.adapters.base import BaseDetailAdapter
+from cli.tui.adapters.base import BaseDetailAdapter, get_dict_field, get_list_field
 from cli.tui.adapters.models import (
     TUI_ADAPTER_MODEL_RENDERER,
     DetailPageSnapshot,
@@ -103,8 +103,8 @@ class OpsSectionBuilder:
                     payload, empty_label='健康检查', empty_value='不可用'
                 ),
             )
-        database = payload.get('database') if isinstance(payload.get('database'), dict) else {}
-        redis = payload.get('redis') if isinstance(payload.get('redis'), dict) else {}
+        database = get_dict_field(payload, 'database')
+        redis = get_dict_field(payload, 'redis')
         return DetailSectionSnapshot(
             title='健康检查',
             status='ok' if payload.get('ok', False) else 'fail',
@@ -184,8 +184,8 @@ class OpsSectionBuilder:
                 status='fail',
                 lines=TUI_ADAPTER_MODEL_RENDERER.build_failure_lines(payload, empty_label='依赖', empty_value='不可用'),
             )
-        packages = payload.get('packages') if isinstance(payload.get('packages'), dict) else {}
-        missing_required = payload.get('missingRequired') if isinstance(payload.get('missingRequired'), list) else []
+        packages = get_dict_field(payload, 'packages')
+        missing_required = get_list_field(payload, 'missingRequired')
         lines = [
             '## 总体结论',
             f'检查结果: {"通过" if payload.get("ok", False) else "异常"}',
@@ -217,8 +217,7 @@ class OpsSectionBuilder:
         :param payload: ``ops server-info`` JSON 负载
         :return: 分区快照
         """
-        server = payload.get('server') if isinstance(payload, dict) else None
-        if not isinstance(server, dict):
+        if not isinstance(payload, dict) or not isinstance(server := payload.get('server'), dict):
             return DetailSectionSnapshot(
                 title='服务器摘要',
                 status='fail',
@@ -227,10 +226,10 @@ class OpsSectionBuilder:
                 ),
             )
 
-        sys_info = server.get('sys') if isinstance(server.get('sys'), dict) else {}
-        cpu_info = server.get('cpu') if isinstance(server.get('cpu'), dict) else {}
-        mem_info = server.get('mem') if isinstance(server.get('mem'), dict) else {}
-        py_info = server.get('py') if isinstance(server.get('py'), dict) else {}
+        sys_info = get_dict_field(server, 'sys')
+        cpu_info = get_dict_field(server, 'cpu')
+        mem_info = get_dict_field(server, 'mem')
+        py_info = get_dict_field(server, 'py')
         return DetailSectionSnapshot(
             title='服务器摘要',
             status='ok' if payload.get('ok', False) else 'fail',
@@ -261,8 +260,7 @@ class OpsSectionBuilder:
         :param payload: ``ops server-info`` JSON 负载
         :return: 分区快照
         """
-        server = payload.get('server') if isinstance(payload, dict) else None
-        if not isinstance(server, dict):
+        if not isinstance(payload, dict) or not isinstance(server := payload.get('server'), dict):
             return DetailSectionSnapshot(
                 title='磁盘样本',
                 status='fail',
@@ -270,7 +268,7 @@ class OpsSectionBuilder:
                     payload, empty_label='磁盘样本', empty_value='不可用'
                 ),
             )
-        sys_files = server.get('sysFiles') if isinstance(server.get('sysFiles'), list) else []
+        sys_files = get_list_field(server, 'sysFiles')
         lines = TUI_ADAPTER_MODEL_RENDERER.build_empty_lines(
             empty_label='磁盘样本',
             empty_value='0 个',
@@ -339,13 +337,9 @@ class OpsSectionBuilder:
         server_ok = bool(isinstance(server_payload, dict) and server_payload.get('ok', False))
         missing_required = deps_payload.get('missingRequired') if isinstance(deps_payload, dict) else None
         missing_count = len(missing_required) if isinstance(missing_required, list) else 0
-        server = (
-            server_payload.get('server')
-            if isinstance(server_payload, dict) and isinstance(server_payload.get('server'), dict)
-            else {}
-        )
-        cpu_info = server.get('cpu') if isinstance(server.get('cpu'), dict) else {}
-        mem_info = server.get('mem') if isinstance(server.get('mem'), dict) else {}
+        server = get_dict_field(server_payload, 'server')
+        cpu_info = get_dict_field(server, 'cpu')
+        mem_info = get_dict_field(server, 'mem')
 
         status = 'ok'
         conclusion = '基础探活与运行依赖正常，可继续查看服务器资源与磁盘样本'

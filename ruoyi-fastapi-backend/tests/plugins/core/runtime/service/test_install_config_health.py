@@ -1,29 +1,32 @@
 import asyncio
 import json
 from pathlib import Path
-from types import SimpleNamespace
+from typing import Never
 
 from pytest import MonkeyPatch
 
+from plugins.core.discovery.scanner import DiscoveredPlugin
 from plugins.core.environment import PluginRuntimeEnvironmentService
 from plugins.core.lifecycle.migration import PluginMigrationRunner
+from plugins.core.management.entity.vo.schemas import PluginConfigValueModel, PluginModel
 from plugins.core.runtime.service import PluginRuntimeService
 from plugins.core.runtime.service.dependency_container import PluginRuntimeGatewayOverrides
-from plugins.core.runtime.service.migration_store import PluginDatabaseMigrationHistoryStore
 from plugins.core.runtime.support import PluginConfigPayloadBuilder
+from plugins.core.types import PluginConfigValue
 from plugins.core.validation.dependencies import PluginDependencyChecker
+from plugins.core.validation.menus import PluginMenuConflictItem
 from tests.plugins.core.runtime.fakes import (
     EXPECTED_CONFIG_ORDER,
     FakePluginRuntimeGateway,
     FakePluginService,
     FakeRuntimeEnvironment,
-    FakeSession,
     build_runtime,
     build_runtime_with_gateway,
     create_controller_dir,
     create_frontend_view,
     write_manifest,
 )
+from tests.plugins.core.runtime.fakes.management import RecordedPluginOperation
 
 
 class ConfigOnlyGateway:
@@ -38,10 +41,12 @@ class ConfigOnlyGateway:
     def __init__(self) -> None:
         """初始化测试配置网关。"""
         self.get_calls: list[tuple[str, bool]] = []
-        self.update_calls: list[tuple[str, dict[str, object]]] = []
+        self.update_calls: list[tuple[str, dict[str, PluginConfigValue]]] = []
         self.audit_payloads: list[dict[str, object]] = []
 
-    async def get_plugin_config(self, discovered_plugin: object, *, reveal_secret: bool = False) -> list[object]:
+    async def get_plugin_config(
+        self, discovered_plugin: DiscoveredPlugin, *, reveal_secret: bool = False
+    ) -> list[PluginConfigValueModel]:
         """
         获取插件配置。
 
@@ -52,18 +57,11 @@ class ConfigOnlyGateway:
         plugin_id = discovered_plugin.manifest.id
         self.get_calls.append((plugin_id, reveal_secret))
         value = 'openai-key' if reveal_secret else '******'
-        return [
-            SimpleNamespace(
-                model_dump=lambda by_alias=True: {
-                    'key': 'provider',
-                    'value': value,
-                    'default': value,
-                    'secret': True,
-                }
-            )
-        ]
+        return [PluginConfigValueModel(key='provider', value=value, default=value, secret=True)]
 
-    async def update_plugin_config(self, discovered_plugin: object, values: dict[str, object]) -> list[object]:
+    async def update_plugin_config(
+        self, discovered_plugin: DiscoveredPlugin, values: dict[str, PluginConfigValue]
+    ) -> list[PluginConfigValueModel]:
         """
         更新插件配置。
 
@@ -73,25 +71,16 @@ class ConfigOnlyGateway:
         """
         plugin_id = discovered_plugin.manifest.id
         self.update_calls.append((plugin_id, values))
-        return [
-            SimpleNamespace(
-                model_dump=lambda by_alias=True, key=key, value=value: {
-                    'key': key,
-                    'value': value,
-                    'secret': False,
-                }
-            )
-            for key, value in values.items()
-        ]
+        return [PluginConfigValueModel(key=key, value=value) for key, value in values.items()]
 
     async def set_plugin_config(
         self,
-        discovered_plugin: object,
-        values: dict[str, object],
+        discovered_plugin: DiscoveredPlugin,
+        values: dict[str, PluginConfigValue],
         *,
         audit_operation: str,
         success_message: str,
-    ) -> list[object]:
+    ) -> list[PluginConfigValueModel]:
         """
         在同一事务语义中更新插件配置并记录审计负载。
 
@@ -115,7 +104,7 @@ class ConfigOnlyGateway:
         )
         return configs
 
-    def get_plugin_service(self) -> object:
+    def get_plugin_service(self) -> Never:
         """
         禁止配置链路回退到管理服务胖接口。
 
@@ -144,6 +133,7 @@ backend:
 
     assert result['ok'] is True, result
     assert result['dryRun'] is True
+    assert isinstance(result['actions'], list)
     assert result['actions'][0]['name'] == 'upsert_plugin'
     assert any(action['name'] == 'check_structure' for action in result['actions'])
     assert any(action['name'] == 'check_menu_conflicts' for action in result['actions'])
@@ -207,119 +197,10 @@ backend:
     (plugin_root / 'seeds').mkdir()
     (plugin_root / 'seeds' / 'demo_seed.sql').write_text('select 3;\n', encoding='utf-8')
 
-    class InstallLifecycleUnitOfWork:
-        """
-        测试用插件安装生命周期 UoW。
-
-        :ivar gateway: 代理底层操作的网关
-        :ivar session: 当前操作共用的会话
-        :ivar session_context: 当前会话的上下文
-        """
-
-        def __init__(self, gateway: 'NoFatInstallGateway') -> None:
-            """
-            初始化测试 UoW。
-
-            :param gateway: 代理底层操作的网关
-            """
-            self.gateway = gateway
-            self.session: FakeSession | None = None
-            self.session_context: FakeSession | None = None
-
-        async def __aenter__(self) -> 'InstallLifecycleUnitOfWork':
-            """
-            打开测试 UoW 会话。
-
-            :return: 当前实例
-            """
-            self.session_context = self.gateway.session_local()
-            self.session = await self.session_context.__aenter__()
-            return self
-
-        async def __aexit__(self, exc_type: object, exc: object, traceback: object) -> None:
-            """
-            关闭测试 UoW 会话。
-
-            :param exc_type: 退出上下文时的异常类型
-            :param exc: 捕获到的异常实例
-            :param traceback: 异常的调用栈
-            """
-            await self.session_context.__aexit__(exc_type, exc, traceback)
-
-        async def check_installed_menu_conflicts(self, discovered_plugin: object) -> list[object]:
-            """
-            检查已安装菜单冲突。
-
-            :param discovered_plugin: 扫描插件目录后得到的插件描述
-            :return: 安装菜单的冲突检查结果
-            """
-            return await FakePluginService.check_installed_menu_conflict_services(self.session, discovered_plugin)
-
-        async def upsert_discovered_plugin(
-            self,
-            discovered_plugin: object,
-            backend_root: Path,
-            frontend_root: Path,
-        ) -> object:
-            """
-            写入插件基础状态。
-
-            :param discovered_plugin: 扫描插件目录后得到的插件描述
-            :param backend_root: 后端项目的根目录
-            :param frontend_root: 前端项目的根目录
-            :return: 写入后的插件状态
-            """
-            return await FakePluginService.upsert_discovered_plugin_services(
-                self.session,
-                discovered_plugin,
-                backend_root,
-                frontend_root,
-            )
-
-        async def install_plugin_menu(self, discovered_plugin: object, *, enabled: bool) -> None:
-            """
-            安装插件菜单。
-
-            :param discovered_plugin: 扫描插件目录后得到的插件描述
-            :param enabled: 是否启用该项功能
-            """
-            await FakePluginService.install_plugin_menu_services(self.session, discovered_plugin, enabled=enabled)
-
-        async def install_plugin_default_config(self, discovered_plugin: object) -> list[object]:
-            """
-            安装插件默认配置。
-
-            :param discovered_plugin: 扫描插件目录后得到的插件描述
-            :return: 默认配置的安装结果
-            """
-            return await FakePluginService.install_plugin_default_config_services(self.session, discovered_plugin)
-
-        async def install_plugin_jobs(self, discovered_plugin: object, *, enabled: bool) -> None:
-            """
-            同步插件任务。
-
-            :param discovered_plugin: 扫描插件目录后得到的插件描述
-            :param enabled: 是否启用该项功能
-            """
-            await FakePluginService.install_plugin_job_services(self.session, discovered_plugin, enabled=enabled)
-
-        async def mark_plugin_installed(self, discovered_plugin: object) -> object:
-            """
-            标记插件已安装。
-
-            :param discovered_plugin: 扫描插件目录后得到的插件描述
-            :return: 更新后的安装标记
-            """
-            return await FakePluginService.mark_plugin_installed_services(self.session, discovered_plugin)
-
-        async def commit(self) -> None:
-            """提交测试 UoW。"""
-            await self.session.commit()
-
     class NoFatInstallGateway(FakePluginRuntimeGateway):
         """禁止安装流程读取 fat state gateway 的测试适配器。"""
 
-        def get_async_session_local(self) -> object:
+        def get_async_session_local(self) -> Never:
             """
             禁止通过 state gateway 打开数据库会话。
 
@@ -327,39 +208,13 @@ backend:
             """
             raise AssertionError('安装流程不应通过 state gateway 打开数据库会话')
 
-        def get_plugin_service(self) -> object:
+        def get_plugin_service(self) -> Never:
             """
             禁止通过 state gateway 获取管理服务。
 
             :raises AssertionError: 安装流程不应通过 state gateway 获取管理服务
             """
             raise AssertionError('安装流程不应通过 state gateway 获取管理服务')
-
-        def open_lifecycle_unit_of_work(self) -> InstallLifecycleUnitOfWork:
-            """
-            打开测试生命周期 UoW。
-
-            :return: ``InstallLifecycleUnitOfWork`` 实例
-            """
-            return InstallLifecycleUnitOfWork(self)
-
-        async def run_plugin_migrations(self, discovered_plugin: object) -> list[object]:
-            """
-            通过独立 migration session 执行插件 migration。
-
-            :param discovered_plugin: 扫描插件目录后得到的插件描述
-            :return: 独立迁移会话的执行结果
-            """
-            async with self.session_local() as migration_session:
-                return await PluginMigrationRunner(
-                    discovered_plugin,
-                    PluginDatabaseMigrationHistoryStore.with_model_gateway(
-                        FakePluginService,
-                        self,
-                        self.session_local,
-                    ),
-                    manage_execution_transaction=True,
-                ).run(migration_session)
 
     gateway = NoFatInstallGateway()
 
@@ -432,6 +287,7 @@ compatibility:
     assert result['ok'] is False
     assert result['message'] == '插件 manifest 检查失败，安装已中止'
     assert result['manifestOk'] is False
+    assert isinstance(result['manifestIssues'], list)
     assert result['manifestIssues'][0]['kind'] == 'compatibility_unsatisfied'
     assert FakePluginService.upsert_called is False
     assert FakePluginService.marked_errors == [('demo', '插件 manifest 检查失败，安装已中止')]
@@ -463,9 +319,12 @@ backend:
     assert result['ok'] is True
     assert result['structureOk'] is True
     assert result['structureErrors'] == []
+    assert isinstance(result['seeds'], list)
     assert result['seeds'][0]['seed_path'] == 'seeds/demo_seed.sql'
     assert result['seeds'][0]['statement_count'] == 1
-    assert gateway.session_local.executed_session.executed_statements == ['select 1']
+    executed_session = gateway.session_local.executed_session
+    assert executed_session is not None
+    assert executed_session.executed_statements == ['select 1']
     assert gateway.session_local.committed_session is not None
 
 
@@ -493,6 +352,7 @@ backend:
     result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).install_plugin('demo'))
 
     assert result['ok'] is True
+    assert isinstance(result['migrations'], list)
     assert result['migrations'][0]['migration_path'] == 'migrations/001_demo.sql'
     assert result['migrations'][0]['statement_count'] == 1
     assert result['migrations'][0]['checksum']
@@ -536,6 +396,7 @@ backend:
     result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).install_plugin('demo'))
 
     assert result['ok'] is True
+    assert isinstance(result['migrations'], list)
     assert result['migrations'][0]['skipped'] is True
     assert FakePluginService.migration_records == []
     assert all(not session.executed_statements for session in gateway.session_local.sessions)
@@ -571,6 +432,7 @@ backend:
 
     assert result['ok'] is True
     assert result['manifestOk'] is False
+    assert isinstance(result['manifestIssues'], list)
     assert result['manifestIssues'][0]['kind'] == 'migration_checksum_changed'
     assert result['manifestIssues'][0]['path'] == 'backend.migrations.migrations/001_demo.sql'
     assert result['message'] == '插件安装演练完成，未执行实际写入'
@@ -599,7 +461,7 @@ backend:
     class NoFatStateGateway(FakePluginRuntimeGateway):
         """禁止生命周期预检读取 fat state gateway 的测试适配器。"""
 
-        def get_async_session_local(self) -> object:
+        def get_async_session_local(self) -> Never:
             """
             禁止通过 state gateway 打开数据库会话。
 
@@ -607,7 +469,7 @@ backend:
             """
             raise AssertionError('生命周期脚本预检不应通过 state gateway 打开数据库会话')
 
-        def get_plugin_service(self) -> object:
+        def get_plugin_service(self) -> Never:
             """
             禁止通过 state gateway 获取管理服务。
 
@@ -621,6 +483,7 @@ backend:
 
     assert result['ok'] is True
     assert result['manifestOk'] is True
+    assert isinstance(result['manifestWarnings'], list)
     assert [issue['kind'] for issue in result['manifestWarnings']] == ['migration_pending']
 
 
@@ -711,7 +574,7 @@ permissions:
     create_frontend_view(backend_root, 'demo')
     gateway = FakePluginRuntimeGateway()
     FakePluginService.installed_menu_conflicts = [
-        SimpleNamespace(
+        PluginMenuConflictItem(
             kind='installed_permission',
             plugin_id='demo',
             conflict_plugin_id=None,
@@ -725,6 +588,7 @@ permissions:
     assert result['ok'] is False
     assert result['message'] == '插件菜单与已安装菜单存在冲突，安装已中止'
     assert result['menuConflictOk'] is False
+    assert isinstance(result['menuConflicts'], list)
     assert result['menuConflicts'][0]['kind'] == 'installed_permission'
     assert FakePluginService.upsert_called is False
     assert gateway.session_local.sessions[0] is not None
@@ -800,6 +664,7 @@ dependencies:
 
     assert result['ok'] is False
     assert result['message'] == '插件依赖缺失，安装已中止，请先显式安装依赖'
+    assert isinstance(result['dependencyInstall'], dict)
     assert result['dependencyInstall']['ok'] is True
     assert result['dependencyInstall']['dryRun'] is True
     assert result['dependencyInstall']['planCount'] == expected_plan_count
@@ -846,6 +711,7 @@ dependencies:
 
     assert result['ok'] is False
     assert result['message'] == '插件依赖缺失，安装已中止，请先显式安装依赖'
+    assert isinstance(result['dependencyInstall'], dict)
     assert result['dependencyInstall']['ok'] is True
     assert result['dependencyInstall']['dryRun'] is True
     assert result['dependencyInstall']['dependencyOk'] is False
@@ -885,6 +751,7 @@ config:
     set_result = asyncio.run(runtime.set_plugin_config('demo', {'provider': 'mistral'}))
 
     assert get_result['ok'] is True
+    assert isinstance(get_result['configs'], list)
     assert get_result['configs'][0]['key'] == 'provider'
     assert get_result['configs'][0]['value'] == 'openai'
     assert get_result['configs'][0]['group'] == 'model'
@@ -893,10 +760,12 @@ config:
     assert get_result['configs'][0]['pattern'] == '^[a-z]+$'
     assert set_result['ok'] is True
     assert set_result['operation'] == 'config_set'
+    assert isinstance(set_result['configs'], list)
     assert set_result['configs'][0]['value'] == 'mistral'
     assert len(FakePluginService.operation_logs) == 1
     operation_log = FakePluginService.operation_logs[0]
     assert operation_log.payload['operation'] == 'config_set'
+    assert isinstance(operation_log.payload['summary'], dict)
     assert operation_log.payload['summary']['changedKeys'] == ['provider']
     assert operation_log.payload['summary']['changes'][0]['before'] == 'openai'
     assert operation_log.payload['summary']['changes'][0]['after'] == 'mistral'
@@ -989,8 +858,10 @@ config:
     set_result = asyncio.run(runtime.set_plugin_config('demo', {'provider': 'mistral'}))
 
     assert get_result['ok'] is True
+    assert isinstance(get_result['configs'], list)
     assert get_result['configs'][0]['value'] == 'openai-key'
     assert set_result['ok'] is True
+    assert isinstance(set_result['configs'], list)
     assert set_result['configs'][0]['value'] == 'mistral'
     assert config_gateway.get_calls == [('demo', True), ('demo', True)]
     assert config_gateway.update_calls == [('demo', {'provider': 'mistral'})]
@@ -1026,13 +897,19 @@ config:
 
     assert masked_result['ok'] is True
     assert masked_result['revealSecret'] is False
+    assert isinstance(masked_result['values'], dict)
     assert masked_result['values']['api_key'] == '******'
+    assert isinstance(masked_result['configs'], list)
     assert masked_result['configs'][0]['default'] == '******'
+    assert isinstance(masked_result['metadata'], list)
     assert masked_result['metadata'][0]['secret'] is True
     assert masked_result['metadata'][0]['default'] == '******'
     assert plain_result['revealSecret'] is True
+    assert isinstance(plain_result['values'], dict)
     assert plain_result['values']['api_key'] == 'sk-secret'
+    assert isinstance(plain_result['configs'], list)
     assert plain_result['configs'][0]['default'] == 'sk-secret'
+    assert isinstance(plain_result['metadata'], list)
     assert plain_result['metadata'][0]['default'] == 'sk-secret'
 
 
@@ -1065,6 +942,7 @@ config:
     assert result['pluginId'] == 'demo'
     assert result['operation'] == 'config_import'
     assert result['importedKeys'] == ['provider']
+    assert isinstance(result['configs'], list)
     assert result['configs'][0]['value'] == 'mistral'
     assert len(FakePluginService.operation_logs) == 1
     assert FakePluginService.operation_logs[0].payload['operation'] == 'config_import'
@@ -1104,7 +982,7 @@ config:
     create_frontend_view(backend_root, 'demo')
     gateway = FakePluginRuntimeGateway()
     FakePluginService.plugin_list = [
-        SimpleNamespace(
+        PluginModel(
             plugin_id='demo',
             installed_version='1.0.0',
             enabled='0',
@@ -1116,12 +994,12 @@ config:
         )
     ]
     FakePluginService.operation_logs = [
-        SimpleNamespace(
+        RecordedPluginOperation(
             payload={'ok': True, 'operation': 'install', 'pluginId': 'demo', 'message': 'installed'},
             dry_run=False,
             continue_on_error=False,
         ),
-        SimpleNamespace(
+        RecordedPluginOperation(
             payload={'ok': True, 'operation': 'install', 'pluginId': 'other', 'message': 'other installed'},
             dry_run=False,
             continue_on_error=False,
@@ -1133,13 +1011,17 @@ config:
 
     assert result['ok'] is True, result
     assert result['pluginId'] == 'demo'
+    assert isinstance(result['info'], dict)
     assert result['info']['pluginId'] == 'demo'
+    assert isinstance(result['check'], dict)
     assert result['check']['checks'][0]['pluginId'] == 'demo'
     assert result['check']['databaseAvailable'] is True
     assert result['check']['databaseError'] is None
+    assert isinstance(result['menuPlan'], dict)
     assert result['menuPlan']['total'] == 1
     assert result['menuPlan']['permissionCount'] == 1
     assert result['menuPlan']['items'][0]['component'] == 'plugin/demo/index'
+    assert isinstance(result['config'], dict)
     assert result['config']['configs'][0]['key'] == 'api_key'
     assert result['config']['configs'][0]['value'] == '******'
     assert result['config']['summary'] == {
@@ -1151,6 +1033,7 @@ config:
         'missingRequiredKeys': [],
         'masked': True,
     }
+    assert isinstance(result['audit'], dict)
     assert result['audit']['available'] is True
     assert result['audit']['count'] == 1
     assert result['audit']['items'][0]['operation'] == 'install'
@@ -1179,7 +1062,7 @@ config:
     )
     create_controller_dir(plugin_root)
     FakePluginService.plugin_list = [
-        SimpleNamespace(
+        PluginModel(
             plugin_id='demo',
             installed_version='1.0.0',
             enabled='0',
@@ -1191,7 +1074,7 @@ config:
         )
     ]
     FakePluginService.operation_logs = [
-        SimpleNamespace(
+        RecordedPluginOperation(
             payload={'ok': True, 'operation': 'install', 'pluginId': 'demo', 'message': 'installed'},
             dry_run=False,
             continue_on_error=False,
@@ -1201,7 +1084,7 @@ config:
     class NoFatStateGateway(FakePluginRuntimeGateway):
         """禁止诊断审计快照读取 fat state gateway 的测试适配器。"""
 
-        def get_async_session_local(self) -> object:
+        def get_async_session_local(self) -> Never:
             """
             禁止通过 state gateway 打开数据库会话。
 
@@ -1209,7 +1092,7 @@ config:
             """
             raise AssertionError('诊断审计快照不应通过 state gateway 打开数据库会话')
 
-        def get_plugin_service(self) -> object:
+        def get_plugin_service(self) -> Never:
             """
             禁止通过 state gateway 获取管理服务。
 
@@ -1220,6 +1103,7 @@ config:
     result = asyncio.run(build_runtime_with_gateway(backend_root, NoFatStateGateway()).diagnose_plugin('demo'))
 
     assert result['ok'] is True
+    assert isinstance(result['audit'], dict)
     assert result['audit']['available'] is True
     assert result['audit']['count'] == 1
     assert result['audit']['items'][0]['operation'] == 'install'
@@ -1230,7 +1114,7 @@ def test_plugin_runtime_diagnose_artifact_without_local_source_keeps_database_sn
     backend_root = tmp_path / 'backend'
     (backend_root / 'plugins').mkdir(parents=True)
     FakePluginService.plugin_list = [
-        SimpleNamespace(
+        PluginModel(
             plugin_id='demo',
             installed_version='2.0.0',
             enabled='0',
@@ -1248,14 +1132,19 @@ def test_plugin_runtime_diagnose_artifact_without_local_source_keeps_database_sn
     result = asyncio.run(runtime.diagnose_plugin('demo'))
 
     assert result['ok'] is False
+    assert isinstance(result['info'], dict)
     assert result['info']['scope'] == 'database_only'
     assert result['info']['installedVersion'] == '2.0.0'
     assert result['info']['database']['enabled'] == '0'
+    assert isinstance(result['check'], dict)
     assert result['check']['supported'] is False
     assert result['check']['ok'] is False
+    assert isinstance(result['menuPlan'], dict)
     assert result['menuPlan']['supported'] is False
+    assert isinstance(result['config'], dict)
     assert result['config']['supported'] is False
     assert result['config']['ok'] is False
+    assert isinstance(result['audit'], dict)
     assert result['audit']['available'] is True
 
 
@@ -1286,6 +1175,7 @@ backend:
 
     assert result['ok'] is True
     assert result['pluginId'] == 'demo'
+    assert isinstance(result['health'], dict)
     assert result['health']['status'] == 'healthy'
     assert result['health']['details'] == {'ready': True}
 
@@ -1325,5 +1215,6 @@ backend:
     result = asyncio.run(build_runtime_with_gateway(backend_root, gateway).install_plugin('demo'))
 
     assert result['ok'] is True
+    assert isinstance(result['seeds'], list)
     assert result['seeds'][0]['seed_path'] == 'seeds/demo_seed.py'
     assert any(getattr(session, 'seed_ran', False) is True for session in gateway.session_local.sessions)

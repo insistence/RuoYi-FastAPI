@@ -156,12 +156,14 @@ class OperationsServerInfoSupport:
 
         for interface_addresses in psutil.net_if_addrs().values():
             for address_info in interface_addresses:
+                address: object = address_info.address
                 if (
                     address_info.family == socket.AF_INET
-                    and address_info.address
-                    and not address_info.address.startswith('127.')
+                    and isinstance(address, str)
+                    and address
+                    and not address.startswith('127.')
                 ):
-                    return address_info.address
+                    return address
 
         return '127.0.0.1'
 

@@ -16,7 +16,7 @@ from packaging.tags import parse_tag, sys_tags
 from packaging.utils import canonicalize_name, parse_wheel_filename
 from packaging.version import Version
 
-from plugins.core.manifest.schema import PluginManifest
+from plugins.core.manifest.v2 import BackendManifestV2, VersionedPluginManifest
 from plugins.core.utils import is_windows_reserved
 
 MAX_WHEEL_FILES = 10000
@@ -25,17 +25,32 @@ MAX_MEMBER_BYTES = 256 * 1024 * 1024
 RECORD_COLUMN_COUNT = 3
 
 
-def _matching_rank(path: Path, manifest: PluginManifest) -> int:
+def _native_distribution(manifest: VersionedPluginManifest) -> str:
+    """
+    从原生插件清单中读取 wheel 的发行包名称。
+
+    :param manifest: 插件清单对象
+    :return: 原生后端声明的发行包名称
+    :raises ValueError: 当前清单缺少原生运行时或发行包声明
+    """
+    backend = manifest.backend
+    if not isinstance(backend, BackendManifestV2) or backend.runtime != 'native' or backend.native is None:
+        raise ValueError('仅 native 插件可使用原生 wheel')
+    return backend.native.distribution
+
+
+def _matching_rank(path: Path, distribution: str, plugin_version: str) -> int:
     """
     校验 wheel 身份并计算当前解释器支持的最佳平台标签优先级。
 
     :param path: 待处理的文件路径
-    :param manifest: 插件清单对象
+    :param distribution: 清单声明的原生发行包名称
+    :param plugin_version: 清单声明的插件版本
     :return: 匹配标签在解释器支持列表中的最小序号
     :raises ValueError: wheel 身份不匹配或当前解释器、ABI、平台不受支持
     """
     name, version, _, tags = parse_wheel_filename(path.name)
-    if name != canonicalize_name(manifest.backend.native.distribution) or version != Version(manifest.version):
+    if name != canonicalize_name(distribution) or version != Version(plugin_version):
         raise ValueError('wheel 名称或版本与插件清单不一致')
     ranks = [
         index for index, tag in enumerate(sys_tags()) if tag in tags and tag.abi != 'none' and tag.platform != 'any'
@@ -45,7 +60,7 @@ def _matching_rank(path: Path, manifest: PluginManifest) -> int:
     return min(ranks)
 
 
-def select_native_wheel(directory: Path, manifest: PluginManifest) -> Path:
+def select_native_wheel(directory: Path, manifest: VersionedPluginManifest) -> Path:
     """
     从目录中选择名称、版本及解释器平台标签均匹配的原生 wheel。
 
@@ -54,8 +69,7 @@ def select_native_wheel(directory: Path, manifest: PluginManifest) -> Path:
     :return: 兼容性优先级最高的 wheel 文件路径
     :raises ValueError: 插件不是原生类型或目录中没有匹配的 wheel
     """
-    if manifest.runtime_kind != 'native':
-        raise ValueError('仅 native 插件可选择 wheel')
+    distribution = _native_distribution(manifest)
 
     def candidate(path: Path) -> tuple[int, str, Path] | None:
         """
@@ -65,7 +79,7 @@ def select_native_wheel(directory: Path, manifest: PluginManifest) -> Path:
         :return: 标签优先级、文件名和路径，不兼容时为 None
         """
         try:
-            return _matching_rank(path, manifest), path.name, path
+            return _matching_rank(path, distribution, manifest.version), path.name, path
         except ValueError:
             return None
 
@@ -96,7 +110,7 @@ def _safe_member(name: str) -> PurePosixPath:
     return path
 
 
-def _inventory(archive: ZipFile, manifest: PluginManifest) -> tuple[dict[str, ZipInfo], str]:
+def _inventory(archive: ZipFile, manifest: VersionedPluginManifest) -> tuple[dict[str, ZipInfo], str]:
     """
     检查压缩条目、资源上限及允许的模块边界，并定位唯一元数据目录。
 
@@ -154,14 +168,15 @@ def _verify_dependency(value: str) -> None:
         raise ValueError(f'宿主 wheel 依赖版本不匹配：{requirement}')
 
 
-def _verify_metadata(archive: ZipFile, metadata_root: str, wheel: Path, manifest: PluginManifest) -> None:
+def _verify_metadata(archive: ZipFile, metadata_root: str, wheel: Path, distribution: str, plugin_version: str) -> None:
     """
     核对 wheel 发行包身份、版本、Python 要求及已安装依赖。
 
     :param archive: 已打开的 ZIP 压缩容器
     :param metadata_root: wheel 内唯一的 dist-info 元数据目录名
     :param wheel: 待验证或展开的原生 wheel 文件路径
-    :param manifest: 插件清单对象
+    :param distribution: 清单声明的原生发行包名称
+    :param plugin_version: 清单声明的插件版本
     :raises ValueError: 发行包元数据、平台标签或宿主依赖不匹配
     """
     metadata_path = f'{metadata_root}/METADATA'
@@ -169,9 +184,9 @@ def _verify_metadata(archive: ZipFile, metadata_root: str, wheel: Path, manifest
     if metadata_path not in archive.namelist() or record_path not in archive.namelist():
         raise ValueError('wheel 缺少 METADATA 或 RECORD')
     metadata = Parser().parsestr(archive.read(metadata_path).decode('utf-8'))
-    if canonicalize_name(metadata.get('Name', '')) != canonicalize_name(manifest.backend.native.distribution):
+    if canonicalize_name(metadata.get('Name', '')) != canonicalize_name(distribution):
         raise ValueError('wheel METADATA 的发行包名称不匹配')
-    if Version(metadata.get('Version', '')) != Version(manifest.version):
+    if Version(metadata.get('Version', '')) != Version(plugin_version):
         raise ValueError('wheel METADATA 的版本不匹配')
     if metadata.get('Requires-Python') and not SpecifierSet(metadata['Requires-Python']).contains(
         platform.python_version()
@@ -221,7 +236,7 @@ def _verify_record(archive: ZipFile, files: dict[str, ZipInfo], record_path: str
             raise ValueError(f'wheel 文件摘要不匹配：{name}')
 
 
-def install_native_wheel(wheel: Path, destination: Path, manifest: PluginManifest) -> None:
+def install_native_wheel(wheel: Path, destination: Path, manifest: VersionedPluginManifest) -> None:
     """
     验证原生 wheel 后展开到全新目录，不覆盖已有版本或执行安装脚本。
 
@@ -235,15 +250,14 @@ def install_native_wheel(wheel: Path, destination: Path, manifest: PluginManifes
     :raises FileExistsError: 目标目录已经存在，不能覆盖安装
     :raises BaseException: 执行中断，清理后向调用方传播原异常
     """
-    if manifest.runtime_kind != 'native':
-        raise ValueError('仅 native 插件可安装 wheel')
+    distribution = _native_distribution(manifest)
     target = destination.resolve()
     if target.exists():
         raise FileExistsError('原生安装目录已存在，请使用新目录并通过重启切换版本')
     with ZipFile(wheel) as archive:
-        _matching_rank(wheel, manifest)
+        _matching_rank(wheel, distribution, manifest.version)
         files, metadata_root = _inventory(archive, manifest)
-        _verify_metadata(archive, metadata_root, wheel, manifest)
+        _verify_metadata(archive, metadata_root, wheel, distribution, manifest.version)
         _verify_record(archive, files, f'{metadata_root}/RECORD')
         target.mkdir(parents=True, exist_ok=False)
         try:

@@ -133,7 +133,7 @@ async def delete_system_dict_type(
     dict_ids: Annotated[str, Path(description='需要删除的字典主键')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_dict_type = DeleteDictTypeModel(dictIds=dict_ids)
+    delete_dict_type = DeleteDictTypeModel(dict_ids=dict_ids)
     delete_dict_type_result = await DictTypeService.delete_dict_type_services(request, query_db, delete_dict_type)
     logger.info(delete_dict_type_result.message)
 
@@ -312,7 +312,7 @@ async def delete_system_dict_data(
     dict_codes: Annotated[str, Path(description='需要删除的字典编码')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
 ) -> Response:
-    delete_dict_data = DeleteDictDataModel(dictCodes=dict_codes)
+    delete_dict_data = DeleteDictDataModel(dict_codes=dict_codes)
     delete_dict_data_result = await DictDataService.delete_dict_data_services(request, query_db, delete_dict_data)
     logger.info(delete_dict_data_result.message)
 

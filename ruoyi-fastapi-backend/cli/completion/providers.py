@@ -5,7 +5,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any
 
-import click
+from typer._click import Context
 
 from cli.metadata import (
     COMPLETION_SHELL_SPEC_REGISTRY,
@@ -28,7 +28,7 @@ class CompletionContextResolver:
     将原本散落的参数与环境变量解析逻辑收口到单一职责对象中。
     """
 
-    def resolve_completion_env(self, ctx: click.Context | None) -> str:
+    def resolve_completion_env(self, ctx: Context | None) -> str:
         """
         解析当前 completion 场景使用的环境名称。
 
@@ -36,7 +36,7 @@ class CompletionContextResolver:
         :return: 环境名称，默认返回 ``dev``
         """
         if ctx is not None:
-            env_value = getattr(ctx, 'params', {}).get('env')
+            env_value: object = ctx.params.get('env')
             if isinstance(env_value, str) and env_value.strip():
                 return env_value.strip()
 
@@ -55,7 +55,7 @@ class CompletionContextResolver:
 
         return 'dev'
 
-    def resolve_cache_name_for_completion(self, ctx: click.Context | None) -> str:
+    def resolve_cache_name_for_completion(self, ctx: Context | None) -> str:
         """
         解析当前 cache key 补全场景使用的缓存名称。
 
@@ -63,7 +63,7 @@ class CompletionContextResolver:
         :return: 缓存名称，缺失时返回空字符串
         """
         if ctx is not None:
-            cache_name = getattr(ctx, 'params', {}).get('cache_name')
+            cache_name: object = ctx.params.get('cache_name')
             if isinstance(cache_name, str) and cache_name.strip():
                 return cache_name.strip()
 
@@ -299,7 +299,7 @@ class DynamicCompletionService:
 
     def complete_dynamic_items(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         incomplete: str,
         *,
         runtime_module_name: str,
@@ -339,7 +339,7 @@ class DynamicCompletionService:
 
     def complete_dynamic_list(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         incomplete: str,
         *,
         runtime_module_name: str,
@@ -421,7 +421,7 @@ class StaticCompletionProvider:
 
     def complete_env_values(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -443,7 +443,7 @@ class StaticCompletionProvider:
 
     def complete_shell_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -463,7 +463,7 @@ class StaticCompletionProvider:
 
     def complete_cache_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -485,7 +485,7 @@ class StaticCompletionProvider:
 
     def complete_alembic_revisions(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -524,7 +524,7 @@ class PathCompletionProvider:
 
     def complete_sql_files(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -550,7 +550,7 @@ class PathCompletionProvider:
 
     def complete_output_paths(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -617,7 +617,7 @@ class DomainDynamicCompletionProvider:
 
     def complete_config_keys(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -642,7 +642,7 @@ class DomainDynamicCompletionProvider:
 
     def complete_gen_table_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -667,7 +667,7 @@ class DomainDynamicCompletionProvider:
 
     def complete_gen_db_table_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -692,7 +692,7 @@ class DomainDynamicCompletionProvider:
 
     def complete_cache_keys(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -720,7 +720,7 @@ class DomainDynamicCompletionProvider:
 
     def complete_job_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -745,7 +745,7 @@ class DomainDynamicCompletionProvider:
 
     def complete_job_ids(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -834,7 +834,7 @@ class CompletionProviderGateway:
 
     def complete_env_values(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -850,7 +850,7 @@ class CompletionProviderGateway:
 
     def complete_shell_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -866,7 +866,7 @@ class CompletionProviderGateway:
 
     def complete_cache_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -882,7 +882,7 @@ class CompletionProviderGateway:
 
     def complete_alembic_revisions(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -898,7 +898,7 @@ class CompletionProviderGateway:
 
     def complete_sql_files(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -914,7 +914,7 @@ class CompletionProviderGateway:
 
     def complete_output_paths(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -930,7 +930,7 @@ class CompletionProviderGateway:
 
     def complete_config_keys(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -946,7 +946,7 @@ class CompletionProviderGateway:
 
     def complete_gen_table_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -962,7 +962,7 @@ class CompletionProviderGateway:
 
     def complete_gen_db_table_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -978,7 +978,7 @@ class CompletionProviderGateway:
 
     def complete_cache_keys(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -994,7 +994,7 @@ class CompletionProviderGateway:
 
     def complete_job_names(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:
@@ -1010,7 +1010,7 @@ class CompletionProviderGateway:
 
     def complete_job_ids(
         self,
-        ctx: click.Context | None,
+        ctx: Context | None,
         args: list[str] | None,
         incomplete: str,
     ) -> list[str]:

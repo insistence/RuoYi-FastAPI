@@ -110,7 +110,7 @@ class PluginLifespanManager:
         scope = {'type': 'lifespan', 'asgi': {'version': '3.0', 'spec_version': '2.0'}, 'state': self.state}
         self._task = asyncio.create_task(self._invoke(scope))
         try:
-            await self._exchange('startup')
+            await self._exchange('startup', self._task)
             self.started = True
         except BaseException:
             await self._cancel_task()
@@ -131,12 +131,13 @@ class PluginLifespanManager:
         was_started = self.started
         self.started = False
         try:
-            if was_started and self.managed:
-                await self._exchange('shutdown')
-                done, _ = await asyncio.wait({self._task}, timeout=self.timeout)
+            task = self._task
+            if was_started and self.managed and task is not None:
+                await self._exchange('shutdown', task)
+                done, _ = await asyncio.wait({task}, timeout=self.timeout)
                 if not done:
                     raise TimeoutError('ASGI lifespan.shutdown 确认后未退出')
-                self._check_task_result()
+                self._check_task_result(task)
         finally:
             await self._cancel_task()
 
@@ -148,45 +149,46 @@ class PluginLifespanManager:
         """
         await self.app(scope, self._receive.get, self._send.put)
 
-    async def _exchange(self, event: str) -> None:
+    async def _exchange(self, event: str, task: asyncio.Task[None]) -> None:
         """
         发送生命周期事件并等待子应用确认。
 
         :param event: 生命周期事件名称，支持 startup 和 shutdown
+        :param task: 处理本轮生命周期事件的子应用任务
         :raises RuntimeError: ASGI lifespan 在 startup 后提前退出
         :raises TimeoutError: 等待 ASGI 生命周期应答超时
         """
         await self._receive.put({'type': f'lifespan.{event}'})
         response = asyncio.create_task(self._send.get())
         try:
-            done, _ = await asyncio.wait(
-                (response, self._task), timeout=self.timeout, return_when=asyncio.FIRST_COMPLETED
-            )
+            done, _ = await asyncio.wait((response, task), timeout=self.timeout, return_when=asyncio.FIRST_COMPLETED)
             if response not in done:
-                if self._task in done:
-                    self._check_task_result()
+                if task in done:
+                    self._check_task_result(task)
                     raise RuntimeError(f'ASGI 应用在 lifespan.{event} 确认前退出')
                 raise TimeoutError(f'ASGI lifespan.{event} 超时')
             message = response.result()
             if message.get('type') != f'lifespan.{event}.complete':
                 raise RuntimeError(f'ASGI lifespan.{event} 失败：{message.get("message", message.get("type"))}')
-            if event == 'startup' and self._task.done():
-                self._check_task_result()
+            if event == 'startup' and task.done():
+                self._check_task_result(task)
                 raise RuntimeError('ASGI lifespan 在 startup 后提前退出')
         finally:
             response.cancel()
             with suppress(asyncio.CancelledError):
                 await response
 
-    def _check_task_result(self) -> None:
+    @staticmethod
+    def _check_task_result(task: asyncio.Task[None]) -> None:
         """
         将子应用自行取消作为协议失败，保留宿主调用者自身的取消语义。
 
+        :param task: 已结束的生命周期任务
         :raises RuntimeError: ASGI 生命周期任务自行取消
         """
-        if self._task.cancelled():
+        if task.cancelled():
             raise RuntimeError('ASGI 生命周期任务自行取消')
-        self._task.result()
+        task.result()
 
     async def _cancel_task(self) -> None:
         """取消并回收当前 worker 的生命周期任务。"""

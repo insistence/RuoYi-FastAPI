@@ -4,7 +4,6 @@ from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, ScrollableContainer, Vertical
-from textual.screen import Screen
 from textual.widgets import Footer, Static
 
 from cli.tui.actions import (
@@ -15,8 +14,9 @@ from cli.tui.actions import (
 )
 from cli.tui.adapters import BrowserPageSnapshot, BrowserRecordSnapshot, DetailSectionSnapshot
 from cli.tui.adapters.models import TUI_ADAPTER_MODEL_RENDERER
+from cli.tui.capabilities import ActionSlot
 from cli.tui.copy import TUI_COPY
-from cli.tui.screens.focus import BaseScreenFocusService, ScreenFocusActionsMixin
+from cli.tui.screens.focus import BaseScreenFocusService, WorkspaceScreen
 from cli.tui.screens.interactions import TUI_SCREEN_INTERACTION_SERVICE, ScreenInteractionActionsMixin
 from cli.tui.screens.summary import STATUS_SUMMARY_BUILDER
 from cli.tui.search import TUI_SEARCH_SERVICE
@@ -90,7 +90,7 @@ class BrowserScreenSupport:
     def resolve_action(
         *,
         active_view: str,
-        slot: str,
+        slot: ActionSlot,
         record: BrowserRecordSnapshot,
         env: str,
     ) -> TuiActionSpec | None:
@@ -259,7 +259,7 @@ class BrowserScreenFocusService(BaseScreenFocusService):
         return screen.query_one('#workspace-main', ScrollableContainer)
 
 
-class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Screen[None]):
+class BrowserScreen(ScreenInteractionActionsMixin, WorkspaceScreen):
     """
     TUI 浏览型页面。
 
@@ -380,7 +380,7 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
         remember_filter = getattr(self.app, 'remember_browser_filter', None)
         if callable(remember_filter):
             remember_filter(self.active_view, target.key)
-        self.app.action_refresh_current_view()
+        self.workspace_app.action_refresh_current_view()
 
     def _open_search(self) -> None:
         """打开当前浏览页搜索输入弹窗。"""
@@ -406,7 +406,7 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
             self._current_search_query(),
         )
 
-    def _resolve_action(self, slot: str) -> TuiActionSpec | None:
+    def _resolve_action(self, slot: ActionSlot) -> TuiActionSpec | None:
         """
         解析当前页面指定槽位对应的动作。
 
@@ -434,7 +434,7 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
             feedback_lines=self._action_feedback_lines,
         )
 
-    def _open_action_confirm(self, slot: str) -> None:
+    def _open_action_confirm(self, slot: ActionSlot) -> None:
         """
         打开指定槽位动作的确认弹窗。
 
@@ -705,39 +705,6 @@ class BrowserScreen(ScreenInteractionActionsMixin, ScreenFocusActionsMixin, Scre
     def action_apply_filter_4(self) -> None:
         """应用第四个浏览页筛选条件。"""
         self._apply_filter_shortcut('4')
-
-    def _open_sidebar_item(self, event: WorkspaceSidebar.Highlighted | WorkspaceSidebar.Selected) -> None:
-        """
-        根据侧边栏事件打开对应视图，并避免重复打开当前页面。
-
-        :param event: 侧边栏高亮或选中事件
-        """
-        item = getattr(event.item, 'item', None)
-        if not isinstance(item, NavigationItem):
-            return
-        if not event.control.navigation_ready:
-            return
-        if item.view_key == self.active_view and self.app.requested_view == self.active_view:
-            return
-        self.app.open_view(item.view_key)
-
-    @on(WorkspaceSidebar.Selected)
-    def on_sidebar_selected(self, event: WorkspaceSidebar.Selected) -> None:
-        """
-        响应左侧导航选中事件并切换视图。
-
-        :param event: 导航选中事件
-        """
-        self._open_sidebar_item(event)
-
-    @on(WorkspaceSidebar.Highlighted)
-    def on_sidebar_highlighted(self, event: WorkspaceSidebar.Highlighted) -> None:
-        """
-        响应左侧导航高亮变更并立即切换视图。
-
-        :param event: 导航高亮事件
-        """
-        self._open_sidebar_item(event)
 
     def compose(self) -> ComposeResult:
         """

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal, overload
 
 from sqlalchemy import ColumnElement
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,26 @@ from utils.crypto_util import CryptoUtil
 
 class AiModelService:
     """AI模型管理服务层。"""
+
+    @classmethod
+    @overload
+    async def get_ai_model_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: AiModelPageQueryModel,
+        data_scope_sql: ColumnElement,
+        is_page: Literal[True],
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_ai_model_list_services(
+        cls,
+        query_db: AsyncSession,
+        query_object: AiModelPageQueryModel,
+        data_scope_sql: ColumnElement,
+        is_page: Literal[False] = False,
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_ai_model_list_services(
@@ -44,7 +64,7 @@ class AiModelService:
     async def check_ai_model_data_scope_services(
         cls,
         query_db: AsyncSession,
-        model_id: int,
+        model_id: int | None,
         data_scope_sql: ColumnElement,
     ) -> CrudResponseModel:
         """
@@ -56,8 +76,10 @@ class AiModelService:
         :return: 校验结果
         :raises ServiceException: 没有权限访问AI模型数据
         """
+        if model_id is None:
+            raise ServiceException(message='AI模型不存在', msg_key='ai.model.missing', domain='plugin.ai')
         ai_models = await AiModelDao.get_ai_model_list(
-            query_db, AiModelModel(modelId=model_id), data_scope_sql, is_page=False
+            query_db, AiModelPageQueryModel(model_id=model_id), data_scope_sql, is_page=False
         )
         if ai_models:
             return CrudResponseModel(is_success=True, message='校验通过', msg_key='common.validated')
@@ -102,6 +124,8 @@ class AiModelService:
             else:
                 edit_ai_model['api_key'] = CryptoUtil.encrypt(page_object.api_key)
 
+        if page_object.model_id is None:
+            raise ServiceException(message='AI模型不存在', msg_key='ai.model.missing', domain='plugin.ai')
         ai_model_info = await cls.ai_model_detail_services(query_db, page_object.model_id)
         if ai_model_info.model_id:
             try:
@@ -131,7 +155,7 @@ class AiModelService:
             model_id_list = page_object.model_ids.split(',')
             try:
                 for model_id in model_id_list:
-                    await AiModelDao.delete_ai_model_dao(query_db, AiModelModel(modelId=model_id))
+                    await AiModelDao.delete_ai_model_dao(query_db, AiModelModel(model_id=model_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:

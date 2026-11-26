@@ -5,6 +5,7 @@ import os
 import runpy
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -24,17 +25,20 @@ PLUGIN_ID = 'invoice_ops_27'
 TEMPLATES = ('python-asgi', 'python-bundle', 'rust-asgi', 'rust-bundle')
 
 
-def generate(tmp_path: Path, template: str, **kwargs: object) -> tuple[dict, Path]:
+def generate(tmp_path: Path, template: str, *, dry_run: bool = False, test: bool = True) -> tuple[dict, Path]:
     """
     在临时宿主目录中生成指定 v2 模板。
 
     :param tmp_path: pytest 为当前用例创建的临时目录
     :param template: 用于生成文件的模板
-    :param kwargs: 传给被调用对象的关键字参数
+    :param dry_run: 是否只预览生成结果
+    :param test: 是否包含测试文件
     :return: 生成结果及生成的插件目录
     """
     backend = tmp_path / 'backend'
-    payload = build_runtime(backend, frontend_root=FRONTEND_ROOT).create_plugin(PLUGIN_ID, template=template, **kwargs)
+    payload = build_runtime(backend, frontend_root=FRONTEND_ROOT).create_plugin(
+        PLUGIN_ID, template=template, dry_run=dry_run, test=test
+    )
     assert payload['ok'], payload
     return payload, backend / 'plugin-projects' / PLUGIN_ID
 
@@ -70,7 +74,7 @@ def write_bundle(source: Path) -> None:
     (dist / 'assets' / 'app.js').write_text('export const built = true\n', encoding='utf-8')
 
 
-def write_release_files(source: Path, names: list[object]) -> None:
+def write_release_files(source: Path, names: Sequence[object]) -> None:
     """
     为隔离工程写入受控交付清单，允许传入非法项供拒绝路径测试。
 
@@ -78,7 +82,7 @@ def write_release_files(source: Path, names: list[object]) -> None:
     :param names: 清单中的完整文件列表
     """
     (source / 'release-files.json').write_text(
-        json.dumps({'schemaVersion': 1, 'files': names}, ensure_ascii=False), encoding='utf-8'
+        json.dumps({'schemaVersion': 1, 'files': list(names)}, ensure_ascii=False), encoding='utf-8'
     )
 
 
@@ -98,6 +102,7 @@ def test_v2_templates_create_independent_projects_without_importing_or_installin
     assert plugin.manifest.id == PLUGIN_ID
     serialized = plugin.manifest.model_dump_json(by_alias=True)
     assert type(plugin.manifest).model_validate_json(serialized) == plugin.manifest
+    assert plugin.manifest.backend.asgi is not None
     assert plugin.manifest.backend.asgi.mount_path == f'/apps/{PLUGIN_ID}'
     assert payload['sourceDir'] == source.as_posix()
     assert payload['frontendFramework'] is None
@@ -174,6 +179,7 @@ def test_bundle_template_preserves_independent_host_framework_with_auto_option(t
 
     assert payload['ok'] is True
     assert payload['frontendFramework'] is None
+    assert isinstance(payload['files'], list)
     metadata = next(item for item in payload['files'] if item['path'].endswith('/pluginBridge.sdk.json'))
     assert json.loads(metadata['content'])['source']['directory'] == (
         'ruoyi-fastapi-frontend/custom_ui-1/web/src/utils'
@@ -302,6 +308,7 @@ def test_v2_templates_reject_incompatible_legacy_options(
         PLUGIN_ID, template=template, **options
     )
     assert payload['ok'] is False
+    assert isinstance(payload['error'], str)
     assert error in payload['error']
     assert not (tmp_path / 'backend' / 'plugin-projects').exists()
 
@@ -310,6 +317,7 @@ def test_bundle_template_requires_verified_host_sdk_and_no_test_is_honored(tmp_p
     """验证 bundle 需要宿主桥接 SDK，且遵守不生成测试的选项。"""
     missing = build_runtime(tmp_path / 'backend').create_plugin(PLUGIN_ID, template='python-bundle')
     assert missing['ok'] is False
+    assert isinstance(missing['error'], str)
     assert '桥接 SDK' in missing['error']
     assert not (tmp_path / 'backend' / 'plugin-projects').exists()
     payload, source = generate(tmp_path, 'python-bundle', test=False)

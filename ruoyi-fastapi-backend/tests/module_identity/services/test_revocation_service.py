@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.env import OidcConfig
 from module_identity.security.opaque_token import generate_refresh_token, token_digest
@@ -74,11 +75,11 @@ async def test_public_client_can_revoke_only_its_own_refresh_family(monkeypatch:
     revoke_family = AsyncMock()
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthTokenDao.get_by_token_id', get_by_token_id)
     monkeypatch.setattr('module_identity.service.token_protocol_service.OAuthTokenDao.revoke_family', revoke_family)
-    db = object()
+    db = AsyncSession()
 
     await RevocationService.revoke(
         db,
-        FakeRedis(),
+        FakeRedis().client,
         token,
         OAuthClientPrincipal('client-a', 'public', 'none'),
     )
@@ -115,7 +116,7 @@ async def test_revocation_auth_method_pair_is_exact(
     )
 
     result = await RevocationService._resolve_caller(
-        object(), OAuthClientPrincipal('client-a', principal_type, principal_method)
+        AsyncSession(), OAuthClientPrincipal('client-a', principal_type, principal_method)
     )
 
     assert (result is not None) is expected
@@ -133,8 +134,8 @@ async def test_unknown_refresh_is_idempotent_success(monkeypatch: pytest.MonkeyP
     )
 
     result = await RevocationService.revoke(
-        object(),
-        FakeRedis(),
+        AsyncSession(),
+        FakeRedis().client,
         generate_refresh_token('token-0002'),
         OAuthClientPrincipal('client-a', 'public', 'none'),
     )
@@ -164,12 +165,12 @@ async def test_access_revocation_is_written_only_after_commit(monkeypatch: pytes
     )
     redis = FakeRedis()
     coordinator = AfterCommitCoordinator()
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = AsyncMock(spec=AsyncSession)
     now = datetime.fromtimestamp(200, UTC)
 
     await RevocationService.revoke(
         db,
-        redis,
+        redis.client,
         'signed-access',
         OAuthClientPrincipal('client-a', 'confidential', 'client_secret_basic'),
         coordinator=coordinator,
@@ -203,11 +204,11 @@ async def test_public_client_can_revoke_its_own_access_after_commit(monkeypatch:
     )
     redis = FakeRedis()
     coordinator = AfterCommitCoordinator()
-    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    db = AsyncMock(spec=AsyncSession)
 
     await RevocationService.revoke(
         db,
-        redis,
+        redis.client,
         'signed-public-access',
         OAuthClientPrincipal('client-a', 'public', 'none'),
         coordinator=coordinator,
@@ -241,7 +242,7 @@ async def test_public_client_cannot_revoke_other_client_access(monkeypatch: pyte
     )
     redis = FakeRedis()
     await RevocationService.revoke(
-        object(), redis, 'foreign-access', OAuthClientPrincipal('client-a', 'public', 'none')
+        AsyncSession(), redis.client, 'foreign-access', OAuthClientPrincipal('client-a', 'public', 'none')
     )
 
     assert not redis.values

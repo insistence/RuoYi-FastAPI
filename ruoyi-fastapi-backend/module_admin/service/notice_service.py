@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal, overload
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +26,18 @@ class NoticeService:
     """
 
     TOP_NOTICE_LIMIT = 5
+
+    @classmethod
+    @overload
+    async def get_notice_list_services(
+        cls, query_db: AsyncSession, query_object: NoticePageQueryModel, is_page: Literal[True] = True
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_notice_list_services(
+        cls, query_db: AsyncSession, query_object: NoticePageQueryModel, is_page: Literal[False]
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_notice_list_services(
@@ -60,7 +72,19 @@ class NoticeService:
         notice_models = [NoticeTopModel(**CamelCaseUtil.transform_result(notice)) for notice in notice_list]
         unread_count = sum(not notice.is_read for notice in notice_models)
 
-        return NoticeTopResponseModel(data=notice_models, unreadCount=unread_count)
+        return NoticeTopResponseModel(data=notice_models, unread_count=unread_count)
+
+    @classmethod
+    @overload
+    async def get_notice_read_user_list_services(
+        cls, query_db: AsyncSession, query_object: NoticeReadUserPageQueryModel, is_page: Literal[True] = True
+    ) -> PageModel: ...
+
+    @classmethod
+    @overload
+    async def get_notice_read_user_list_services(
+        cls, query_db: AsyncSession, query_object: NoticeReadUserPageQueryModel, is_page: Literal[False]
+    ) -> list[dict[str, Any]]: ...
 
     @classmethod
     async def get_notice_read_user_list_services(
@@ -199,7 +223,7 @@ class NoticeService:
             try:
                 await NoticeDao.delete_notice_reads(query_db, notice_id_list)
                 for notice_id in notice_id_list:
-                    await NoticeDao.delete_notice_dao(query_db, NoticeModel(noticeId=notice_id))
+                    await NoticeDao.delete_notice_dao(query_db, NoticeModel(notice_id=notice_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功', msg_key='common.deleted')
             except Exception as e:
@@ -209,7 +233,7 @@ class NoticeService:
             raise ServiceException(message='传入通知公告id为空', msg_key='notice.idRequired')
 
     @classmethod
-    async def notice_detail_services(cls, query_db: AsyncSession, notice_id: int) -> NoticeModel:
+    async def notice_detail_services(cls, query_db: AsyncSession, notice_id: int | None) -> NoticeModel:
         """
         获取通知公告详细信息service。
 
@@ -217,6 +241,8 @@ class NoticeService:
         :param notice_id: 通知公告id
         :return: 通知公告id对应的信息
         """
+        if notice_id is None:
+            return NoticeModel()
         notice = await NoticeDao.get_notice_detail_by_id(query_db, notice_id=notice_id)
         result = NoticeModel(**CamelCaseUtil.transform_result(notice)) if notice else NoticeModel()
 

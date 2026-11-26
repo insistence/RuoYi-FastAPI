@@ -3,13 +3,14 @@ import json
 import os
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, create_autospec
 
 import pytest
 import typer
 from typer.testing import CliRunner
 
 from cli.core import CliContextFactory, CliExecutionService
+from cli.core.context_factory import CliRuntimeState
 from cli.exit_codes import ARGUMENT_ERROR, RUNTIME_ERROR, SUCCESS
 from cli.groups.plugin.artifact_controller import PluginArtifactCommandController
 from cli.groups.plugin.commands.artifact import register_artifact_commands
@@ -58,9 +59,7 @@ def controller_for(service: Any, *, config_factory: Any = object) -> PluginArtif
     :param config_factory: 可记录或拒绝部署配置加载的工厂
     :return: 不连接外部服务的被测控制器
     """
-    context = CliContextFactory(
-        runtime_state=SimpleNamespace(suppress_logs=lambda: None, suppress_sqlalchemy_logs=lambda: None)
-    )
+    context = CliContextFactory(runtime_state=create_autospec(CliRuntimeState, instance=True, spec_set=True))
     return PluginArtifactCommandController(
         context_factory=context,
         execution_service=CliExecutionService(),

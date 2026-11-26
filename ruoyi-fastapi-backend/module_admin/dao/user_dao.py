@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, TypedDict
 
-from sqlalchemy import ColumnElement, and_, delete, desc, func, or_, select, update
+from sqlalchemy import ColumnElement, and_, delete, desc, func, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.vo import PageModel
@@ -22,6 +22,24 @@ from module_admin.entity.vo.user_vo import (
 )
 from utils.page_util import PageUtil
 from utils.time_util import TimezoneUtil
+
+
+class UserDetailRecord(TypedDict):
+    """
+    用户详情查询返回的资料和关联记录。
+
+    :ivar user_basic_info: 用户基本资料，未找到时为空
+    :ivar user_dept_info: 用户所属部门
+    :ivar user_role_info: 用户角色
+    :ivar user_post_info: 用户岗位
+    :ivar user_menu_info: 用户可访问的菜单
+    """
+
+    user_basic_info: SysUser | None
+    user_dept_info: SysDept | None
+    user_role_info: Sequence[SysRole]
+    user_post_info: Sequence[SysPost]
+    user_menu_info: Sequence[SysMenu]
 
 
 class UserDao:
@@ -78,9 +96,9 @@ class UserDao:
                     select(SysUser)
                     .where(
                         SysUser.del_flag == '0',
-                        SysUser.user_name == user.user_name if user.user_name else True,
-                        SysUser.phonenumber == user.phonenumber if user.phonenumber else True,
-                        SysUser.email == user.email if user.email else True,
+                        SysUser.user_name == user.user_name if user.user_name else true(),
+                        SysUser.phonenumber == user.phonenumber if user.phonenumber else true(),
+                        SysUser.email == user.email if user.email else true(),
                     )
                     .order_by(desc(SysUser.create_time))
                     .distinct()
@@ -190,7 +208,7 @@ class UserDao:
         return results
 
     @classmethod
-    async def get_user_detail_by_id(cls, db: AsyncSession, user_id: int) -> dict[str, Any]:
+    async def get_user_detail_by_id(cls, db: AsyncSession, user_id: int) -> UserDetailRecord:
         """
         根据user_id获取用户详细信息。
 
@@ -270,7 +288,7 @@ class UserDao:
             .scalars()
             .all()
         )
-        results = {
+        return {
             'user_basic_info': query_user_basic_info,
             'user_dept_info': query_user_dept_info,
             'user_role_info': query_user_role_info,
@@ -278,12 +296,10 @@ class UserDao:
             'user_menu_info': query_user_menu_info,
         }
 
-        return results
-
     @classmethod
     async def get_user_list(
         cls, db: AsyncSession, query_object: UserPageQueryModel, data_scope_sql: ColumnElement, is_page: bool = False
-    ) -> PageModel | list[list[dict[str, Any]]]:
+    ) -> PageModel | list[list[dict[str, Any] | None]]:
         """
         根据查询参数获取用户列表信息。
 
@@ -307,16 +323,16 @@ class UserDao:
                     ),
                 )
                 if query_object.dept_id
-                else True,
-                SysUser.user_id == query_object.user_id if query_object.user_id is not None else True,
-                SysUser.user_name.like(f'%{query_object.user_name}%') if query_object.user_name else True,
-                SysUser.nick_name.like(f'%{query_object.nick_name}%') if query_object.nick_name else True,
-                SysUser.email.like(f'%{query_object.email}%') if query_object.email else True,
-                SysUser.phonenumber.like(f'%{query_object.phonenumber}%') if query_object.phonenumber else True,
-                SysUser.status == query_object.status if query_object.status else True,
-                SysUser.sex == query_object.sex if query_object.sex else True,
-                SysUser.create_time >= time_range[0] if time_range and time_range[0] is not None else True,
-                SysUser.create_time < time_range[1] if time_range and time_range[1] is not None else True,
+                else true(),
+                SysUser.user_id == query_object.user_id if query_object.user_id is not None else true(),
+                SysUser.user_name.like(f'%{query_object.user_name}%') if query_object.user_name else true(),
+                SysUser.nick_name.like(f'%{query_object.nick_name}%') if query_object.nick_name else true(),
+                SysUser.email.like(f'%{query_object.email}%') if query_object.email else true(),
+                SysUser.phonenumber.like(f'%{query_object.phonenumber}%') if query_object.phonenumber else true(),
+                SysUser.status == query_object.status if query_object.status else true(),
+                SysUser.sex == query_object.sex if query_object.sex else true(),
+                SysUser.create_time >= time_range[0] if time_range and time_range[0] is not None else true(),
+                SysUser.create_time < time_range[1] if time_range and time_range[1] is not None else true(),
                 data_scope_sql,
             )
             .join(
@@ -327,7 +343,7 @@ class UserDao:
             .order_by(SysUser.user_id)
             .distinct()
         )
-        user_list: PageModel | list[list[dict[str, Any]]] = await PageUtil.paginate(
+        user_list: PageModel | list[list[dict[str, Any] | None]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -408,8 +424,8 @@ class UserDao:
                     .where(
                         SysRole.del_flag == '0',
                         SysRole.role_id != 1,
-                        SysRole.role_name == query_object.role_name if query_object.role_name else True,
-                        SysRole.role_key == query_object.role_key if query_object.role_key else True,
+                        SysRole.role_name == query_object.role_name if query_object.role_name else true(),
+                        SysRole.role_key == query_object.role_key if query_object.role_key else true(),
                         SysRole.role_id.in_(
                             select(SysUserRole.role_id).where(SysUserRole.user_id == query_object.user_id)
                         ),
@@ -447,8 +463,8 @@ class UserDao:
             .join(SysRole, SysRole.role_id == SysUserRole.role_id, isouter=True)
             .where(
                 SysUser.del_flag == '0',
-                SysUser.user_name == query_object.user_name if query_object.user_name else True,
-                SysUser.phonenumber == query_object.phonenumber if query_object.phonenumber else True,
+                SysUser.user_name == query_object.user_name if query_object.user_name else true(),
+                SysUser.phonenumber == query_object.phonenumber if query_object.phonenumber else true(),
                 SysRole.role_id == query_object.role_id,
                 data_scope_sql,
             )
@@ -484,8 +500,8 @@ class UserDao:
             .join(SysRole, SysRole.role_id == SysUserRole.role_id, isouter=True)
             .where(
                 SysUser.del_flag == '0',
-                SysUser.user_name == query_object.user_name if query_object.user_name else True,
-                SysUser.phonenumber == query_object.phonenumber if query_object.phonenumber else True,
+                SysUser.user_name == query_object.user_name if query_object.user_name else true(),
+                SysUser.phonenumber == query_object.phonenumber if query_object.phonenumber else true(),
                 or_(SysRole.role_id != query_object.role_id, SysRole.role_id.is_(None)),
                 ~SysUser.user_id.in_(
                     select(SysUser.user_id)
@@ -536,8 +552,8 @@ class UserDao:
         """
         await db.execute(
             delete(SysUserRole).where(
-                SysUserRole.user_id == user_role.user_id if user_role.user_id else True,
-                SysUserRole.role_id == user_role.role_id if user_role.role_id else True,
+                SysUserRole.user_id == user_role.user_id if user_role.user_id else true(),
+                SysUserRole.role_id == user_role.role_id if user_role.role_id else true(),
             )
         )
 

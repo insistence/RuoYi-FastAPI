@@ -6,6 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.database import execute_rowcount
 from module_admin.entity.do.user_do import SysUser
 from module_identity.entity.do.identity_subject_do import SysIdentitySubject
 from utils.time_util import TimezoneUtil
@@ -105,12 +106,12 @@ class IdentitySubjectDao:
         :param create_by: 创建人标识
         :return: 补齐后的 Identity Subject 序列
         """
+        rows: list[SysIdentitySubject] = []
         ids = list(dict.fromkeys(user_ids))
         if not ids:
-            return []
+            return rows
         result = await db.execute(select(SysIdentitySubject.user_id).where(SysIdentitySubject.user_id.in_(ids)))
         existing = set(result.scalars().all())
-        rows: list[SysIdentitySubject] = []
         for user_id in ids:
             if user_id in existing:
                 continue
@@ -130,13 +131,14 @@ class IdentitySubjectDao:
         conditions = [SysIdentitySubject.user_id == user_id]
         if expected_version is not None:
             conditions.append(SysIdentitySubject.auth_version == expected_version)
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysIdentitySubject)
             .where(*conditions)
-            .values(auth_version=SysIdentitySubject.auth_version + 1, update_time=TimezoneUtil.utc_now())
+            .values(auth_version=SysIdentitySubject.auth_version + 1, update_time=TimezoneUtil.utc_now()),
         )
 
-        return bool(result.rowcount)
+        return bool(affected)
 
     @classmethod
     async def increment_auth_versions(
@@ -151,18 +153,19 @@ class IdentitySubjectDao:
         :param now: 当前时间
         :return: 成功更新的 Identity Subject 数量
         """
-        result = await db.execute(
+        affected = await execute_rowcount(
+            db,
             update(SysIdentitySubject)
             .where(SysIdentitySubject.user_id.in_(user_ids))
             .values(
                 auth_version=SysIdentitySubject.auth_version + 1,
                 update_by=update_by,
                 update_time=now or TimezoneUtil.utc_now(),
-            )
+            ),
         )
         await db.flush()
 
-        return result.rowcount or 0
+        return affected
 
     @classmethod
     async def list_missing_user_ids(cls, db: AsyncSession, user_ids: Iterable[int] | None = None) -> list[int]:

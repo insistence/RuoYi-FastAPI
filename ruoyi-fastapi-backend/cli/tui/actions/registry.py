@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
 from cli.tui.actions.builders import TuiActionSpecFactory, TuiActionTemplate
-from cli.tui.actions.models import ActionSlot, TuiActionSpec
+from cli.tui.actions.models import TuiActionSpec
 from cli.tui.adapters.models import BrowserRecordSnapshot
+from cli.tui.capabilities import ActionSlot
 
 
 @dataclass(frozen=True)

@@ -139,7 +139,7 @@ class ConfigCommandPresenter:
         ]
 
     @staticmethod
-    def _build_config_detail_section(title: str, config_item: dict[str, object] | None) -> list[str]:
+    def _build_config_detail_section(title: str, config_item: object) -> list[str]:
         """
         构建单个配置来源的详情文本段落。
 

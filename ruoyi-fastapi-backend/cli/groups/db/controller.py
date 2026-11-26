@@ -1,3 +1,4 @@
+from cli.context import OutputFormat
 from cli.core import (
     DEFAULT_CORE_SERVICES,
     CliContextFactory,
@@ -42,7 +43,7 @@ class DbCommandController:
         self.presenter = presenter or DbCommandPresenter()
         self.runtime_service = runtime_service or DATABASE_RUNTIME
 
-    def check(self, env: str, output: str) -> None:
+    def check(self, env: str, output: OutputFormat) -> None:
         """
         检查数据库连接状态。
 
@@ -54,7 +55,7 @@ class DbCommandController:
             ctx, self.execution_service.run_async(self.runtime_service.ping_database())
         )
 
-    def current(self, env: str, output: str) -> None:
+    def current(self, env: str, output: OutputFormat) -> None:
         """
         查看数据库当前迁移版本。
 
@@ -74,7 +75,7 @@ class DbCommandController:
     def upgrade(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -104,7 +105,7 @@ class DbCommandController:
     def init(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -131,7 +132,7 @@ class DbCommandController:
     def downgrade(
         self,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -162,7 +163,7 @@ class DbCommandController:
         self,
         message: str,
         env: str,
-        output: str,
+        output: OutputFormat,
         allow_prod: bool,
         yes: bool,
         dry_run: bool,
@@ -193,7 +194,7 @@ class DbCommandController:
             self.runtime_service.create_revision(message, autogenerate=autogenerate, dry_run=dry_run),
         )
 
-    def heads(self, env: str, output: str) -> None:
+    def heads(self, env: str, output: OutputFormat) -> None:
         """
         查看当前代码仓库中的 Alembic heads。
 
@@ -210,7 +211,7 @@ class DbCommandController:
             text_condition=lambda result_data: 'error' not in result_data,
         )
 
-    def history(self, env: str, output: str, *, limit: int) -> None:
+    def history(self, env: str, output: OutputFormat, *, limit: int) -> None:
         """
         查看当前代码仓库中的 Alembic 历史版本。
 

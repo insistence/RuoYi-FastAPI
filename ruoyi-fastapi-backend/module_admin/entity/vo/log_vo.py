@@ -1,16 +1,16 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict, Field
 
 from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
+from common.vo import CamelModel
 
 
-class OperLogModel(BaseModel):
+class OperLogModel(CamelModel):
     """操作日志表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     oper_id: int | None = Field(default=None, description='日志主键')
     title: str | None = Field(default=None, description='模块标题')
@@ -35,10 +35,10 @@ class OperLogModel(BaseModel):
     cost_time: int | None = Field(default=None, description='消耗时间')
 
 
-class LogininforModel(BaseModel):
+class LogininforModel(CamelModel):
     """登录日志表对应pydantic模型。"""
 
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     info_id: int | None = Field(default=None, description='访问ID')
     user_name: str | None = Field(default=None, description='用户账号')
@@ -69,10 +69,8 @@ class OperLogPageQueryModel(OperLogQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteOperLogModel(BaseModel):
+class DeleteOperLogModel(CamelModel):
     """删除操作日志模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     oper_ids: str = Field(description='需要删除的日志主键')
 
@@ -95,17 +93,13 @@ class LoginLogPageQueryModel(LoginLogQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteLoginLogModel(BaseModel):
+class DeleteLoginLogModel(CamelModel):
     """删除登录日志模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     info_ids: str = Field(description='需要删除的访问ID')
 
 
-class UnlockUser(BaseModel):
+class UnlockUser(CamelModel):
     """解锁用户模型。"""
-
-    model_config = ConfigDict(alias_generator=to_camel)
 
     user_name: str = Field(description='用户名称')
