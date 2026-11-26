@@ -13,7 +13,7 @@ select = [
     "COM",    # flake8-commas
     "C4",     # flake8-comprehensions
     "D",      # pydocstyle
-    "D213",   # 多行文档字符串的摘要从第二行开始
+    "D213",   # Start multiline docstring summaries on the second line.
     "ISC",    # flake8-implicit-str-concat
     "ICN",    # flake8-import-conventions
     "PIE",    # flake8-pie
@@ -39,8 +39,8 @@ ignore = [
     "ANN401", # dynamically typed expressions (typing.Any) are disallowed in {name}
     "B008",   # do not perform function calls in argument defaults
     "COM812", # trailing comma missing
-    "D100",   # dev lint forbids module docstrings
-    "D104",   # the same file-header rule applies to packages
+    "D100",   # The project forbids module docstrings.
+    "D104",   # The module docstring ban also applies to package __init__.py files.
     "D400",   # dev lint checks terminal punctuation in both Chinese and English
     "RET504", # unnecessary assignment to {name} before return statement
     "SIM105", # use contextlib.suppress({exception}) instead of try-except-pass

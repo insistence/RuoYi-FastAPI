@@ -12,10 +12,8 @@ select = [
     "A",      # flake8-builtins
     "COM",    # flake8-commas
     "C4",     # flake8-comprehensions
-    "D2",     # docstring layout; dev lint checks presence with route and model context
-    "D213",   # 多行文档字符串的摘要从第二行开始
-    "D3",     # docstring quotation marks
-    "D4",     # docstring content
+    "D",      # pydocstyle
+    "D213",   # Start multiline docstring summaries on the second line.
     "ISC",    # flake8-implicit-str-concat
     "ICN",    # flake8-import-conventions
     "PIE",    # flake8-pie
@@ -41,6 +39,10 @@ ignore = [
     "ANN401", # dynamically typed expressions (typing.Any) are disallowed in {name}
     "B008",   # do not perform function calls in argument defaults
     "COM812", # trailing comma missing
+    "D100",   # The project forbids module docstrings.
+    "D102",   # The project checks method docstrings and exempts route handlers.
+    "D103",   # The project checks function docstrings and exempts route handlers.
+    "D104",   # The module docstring ban also applies to package __init__.py files.
     "D400",   # dev lint checks terminal punctuation in both Chinese and English
     "RET504", # unnecessary assignment to {name} before return statement
     "SIM105", # use contextlib.suppress({exception}) instead of try-except-pass
@@ -56,7 +58,7 @@ ignore = [
 
 [lint.per-file-ignores]
 "alembic/env.py" = ["D"]  # Preserve Alembic's original documentation.
-"common/router.py" = ["D205"]  # APIRouterPro retains the original FastAPI example.
+"common/router.py" = ["D107", "D205"]  # Preserve the original APIRouterPro constructor and documentation.
 
 [lint.flake8-type-checking]
 runtime-evaluated-base-classes = ["pydantic.BaseModel", "sqlalchemy.orm.DeclarativeBase"]
