@@ -7,6 +7,7 @@ from common.mixin import DateRangeQueryMixin
 from common.types import ApiUtcDateTime
 from common.vo import CamelModel
 from i18n.message import I18nMessage
+from module_admin.entity.vo.menu_vo import MenuTreeModel
 
 
 class RoleModel(CamelModel):
@@ -146,22 +147,22 @@ class RolePageQueryModel(RoleQueryModel):
 class RoleMenuQueryModel(CamelModel):
     """角色菜单查询模型。"""
 
-    menus: list = Field(default=[], description='菜单信息')
+    menus: list[MenuTreeModel] = Field(default=[], description='菜单信息')
     checked_keys: list[int] = Field(default=[], description='已选择的菜单ID信息')
 
 
 class RoleDeptQueryModel(CamelModel):
     """角色部门查询模型。"""
 
-    depts: list = Field(default=[], description='部门信息')
+    depts: list[dict[str, object]] = Field(default=[], description='部门信息')
     checked_keys: list[int] = Field(default=[], description='已选择的部门ID信息')
 
 
 class AddRoleModel(RoleModel):
     """新增角色模型。"""
 
-    dept_ids: list = Field(default=[], description='部门ID信息')
-    menu_ids: list = Field(default=[], description='菜单ID信息')
+    dept_ids: list[int] = Field(default=[], description='部门ID信息')
+    menu_ids: list[int] = Field(default=[], description='菜单ID信息')
     type: str | None = Field(default=None, description='操作类型')
 
 

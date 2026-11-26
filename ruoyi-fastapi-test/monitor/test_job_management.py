@@ -3,6 +3,7 @@ import re
 from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from time import monotonic
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
@@ -49,7 +50,7 @@ class JobManagementTest(SystemPage):
             rows = self.job_row(job_name)
         return rows.locator('td:last-child').get_by_role('button')
 
-    async def submit(self, action: Callable[[], Awaitable], method: str, path: str) -> dict:
+    async def submit(self, action: Callable[[], Awaitable[object]], method: str, path: str) -> dict[str, Any]:
         """
         等待本次操作的响应，不依赖短暂提示或固定延时。
 
@@ -68,7 +69,7 @@ class JobManagementTest(SystemPage):
         assert payload['code'] == HTTPStatus.OK, payload
         return payload['data']
 
-    async def poll_api(self, path: str, ready: Callable[[dict], bool], **params) -> dict:
+    async def poll_api(self, path: str, ready: Callable[[dict[str, Any]], bool], **params) -> dict[str, Any]:
         """
         轮询异步结果，超时时保留最后一次响应以便诊断。
 
@@ -92,7 +93,7 @@ class JobManagementTest(SystemPage):
             assert monotonic() < deadline, f'{path} 未达到预期状态: {payload}'
             await asyncio.sleep(0.25)
 
-    async def wait_for_sync(self, mutation: dict) -> None:
+    async def wait_for_sync(self, mutation: dict[str, Any]) -> None:
         """
         已保存后，还要确认本次配置版本已由调度器应用。
 

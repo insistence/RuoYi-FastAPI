@@ -551,7 +551,7 @@ class TransportCryptoMiddleware:
         return str(envelope['kid'])
 
     @staticmethod
-    def _loads_json_mapping(payload: str) -> dict:
+    def _loads_json_mapping(payload: str) -> dict[str, object]:
         """
         将JSON字符串解析为字典，并限制结果必须为JSON对象。
 
@@ -562,7 +562,7 @@ class TransportCryptoMiddleware:
         json_payload = json.loads(payload)
         if not isinstance(json_payload, dict):
             raise ValueError('解密后的请求载荷必须为JSON对象')
-        return json_payload
+        return cast('dict[str, object]', json_payload)
 
     @staticmethod
     async def _read_body(receive: Receive) -> bytes:

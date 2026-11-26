@@ -123,7 +123,7 @@ def test_complete_config_keys_returns_dynamic_readonly_choices(monkeypatch: Monk
             """模拟配置运行时服务对象。"""
 
             @staticmethod
-            def list_configs(**kwargs: str) -> dict:
+            def list_configs(**kwargs: str) -> dict[str, str]:
                 """
                 模拟配置列表查询入口。
 
@@ -168,7 +168,7 @@ def test_complete_gen_table_names_returns_dynamic_readonly_choices(monkeypatch: 
             """模拟代码生成运行时服务对象。"""
 
             @staticmethod
-            def list_gen_tables(**kwargs: str) -> dict:
+            def list_gen_tables(**kwargs: str) -> dict[str, str]:
                 """
                 模拟业务表列表查询入口。
 
@@ -178,7 +178,7 @@ def test_complete_gen_table_names_returns_dynamic_readonly_choices(monkeypatch: 
                 return kwargs
 
             @staticmethod
-            def list_gen_db_tables(**kwargs: str) -> dict:
+            def list_gen_db_tables(**kwargs: str) -> dict[str, str]:
                 """
                 模拟数据库物理表列表查询入口。
 
@@ -279,7 +279,7 @@ def test_complete_job_names_returns_dynamic_readonly_choices(monkeypatch: Monkey
             """模拟任务运行时服务对象。"""
 
             @staticmethod
-            def list_jobs(**kwargs: str) -> dict:
+            def list_jobs(**kwargs: str) -> dict[str, str]:
                 """
                 模拟任务列表查询入口。
 
@@ -322,7 +322,7 @@ def test_complete_job_ids_returns_dynamic_readonly_choices(monkeypatch: MonkeyPa
             """模拟任务运行时服务对象。"""
 
             @staticmethod
-            def list_jobs(**kwargs: str) -> dict:
+            def list_jobs(**kwargs: str) -> dict[str, str]:
                 """
                 模拟任务列表查询入口。
 

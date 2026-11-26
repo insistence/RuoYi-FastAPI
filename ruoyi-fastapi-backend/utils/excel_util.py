@@ -1,5 +1,7 @@
 import io
+from collections.abc import Mapping, Sequence
 from datetime import datetime
+from typing import Any, overload
 
 import pandas as pd
 from openpyxl import Workbook
@@ -18,8 +20,12 @@ class ExcelUtil:
 
     @classmethod
     def __mapping_list(
-        cls, list_data: list, mapping_dict: dict, timezone_name: str, locale_context: LocaleContext
-    ) -> list[dict]:
+        cls,
+        list_data: list[dict[str, Any]],
+        mapping_dict: Mapping[str, str],
+        timezone_name: str,
+        locale_context: LocaleContext,
+    ) -> list[dict[str, object]]:
         """
         按导出语言生成表头和单元格文本，并按导出时区转换日期时间。
 
@@ -30,17 +36,17 @@ class ExcelUtil:
         :return: 映射后的数据列表
         """
         datetime_keys = {key for key in mapping_dict if any(isinstance(item.get(key), datetime) for item in list_data)}
-        mapping_dict = {key: cls._display_value(value, locale_context) for key, value in mapping_dict.items()}
+        translated_headers = {key: cls._display_value(value, locale_context) for key, value in mapping_dict.items()}
         display_mapping = {
             key: (f'{header} ({timezone_name})' if key in datetime_keys else header)
-            for key, header in mapping_dict.items()
+            for key, header in translated_headers.items()
         }
         mapping_data = [
             {
-                display_mapping.get(key): (
-                    TimezoneUtil.to_business_time(item.get(key), timezone_name).replace(tzinfo=None)
-                    if isinstance(item.get(key), datetime)
-                    else cls._display_value(item.get(key), locale_context)
+                display_mapping[key]: (
+                    TimezoneUtil.to_business_time(value, timezone_name).replace(tzinfo=None)
+                    if isinstance(value := item.get(key), datetime)
+                    else cls._display_value(value, locale_context)
                 )
                 for key in display_mapping
             }
@@ -52,8 +58,8 @@ class ExcelUtil:
     @classmethod
     def export_list2excel(
         cls,
-        list_data: list,
-        mapping_dict: dict,
+        list_data: list[dict[str, Any]],
+        mapping_dict: Mapping[str, str],
         timezone_name: str | None = None,
         locale_context: LocaleContext | None = None,
     ) -> bytes:
@@ -79,9 +85,9 @@ class ExcelUtil:
     @classmethod
     def get_excel_template(
         cls,
-        header_list: list,
-        selector_header_list: list,
-        option_list: list[dict],
+        header_list: Sequence[str],
+        selector_header_list: Sequence[str],
+        option_list: list[dict[str, list[str]]],
         locale_context: LocaleContext | None = None,
     ) -> bytes:
         """
@@ -153,6 +159,14 @@ class ExcelUtil:
         excel_data = file.getvalue()
 
         return excel_data
+
+    @staticmethod
+    @overload
+    def _display_value(value: str, context: LocaleContext) -> str: ...
+
+    @staticmethod
+    @overload
+    def _display_value(value: object, context: LocaleContext) -> object: ...
 
     @staticmethod
     def _display_value(value: object, context: LocaleContext) -> object:

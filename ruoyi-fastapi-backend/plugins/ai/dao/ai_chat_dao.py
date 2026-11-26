@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,7 +43,7 @@ class AiChatConfigDao:
         return db_chat_config
 
     @classmethod
-    async def edit_chat_config_dao(cls, db: AsyncSession, chat_config: dict) -> None:
+    async def edit_chat_config_dao(cls, db: AsyncSession, chat_config: dict[str, Any]) -> None:
         """
         编辑对话配置数据库操作。
 

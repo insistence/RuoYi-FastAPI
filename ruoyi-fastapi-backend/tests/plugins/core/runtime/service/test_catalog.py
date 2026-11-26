@@ -6,7 +6,7 @@ from unittest.mock import create_autospec
 import pytest
 
 import plugins.core.runtime.service.context as runtime_context_module
-from plugins.core.discovery.scanner import PluginDiscoveryResult
+from plugins.core.discovery.scanner import DiscoveredPlugin, PluginDiscoveryResult
 from plugins.core.environment import PluginRuntimeEnvironmentService
 from plugins.core.management.entity.vo.schemas import PluginModel
 from plugins.core.runtime.service import PluginRuntimeService
@@ -243,7 +243,7 @@ def test_plugin_runtime_context_caches_discovered_plugins(
             scanner_roots.append(plugins_root)
 
         @staticmethod
-        def discover() -> list:
+        def discover() -> list[DiscoveredPlugin]:
             """
             返回测试插件列表。
 
@@ -390,7 +390,7 @@ backend:
 def test_plugin_runtime_query_entrypoints_delegate_to_query_use_case(
     tmp_path: Path,
     entrypoint: str,
-    expected_payload: dict,
+    expected_payload: dict[str, object],
 ) -> None:
     """校验插件查询入口委托给组合式查询 use case。"""
     runtime = build_runtime(tmp_path / 'backend')

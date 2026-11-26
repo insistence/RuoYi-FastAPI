@@ -191,7 +191,9 @@ def test_generated_frontend_contains_business_files_and_reuses_project_time_modu
     assert '@/api/login' not in page
 
 
-def import_generated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rendered: dict[str, str]) -> tuple:
+def import_generated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rendered: dict[str, str]
+) -> tuple[type[DeclarativeBase], *tuple[ModuleType, ...]]:
     """
     加载已渲染的 Python 模块以测试生成代码。
 

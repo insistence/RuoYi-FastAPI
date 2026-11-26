@@ -25,7 +25,7 @@ class CrudResponseModel(BaseModel):
     message: str = Field(description='响应信息')
     result: Any | None = Field(default=None, description='响应结果')
     msg_key: str | None = Field(default=None, description='国际化消息标识')
-    msg_params: dict | None = Field(default=None, description='国际化消息插值参数')
+    msg_params: dict[str, object] | None = Field(default=None, description='国际化消息插值参数')
     domain: str = Field(default='core', description='已注册的国际化词库域')
     count: int | None = Field(default=None, description='复数消息数量')
     plural_key: str | None = Field(default=None, description='复数消息标识')
@@ -55,7 +55,7 @@ class ResponseBaseModel(CamelModel):
     code: int = Field(default=HttpStatusConstant.SUCCESS, description='响应码')
     msg: str = Field(default='操作成功', description='响应信息')
     msg_key: str | None = Field(default=None, description='国际化消息标识')
-    msg_params: dict | None = Field(default=None, description='国际化消息插值参数')
+    msg_params: dict[str, object] | None = Field(default=None, description='国际化消息插值参数')
     msg_domain: str | None = Field(default=None, description='国际化插件词库域')
     msg_count: int | None = Field(default=None, description='复数消息数量')
     msg_plural_key: str | None = Field(default=None, description='复数消息标识')
@@ -99,7 +99,7 @@ class PageModel(CamelModel, Generic[T]):
     has_next: bool = Field(description='是否有下一页')
 
 
-class PageResponseModel(PageModel, ResponseBaseModel, Generic[T]):
+class PageResponseModel(PageModel[T], ResponseBaseModel, Generic[T]):
     """分页响应模型。"""
 
 

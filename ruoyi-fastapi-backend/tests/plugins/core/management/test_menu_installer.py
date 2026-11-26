@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -166,7 +167,7 @@ class FakePluginDao:
         return sys_menu
 
     @classmethod
-    async def update_sys_menu(cls, db: object, menu: dict) -> None:
+    async def update_sys_menu(cls, db: object, menu: dict[str, Any]) -> None:
         """
         更新系统菜单。
 

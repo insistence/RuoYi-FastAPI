@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 from http import HTTPStatus
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -89,7 +90,7 @@ async def verify_file_details_and_download(view: SystemPage, name: str, file_id:
     assert await asyncio.to_thread(Path(download_path).read_bytes) == contents
 
 
-async def upload_fixture(view: SystemPage, access_type: str) -> tuple[dict, str, bytes]:
+async def upload_fixture(view: SystemPage, access_type: str) -> tuple[dict[str, Any], str, bytes]:
     """
     文件管理页没有上传控件，使用真实公共上传接口准备唯一文件。
 

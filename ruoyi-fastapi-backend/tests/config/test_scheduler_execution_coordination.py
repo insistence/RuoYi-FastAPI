@@ -4,6 +4,7 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 from datetime import timedelta
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -48,7 +49,7 @@ async def test_two_processes_atomically_enforce_logical_job_limit(runtime: Runti
         assert sorted(row.status for row in rows) == ['rejected', 'running']
 
 
-async def wait_for_process_file(path: Path, executor: TimedProcessPoolExecutor) -> dict:
+async def wait_for_process_file(path: Path, executor: TimedProcessPoolExecutor) -> dict[str, Any]:
     """
     等待真实进程进入业务函数。
 

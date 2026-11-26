@@ -8,6 +8,7 @@ disjoint-cast = "error"
 mismatched-enum-name = "error"
 mismatched-namedtuple-name = "error"
 mismatched-sentinel-name = "error"
+missing-type-argument = "error"
 unsound-return = "error"
 unsound-yield = "error"
 

@@ -1,8 +1,10 @@
-from typing import Any
+from typing import Any, TypeVar
 
 from common.context import RequestContext
 from config.env import I18nConfig
 from i18n.registry import LocaleRegistry
+
+_SourceText = TypeVar('_SourceText', bound=str | None)
 
 
 class TranslationUtil:
@@ -56,7 +58,9 @@ class TranslationUtil:
         return result
 
     @staticmethod
-    def resolve(original: str, translations: dict[str, str] | None, *, locale: str | None = None) -> str:
+    def resolve(
+        original: _SourceText, translations: dict[str, str] | None, *, locale: str | None = None
+    ) -> str | _SourceText:
         """
         按当前请求语言和回退链解析数据库译文。
 

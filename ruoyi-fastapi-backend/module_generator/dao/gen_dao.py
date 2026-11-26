@@ -231,7 +231,7 @@ class GenTableDao:
     @classmethod
     async def get_gen_table_list(
         cls, db: AsyncSession, query_object: GenTablePageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取代码生成业务表列表信息。
 
@@ -257,7 +257,7 @@ class GenTableDao:
             )
             .distinct()
         )
-        gen_table_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        gen_table_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -286,7 +286,7 @@ class GenTableDao:
         *,
         excluded_table_names: set[str] | None = None,
         source_config: DataSourceSettings | None = None,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取数据库列表信息。
 
@@ -332,7 +332,7 @@ class GenTableDao:
         if excluded_table_names:
             statement = statement.bindparams(bindparam('excluded_table_names', expanding=True))
         query = select(statement.bindparams(**query_params))
-        gen_db_table_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        gen_db_table_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -341,7 +341,7 @@ class GenTableDao:
     @classmethod
     async def get_gen_db_table_list_by_names(
         cls, db: AsyncSession, table_names: list[str], source_config: DataSourceSettings | None = None
-    ) -> Sequence[Row]:
+    ) -> Sequence[Row[*tuple[Any, ...]]]:
         """
         根据业务表名称组获取数据库列表信息。
 
@@ -377,7 +377,7 @@ class GenTableDao:
         return db_gen_table
 
     @classmethod
-    async def edit_gen_table_dao(cls, db: AsyncSession, gen_table: dict) -> None:
+    async def edit_gen_table_dao(cls, db: AsyncSession, gen_table: dict[str, Any]) -> None:
         """
         编辑业务表数据库操作。
 
@@ -427,7 +427,7 @@ class GenTableColumnDao:
     @classmethod
     async def get_gen_db_table_columns_by_name(
         cls, db: AsyncSession, table_name: str, source_config: DataSourceSettings | None = None
-    ) -> Sequence[Row]:
+    ) -> Sequence[Row[*tuple[Any, ...]]]:
         """
         根据业务表名称获取业务表字段列表信息。
 
@@ -463,7 +463,7 @@ class GenTableColumnDao:
         return db_gen_table_column
 
     @classmethod
-    async def edit_gen_table_column_dao(cls, db: AsyncSession, gen_table_column: dict) -> None:
+    async def edit_gen_table_column_dao(cls, db: AsyncSession, gen_table_column: dict[str, Any]) -> None:
         """
         编辑业务表字段数据库操作。
 

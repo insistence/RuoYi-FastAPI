@@ -334,7 +334,7 @@ class Log:
 
         return wrapper
 
-    def _get_decorator_func_path(self, func: Callable) -> str:
+    def _get_decorator_func_path(self, func: Callable[..., object]) -> str:
         """
         获取被装饰函数所在路径。
 
@@ -968,8 +968,8 @@ class Log:
         return []
 
     def _get_login_log(
-        self, user_agent: Any, oper_ip: str, oper_location: str, oper_time: datetime, origin_kwargs: dict
-    ) -> dict:
+        self, user_agent: Any, oper_ip: str, oper_location: str, oper_time: datetime, origin_kwargs: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         获取登录日志信息。
 
@@ -1000,7 +1000,7 @@ class Log:
 
         return login_log
 
-    def _set_login_data(self, login_log: dict, origin_kwargs: dict) -> None:
+    def _set_login_data(self, login_log: dict[str, Any], origin_kwargs: dict[str, Any]) -> None:
         """
         设置登录日志数据。
 
@@ -1010,7 +1010,7 @@ class Log:
         if 'form_data' in origin_kwargs:
             origin_kwargs['form_data'].login_info = login_log
 
-    def _get_status_and_error_msg(self, result_dict: dict) -> tuple[Literal[0, 1], str | None]:
+    def _get_status_and_error_msg(self, result_dict: dict[str, Any]) -> tuple[Literal[0, 1], str | None]:
         """
         获取操作状态和错误信息。
 
@@ -1047,7 +1047,7 @@ class Log:
         referer = request.headers.get('referer', '')
         return referer.endswith('docs'), referer.endswith('redoc')
 
-    def _get_result_dict(self, result: Any, request_from_swagger: bool, request_from_redoc: bool) -> dict:
+    def _get_result_dict(self, result: Any, request_from_swagger: bool, request_from_redoc: bool) -> dict[str, Any]:
         """
         获取操作结果字典。
 
@@ -1093,7 +1093,7 @@ async def get_ip_location(oper_ip: str) -> str:
     return oper_location
 
 
-def get_function_parameters_name_by_type(func: Callable, param_type: Any) -> list:
+def get_function_parameters_name_by_type(func: Callable[..., object], param_type: Any) -> list[str]:
     """
     获取函数指定类型的参数名称。
 
@@ -1121,7 +1121,7 @@ def get_function_parameters_name_by_type(func: Callable, param_type: Any) -> lis
     return parameters_name_list
 
 
-def get_function_parameters_value_by_name(func: Callable, name: str, *args, **kwargs) -> Any:
+def get_function_parameters_value_by_name(func: Callable[..., object], name: str, *args, **kwargs) -> Any:
     """
     获取函数指定参数的值。
 

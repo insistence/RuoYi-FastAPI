@@ -1,5 +1,6 @@
 import asyncio
 from datetime import timedelta
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -32,7 +33,7 @@ TWICE_UPDATED_CONFIG_VERSION = 3
         {'jobArgs': [1, 2]},
     ],
 )
-async def test_invalid_configuration_is_rejected_before_save(runtime: Runtime, change: dict) -> None:
+async def test_invalid_configuration_is_rejected_before_save(runtime: Runtime, change: dict[str, Any]) -> None:
     """保存前拒绝无效配置。"""
     async with runtime.sessions() as db:
         with pytest.raises((ServiceException, ValidationError)):
@@ -271,7 +272,7 @@ async def test_overlapping_edits_and_late_notifications_apply_latest_version(
     both_committed = asyncio.Event()
     sync = SchedulerManager.request_scheduler_sync
 
-    async def delayed_notification(job_ids: set[int], *, immediate: bool) -> dict:
+    async def delayed_notification(job_ids: set[int], *, immediate: bool) -> dict[str, Any]:
         """
         在指定版本提交后推迟调度通知。
 
@@ -285,7 +286,7 @@ async def test_overlapping_edits_and_late_notifications_apply_latest_version(
         await asyncio.wait_for(both_committed.wait(), timeout=5)
         return await sync(job_ids, immediate=immediate)
 
-    async def edit(change: dict) -> dict:
+    async def edit(change: dict[str, Any]) -> dict[str, Any]:
         """
         在测试会话中修改调度记录。
 
@@ -293,7 +294,7 @@ async def test_overlapping_edits_and_late_notifications_apply_latest_version(
         :return: 执行当前操作得到的结果
         """
         async with runtime.sessions() as db:
-            response = await JobService.edit_job_services(db, EditJobModel(job_id=42, **change))
+            response = await JobService.edit_job_services(db, EditJobModel.model_validate({'job_id': 42, **change}))
             assert isinstance(response.result, dict)
             return response.result
 

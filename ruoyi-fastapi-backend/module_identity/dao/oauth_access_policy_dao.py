@@ -111,7 +111,7 @@ class OAuthAccessPolicyDao:
         return list(result.scalars().all())
 
     @staticmethod
-    def _query(query: AccessPolicyPageQueryModel) -> Select:
+    def _query(query: AccessPolicyPageQueryModel) -> Select[SysOAuthAccessPolicy, str, str, str]:
         """
         构建独立访问策略查询，不依赖用户已有授权记录。
 

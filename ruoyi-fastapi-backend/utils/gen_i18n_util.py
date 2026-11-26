@@ -2,7 +2,7 @@ import io
 import json
 import re
 from pathlib import Path
-from typing import Never
+from typing import Any, Never
 
 from babel import Locale, UnknownLocaleError
 from babel.messages.catalog import Catalog
@@ -221,7 +221,7 @@ class GenI18nUtil:
         return self.backend_text(f'{prefix}.{column.python_field}.{suffix}', source)
 
     @staticmethod
-    def nest(values: dict[str, str]) -> dict:
+    def nest(values: dict[str, str]) -> dict[str, Any]:
         """
         将稳定点路径转换为独立命名空间内的嵌套字典。
 
@@ -238,7 +238,7 @@ class GenI18nUtil:
         return result
 
     @classmethod
-    def merge_json(cls, existing: dict, generated: dict) -> dict:
+    def merge_json(cls, existing: dict[str, Any], generated: dict[str, Any]) -> dict[str, Any]:
         """
         只补充缺失键，不覆盖已有人工文案或删除旧键。
 

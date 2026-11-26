@@ -44,7 +44,7 @@ class OperationLogService:
     @overload
     async def get_operation_log_list_services(
         cls, query_db: AsyncSession, query_object: OperLogPageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -55,7 +55,7 @@ class OperationLogService:
     @classmethod
     async def get_operation_log_list_services(
         cls, query_db: AsyncSession, query_object: OperLogPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取操作日志列表信息service。
 
@@ -130,7 +130,9 @@ class OperationLogService:
             raise e
 
     @classmethod
-    async def export_operation_log_list_services(cls, request: Request, operation_log_list: list) -> bytes:
+    async def export_operation_log_list_services(
+        cls, request: Request, operation_log_list: list[dict[str, Any]]
+    ) -> bytes:
         """
         导出操作日志信息service。
 
@@ -189,7 +191,7 @@ class LoginLogService:
     @overload
     async def get_login_log_list_services(
         cls, query_db: AsyncSession, query_object: LoginLogPageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -200,7 +202,7 @@ class LoginLogService:
     @classmethod
     async def get_login_log_list_services(
         cls, query_db: AsyncSession, query_object: LoginLogPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取登录日志列表信息service。
 
@@ -291,7 +293,7 @@ class LoginLogService:
         raise ServiceException(message='该用户未锁定', msg_key='log.userNotLocked')
 
     @staticmethod
-    async def export_login_log_list_services(login_log_list: list) -> bytes:
+    async def export_login_log_list_services(login_log_list: list[dict[str, Any]]) -> bytes:
         """
         导出登录日志信息service。
 
@@ -340,7 +342,7 @@ class LogQueueService:
         return hashlib.md5(base.encode('utf-8')).hexdigest()
 
     @classmethod
-    async def _xadd_event(cls, redis: aioredis.Redis, event_type: str, payload: dict, source: str) -> None:
+    async def _xadd_event(cls, redis: aioredis.Redis, event_type: str, payload: dict[str, object], source: str) -> None:
         """
         写入日志事件到Redis Streams。
 

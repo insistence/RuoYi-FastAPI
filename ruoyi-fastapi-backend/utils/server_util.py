@@ -3,7 +3,7 @@ import ipaddress
 import os
 import socket
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from functools import partial
 from typing import Any
@@ -342,7 +342,11 @@ class APIDocsUtil:
 
     @classmethod
     def _register_docs_routes(
-        cls, app: FastAPI, swagger_handler: Callable, redirect_handler: Callable, redoc_handler: Callable
+        cls,
+        app: FastAPI,
+        swagger_handler: Callable[[Request], Awaitable[HTMLResponse]],
+        redirect_handler: Callable[[Request], Awaitable[HTMLResponse]],
+        redoc_handler: Callable[[Request], Awaitable[HTMLResponse]],
     ) -> None:
         """
         注册文档路由。
@@ -494,7 +498,7 @@ class StartupUtil:
         lock_expire_seconds: int,
         interval_seconds: int,
         on_lock_lost: Callable[[], None] | None = None,
-    ) -> asyncio.Task:
+    ) -> asyncio.Task[None]:
         """
         启动Application leader租约续期任务。
 

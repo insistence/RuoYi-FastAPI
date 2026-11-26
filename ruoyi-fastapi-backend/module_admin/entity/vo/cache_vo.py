@@ -8,9 +8,9 @@ from common.vo import CamelModel
 class CacheMonitorModel(CamelModel):
     """缓存监控信息对应pydantic模型。"""
 
-    command_stats: list | None = Field(default=[], description='命令统计')
+    command_stats: list[dict[str, str]] | None = Field(default=[], description='命令统计')
     db_size: int | None = Field(default=None, description='Key数量')
-    info: dict | None = Field(default={}, description='Redis信息')
+    info: dict[str, object] | None = Field(default={}, description='Redis信息')
 
 
 class CacheInfoModel(CamelModel):

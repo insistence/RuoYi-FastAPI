@@ -1,6 +1,7 @@
 import asyncio
 import re
 from http import HTTPStatus
+from typing import Any
 
 import pytest
 from playwright.async_api import expect
@@ -11,7 +12,7 @@ from system.page import SystemPage
 pytestmark = pytest.mark.e2e
 
 
-async def wait_for_audit(view: SystemPage, path: str) -> dict:
+async def wait_for_audit(view: SystemPage, path: str) -> dict[str, Any]:
     """
     日志经 Redis Stream 异步入库，轮询真实查询直到目标事件可见。
 

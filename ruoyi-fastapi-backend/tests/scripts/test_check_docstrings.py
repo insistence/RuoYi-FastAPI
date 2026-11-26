@@ -2,9 +2,10 @@ import ast
 import json
 import subprocess
 import sys
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from pathlib import Path
 from textwrap import indent
+from typing import Protocol
 
 import pytest
 
@@ -18,8 +19,21 @@ from scripts.check_docstrings import (
 )
 
 
+class SourceChecker(Protocol):
+    """检查指定路径的 Python 源码并返回行号和诊断消息。"""
+
+    def __call__(self, source: str, path: Path = ...) -> list[tuple[int, str]]:
+        """
+        收集源码中的文档格式问题。
+
+        :param source: 待检查的 Python 源码
+        :param path: 用于解析导入及匹配检查范围的文件路径
+        :return: 含行号与消息的诊断列表
+        """
+
+
 @pytest.fixture(scope='module')
-def check() -> Iterator[Callable[..., list[tuple[int, str]]]]:
+def check() -> Iterator[SourceChecker]:
     """
     为源码样例提供共享的 Sphinx 检查环境。
 
@@ -69,14 +83,14 @@ def check() -> Iterator[Callable[..., list[tuple[int, str]]]]:
         '请使用``convert``转换。',
     ],
 )
-def test_rejects_non_rest_and_invalid_fields(body: str, check: Callable) -> None:
+def test_rejects_non_rest_and_invalid_fields(body: str, check: SourceChecker) -> None:
     """拒绝非 reST 标记和无效字段。"""
     source = 'async def convert(value):\n    """\n    转换输入。\n\n' + indent(body, '    ') + '\n    """'
     assert any('缺少 :param 描述' not in error for _, error in check(source))
 
 
 @pytest.mark.parametrize('prefix', ['class Example:\n', 'def example():\n', 'async def example():\n'])
-def test_checks_each_docstring_owner(prefix: str, check: Callable) -> None:
+def test_checks_each_docstring_owner(prefix: str, check: SourceChecker) -> None:
     """逐一校验类、同步函数和异步函数的文档。"""
     doc = '"""示例。\n\nArgs:\n    value: 输入值\n"""'
     source = prefix + indent(doc, '    ')
@@ -91,13 +105,13 @@ def test_checks_each_docstring_owner(prefix: str, check: Callable) -> None:
         (':param value: 输入值\n未缩进的说明。\n:return: 转换结果', 6),
     ],
 )
-def test_reports_source_line_for_misplaced_markup(body: str, line: int, check: Callable) -> None:
+def test_reports_source_line_for_misplaced_markup(body: str, line: int, check: SourceChecker) -> None:
     """标记放错位置时报告实际源码行号。"""
     source = 'def example(value):\n' + indent('"""说明。\n\n' + body + '\n"""', '    ')
     assert line in [lineno for lineno, _ in check(source)]
 
 
-def test_allows_rest_fields_roles_and_examples(check: Callable) -> None:
+def test_allows_rest_fields_roles_and_examples(check: SourceChecker) -> None:
     """接受合法的 reST 字段、角色和示例。"""
     source = '''
 def convert(value, /, *items, flag=True, **options):
@@ -138,14 +152,14 @@ def convert(value, /, *items, flag=True, **options):
     assert not check(source)
 
 
-def test_checks_summary_punctuation_and_constructor_signature(check: Callable) -> None:
+def test_checks_summary_punctuation_and_constructor_signature(check: SourceChecker) -> None:
     """校验摘要标点和构造函数签名。"""
     assert check('def example():\n    """缺少句号"""') == [(2, '请以句末标点结束文档摘要')]
     source = 'class Example:\n    """示例。\n\n    :param typo: 输入\n    """\n    def __init__(self, value):\n        """保存输入值。"""'
     assert check(source) == [(4, '文档参数 typo 不在函数签名中'), (7, '参数 value 缺少 :param 描述')]
 
 
-def test_file_header_boundary(check: Callable) -> None:
+def test_file_header_boundary(check: SourceChecker) -> None:
     """验证文件头边界，并保留解释器声明和代码内部注释。"""
     assert [line for line, _ in check('\n# 说明\n"""模块文档。"""\n')] == [2, 3]
     assert check('#!/usr/bin/env python3\n# coding: utf-8\nimport os  # 行尾注释\n# 内部注释') == []
@@ -153,13 +167,13 @@ def test_file_header_boundary(check: Callable) -> None:
     assert check('description = """普通字符串。"""') == []
 
 
-def test_missing_private_nested_and_async_docs(check: Callable) -> None:
+def test_missing_private_nested_and_async_docs(check: SourceChecker) -> None:
     """检查类、特殊方法、私有函数和嵌套异步函数的覆盖范围。"""
     source = 'class _Type:\n    def __init__(self):\n        async def _inner(): pass\n\ndef _helper(): pass'
     assert sorted(line for line, _ in check(source)) == [1, 2, 3, 5]
 
 
-def test_overload_uses_implementation_documentation(check: Callable) -> None:
+def test_overload_uses_implementation_documentation(check: SourceChecker) -> None:
     """验证类型重载共用实现文档，并要求实现存在。"""
     stub = 'from typing import overload as signature\n@signature\ndef f(x: int) -> int: ...\n'
     assert check(stub)
@@ -169,7 +183,7 @@ def test_overload_uses_implementation_documentation(check: Callable) -> None:
     )
 
 
-def test_requires_parameter_descriptions(check: Callable) -> None:
+def test_requires_parameter_descriptions(check: SourceChecker) -> None:
     """验证各类显式参数必须有描述，类型字段和代码块不能代替参数说明。"""
     source = '''
 class Factory:
@@ -193,7 +207,7 @@ class Factory:
     assert {message for _, message in check(source)} == {'参数 self 缺少 :param 描述', '参数 options 缺少 :param 描述'}
 
 
-def test_requires_class_and_instance_attribute_descriptions(check: Callable) -> None:
+def test_requires_class_and_instance_attribute_descriptions(check: SourceChecker) -> None:
     """验证声明、解包赋值和实例属性的覆盖，排除局部变量与其他对象的属性。"""
     source = '''
 class Result:
@@ -217,7 +231,7 @@ class Result:
     assert [message for _, message in check(slots)] == ['属性 count 缺少 :ivar 或 :cvar 描述']
 
 
-def test_model_exemption_follows_imports_without_running_model_code(tmp_path: Path, check: Callable) -> None:
+def test_model_exemption_follows_imports_without_running_model_code(tmp_path: Path, check: SourceChecker) -> None:
     """验证单文件检查能沿导入和别名识别模型，同时检查普通类和模型方法。"""
     (tmp_path / 'base_types.py').write_text(
         'from pydantic import BaseModel as Schema\nfrom sqlalchemy.orm import registry\n'
@@ -248,7 +262,7 @@ class BaseModel:
     }
 
 
-def test_pydantic_fields_require_descriptions(check: Callable) -> None:
+def test_pydantic_fields_require_descriptions(check: SourceChecker) -> None:
     """校验有效的字段说明，覆盖别名、类型元数据、计算字段及类变量。"""
     source = '''
 from typing import Annotated, ClassVar as Shared
@@ -288,7 +302,7 @@ class Payload(BaseModel):
     }
 
 
-def test_sqlalchemy_columns_require_comments(check: Callable) -> None:
+def test_sqlalchemy_columns_require_comments(check: SourceChecker) -> None:
     """检查实际映射列、复用类型和显式表定义，仅对关系属性免除列说明。"""
     source = '''
 import sqlalchemy as sa
@@ -326,7 +340,7 @@ class Mix:
     }
 
 
-def test_routes_and_test_functions_have_distinct_requirements(tmp_path: Path, check: Callable) -> None:
+def test_routes_and_test_functions_have_distinct_requirements(tmp_path: Path, check: SourceChecker) -> None:
     """验证装饰器、显式注册及 pytest 例外的边界。"""
     source = '''
 from fastapi import APIRouter as Router
@@ -351,7 +365,9 @@ def ordinary(key): pass
     }
 
 
-def test_every_http_registration_requires_chinese_summary_and_description(check: Callable) -> None:
+def test_every_http_registration_requires_chinese_summary_and_description(
+    check: SourceChecker,
+) -> None:
     """验证同一端点的每次注册、隐藏操作和外部回调各自声明中文元数据。"""
     source = '''
 from fastapi import APIRouter as Router
@@ -381,7 +397,9 @@ api.add_route('/docs', handler, include_in_schema=False)
     ]
 
 
-def test_programmatic_routes_and_factory_router_share_the_http_rules(check: Callable) -> None:
+def test_programmatic_routes_and_factory_router_share_the_http_rules(
+    check: SourceChecker,
+) -> None:
     """验证直接注册路径操作对象及通过工厂取得的路由器都逐条检查。"""
     source = '''
 from fastapi import APIRouter
@@ -404,14 +422,14 @@ router.get('/two', description='读取单条记录。')(handler)
     ]
 
 
-def test_preserves_alembic_and_only_the_original_router_class(check: Callable) -> None:
+def test_preserves_alembic_and_only_the_original_router_class(check: SourceChecker) -> None:
     """验证特例按源文件和类定位，同一文件的其他定义继续受检。"""
     source = 'class APIRouterPro:\n    def __init__(self): pass\nclass RouterRegister: pass'
     assert not check(source, ALEMBIC_ENV)
     assert check(source, ROUTER_MODULE) == [(3, 'RouterRegister 缺少 Sphinx/reST docstring')]
 
 
-def test_generator_documents_each_observable_outcome(check: Callable) -> None:
+def test_generator_documents_each_observable_outcome(check: SourceChecker) -> None:
     """生成器应分别说明生成值、最终返回值和传给调用方的异常。"""
     source = '''
 def stream(value):
@@ -441,7 +459,7 @@ def stream(value):
     assert not check(documented)
 
 
-def test_async_generator_and_reraised_exception(check: Callable) -> None:
+def test_async_generator_and_reraised_exception(check: SourceChecker) -> None:
     """异步生成器记录生成值及重新抛出的异常，嵌套函数单独校验。"""
     source = '''
 async def stream():
@@ -461,7 +479,7 @@ async def stream():
     assert not check('def finish():\n    """结束会话。"""\n    return None')
 
 
-def test_test_functions_only_describe_intent(check: Callable) -> None:
+def test_test_functions_only_describe_intent(check: SourceChecker) -> None:
     """测试用例拒绝普通函数可用的参数字段和返回值字段。"""
     source = (
         'def test_value(x):\n    """\n    检查数值。\n\n    :param x: 输入值\n    :return: 数值\n    """\n    return x'
@@ -473,7 +491,7 @@ def test_test_functions_only_describe_intent(check: Callable) -> None:
     assert not check(fixture, Path('test_value.py'))
 
 
-def test_chinese_prose_and_class_field_overlap(check: Callable) -> None:
+def test_chinese_prose_and_class_field_overlap(check: SourceChecker) -> None:
     """中英文可混用，英文段落、字段描述、普通注释及重复属性说明会被识别。"""
     source = 'class Item:\n    """保存 ID。\n\n    :param id: 标识\n    :ivar id: Identifier\n    """\n    id: int'
     errors = [message for _, message in check(source)]

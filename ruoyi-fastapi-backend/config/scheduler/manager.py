@@ -61,12 +61,12 @@ class SchedulerManager:
     _is_leader: bool = False
     _worker_id: str = WorkerIdUtil.get_worker_id(LogConfig.log_worker_id)
     _application_lock_owner_token: str = StartupUtil.get_application_lock_owner_token(_worker_id)
-    _application_lock_renewal_task: asyncio.Task | None = None
+    _application_lock_renewal_task: asyncio.Task[None] | None = None
     _redis: aioredis.Redis | None = None
     _sync_channel: str = 'scheduler:sync:request'
-    _sync_listener_task: asyncio.Task | None = None
-    _lock_lost_task: asyncio.Task | None = None
-    _sync_task: asyncio.Task | None = None
+    _sync_listener_task: asyncio.Task[None] | None = None
+    _lock_lost_task: asyncio.Task[None] | None = None
+    _sync_task: asyncio.Task[None] | None = None
     _sync_pending: bool = False
     _sync_full_pending: bool = False
     _sync_pending_ids: set[int] = set()
@@ -74,7 +74,7 @@ class SchedulerManager:
     _last_sync_at: float | None = None
     _sync_debounce_seconds: float = 0.5
     _sync_min_interval_seconds: float = 2.0
-    _reacquire_task: asyncio.Task | None = None
+    _reacquire_task: asyncio.Task[None] | None = None
     _reacquire_interval_seconds: float = 5.0
     _reacquire_jitter_seconds: float = 1.0
     _is_closing: bool = False
@@ -139,7 +139,7 @@ class SchedulerManager:
         return cls._is_leader
 
     @classmethod
-    def start_application_lock_renewal(cls, redis: aioredis.Redis) -> asyncio.Task:
+    def start_application_lock_renewal(cls, redis: aioredis.Redis) -> asyncio.Task[None]:
         """
         启动或复用当前进程的Application leader租约续期任务。
 

@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import AsyncGenerator, Coroutine
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -107,7 +108,7 @@ async def test_background_loops_wait_in_both_leader_and_follower() -> None:
     fake_retry_task = object()
     created: list[object] = []
 
-    def create_task(coro: Coroutine) -> object:
+    def create_task(coro: Coroutine[Any, Any, None]) -> object:
         """
         创建测试任务并将其交给调用方。
 
@@ -192,7 +193,7 @@ async def test_server_background_task_setup_delegates_oidc_runtime() -> None:
     app.state.redis = object()
     log_task = object()
 
-    def create_task(coro: Coroutine) -> object:
+    def create_task(coro: Coroutine[Any, Any, None]) -> object:
         """
         创建测试任务并将其交给调用方。
 

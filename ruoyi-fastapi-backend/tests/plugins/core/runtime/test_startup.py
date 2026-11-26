@@ -15,7 +15,7 @@ from plugins.core.runtime.startup import PluginRuntimeStartupManager, PluginStar
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 
 
-def patch_startup_get_db(fake_get_db: Any) -> AbstractContextManager:
+def patch_startup_get_db(fake_get_db: Any) -> AbstractContextManager[Any]:
     """
     替换启动管理器方法使用的默认数据源会话。
 
@@ -29,7 +29,7 @@ def patch_startup_get_db(fake_get_db: Any) -> AbstractContextManager:
     )
 
 
-def patch_startup_global(name: str, value: object) -> AbstractContextManager:
+def patch_startup_global(name: str, value: object) -> AbstractContextManager[Any]:
     """
     替换启动管理器方法使用的模块全局引用。
 

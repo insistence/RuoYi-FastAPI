@@ -66,10 +66,10 @@ async def test_admin_reset_password_uses_front_end_default_rule() -> None:
         {'createBy': 'attacker'},
     ],
 )
-def test_update_user_profile_model_rejects_management_fields(management_field: dict) -> None:
+def test_update_user_profile_model_rejects_management_fields(management_field: dict[str, object]) -> None:
     """用户资料模型拒绝管理字段。"""
     with pytest.raises(ValidationError):
-        UpdateUserProfileModel(nick_name='普通用户', **management_field)
+        UpdateUserProfileModel.model_validate({'nick_name': '普通用户', **management_field})
 
 
 @pytest.mark.asyncio

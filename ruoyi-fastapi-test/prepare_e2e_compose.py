@@ -7,9 +7,10 @@ import os
 import re
 import subprocess
 from pathlib import Path
+from typing import Any
 
 
-def isolate_compose(config: dict, project: str, python_version: str) -> dict:
+def isolate_compose(config: dict[str, Any], project: str, python_version: str) -> dict[str, Any]:
     """
     从已解析的测试配置生成独立项目，保留应用和数据库的真实配置。
 

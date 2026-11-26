@@ -23,7 +23,7 @@ plugin_metrics_controller = APIRouterPro(
     '/runtime/metrics',
     summary='获取插件运行指标接口',
     description='用于查询显式插件的请求与任务累计指标，按实际加载版本和可观测worker分组',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
 )
 async def get_plugin_runtime_metrics(
     request: Request,
@@ -43,7 +43,7 @@ async def get_plugin_runtime_metrics(
     '/{plugin_id}/config/status',
     summary='获取插件配置生效状态接口',
     description='比较数据库配置与已观测进程的启动快照；按需读取版本仅表示读取完成，不代表业务设置已经应用',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
 )
 async def get_plugin_config_status(
     request: Request,

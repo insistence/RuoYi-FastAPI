@@ -15,7 +15,7 @@ def _log_order(
     table: Table,
     query: OperLogPageQueryModel | LoginLogPageQueryModel,
     time_column: str,
-) -> ColumnElement:
+) -> ColumnElement[Any]:
     """
     根据查询参数选择日志排序列，缺少有效排序条件时按日志时间倒序。
 
@@ -37,7 +37,7 @@ class OperationLogDao:
     @classmethod
     async def get_operation_log_list(
         cls, db: AsyncSession, query_object: OperLogPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取操作日志列表信息。
 
@@ -63,7 +63,7 @@ class OperationLogDao:
             .distinct()
             .order_by(order_by_column)
         )
-        operation_log_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        operation_log_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -110,7 +110,7 @@ class LoginLogDao:
     @classmethod
     async def get_login_log_list(
         cls, db: AsyncSession, query_object: LoginLogPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取登录日志列表信息。
 
@@ -135,7 +135,7 @@ class LoginLogDao:
             .distinct()
             .order_by(order_by_column)
         )
-        login_log_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        login_log_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 

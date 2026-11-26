@@ -298,8 +298,12 @@ class UserDao:
 
     @classmethod
     async def get_user_list(
-        cls, db: AsyncSession, query_object: UserPageQueryModel, data_scope_sql: ColumnElement, is_page: bool = False
-    ) -> PageModel | list[list[dict[str, Any] | None]]:
+        cls,
+        db: AsyncSession,
+        query_object: UserPageQueryModel,
+        data_scope_sql: ColumnElement[bool],
+        is_page: bool = False,
+    ) -> PageModel[list[dict[str, Any] | None]] | list[list[dict[str, Any] | None]]:
         """
         根据查询参数获取用户列表信息。
 
@@ -343,7 +347,7 @@ class UserDao:
             .order_by(SysUser.user_id)
             .distinct()
         )
-        user_list: PageModel | list[list[dict[str, Any] | None]] = await PageUtil.paginate(
+        user_list: PageModel[list[dict[str, Any] | None]] | list[list[dict[str, Any] | None]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -365,7 +369,7 @@ class UserDao:
         return db_user
 
     @classmethod
-    async def edit_user_dao(cls, db: AsyncSession, user: dict) -> dict[str, str] | None:
+    async def edit_user_dao(cls, db: AsyncSession, user: dict[str, Any]) -> dict[str, str] | None:
         """
         编辑用户数据库操作。
 
@@ -444,9 +448,9 @@ class UserDao:
         cls,
         db: AsyncSession,
         query_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据角色id获取已分配的用户列表信息。
 
@@ -470,7 +474,7 @@ class UserDao:
             )
             .distinct()
         )
-        allocated_user_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        allocated_user_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -481,9 +485,9 @@ class UserDao:
         cls,
         db: AsyncSession,
         query_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据角色id获取未分配的用户列表信息。
 
@@ -515,7 +519,7 @@ class UserDao:
             )
             .distinct()
         )
-        unallocated_user_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        unallocated_user_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 

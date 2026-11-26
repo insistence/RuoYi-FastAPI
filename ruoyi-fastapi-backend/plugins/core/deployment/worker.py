@@ -80,7 +80,7 @@ class PluginReleaseWorker:
         self.versions: dict[str, str] = {}
         self.errors: dict[str, str] = {}
         self.state = 'starting'
-        self.task: asyncio.Task | None = None
+        self.task: asyncio.Task[None] | None = None
         self.app: Any = None
         self.registered = False
 

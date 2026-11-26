@@ -38,9 +38,9 @@ class FileAclService:
         cls,
         query_db: AsyncSession,
         file_id: str,
-        file_data_scope_sql: ColumnElement,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> FileAclListModel:
         """
         获取文件访问控制列表service。
@@ -168,8 +168,8 @@ class FileAclService:
         subject_type: str,
         keyword: str | None,
         limit: int,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> list[FileAclSubjectOptionModel]:
         """
         查询文件访问控制主体选项service。
@@ -196,7 +196,7 @@ class FileAclService:
     async def get_file_acl_dept_tree_services(
         cls,
         query_db: AsyncSession,
-        dept_data_scope_sql: ColumnElement,
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> list[DeptTreeModel]:
         """
         获取文件授权部门树service。
@@ -215,9 +215,9 @@ class FileAclService:
         current_user: CurrentUserModel,
         file_id: str,
         save_file_acl: SaveFileAclModel,
-        file_data_scope_sql: ColumnElement,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
@@ -339,9 +339,9 @@ class FileAclService:
         query_db: AsyncSession,
         current_user: CurrentUserModel,
         batch_save_file_acl: BatchSaveFileAclModel,
-        file_data_scope_sql: ColumnElement,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """

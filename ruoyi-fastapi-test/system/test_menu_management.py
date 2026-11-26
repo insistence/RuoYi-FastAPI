@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -9,7 +10,7 @@ from system.page import SystemPage
 pytestmark = pytest.mark.e2e
 
 
-async def add_menu_button(view: SystemPage, parent_name: str, expected: dict) -> dict:
+async def add_menu_button(view: SystemPage, parent_name: str, expected: dict[str, Any]) -> dict[str, Any]:
     """
     在真实父菜单下创建按钮，并校验其原文、译文与权限的保存结果。
 

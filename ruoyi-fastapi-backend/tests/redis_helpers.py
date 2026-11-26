@@ -44,7 +44,7 @@ class IsolatedRedisServer:
     :ivar run_id: 任务ID
     """
 
-    process: subprocess.Popen
+    process: subprocess.Popen[bytes]
     connection: dict[str, Any]
     run_id: str
 
@@ -92,7 +92,7 @@ def available_loopback_port() -> int:
     return port
 
 
-def stop_redis_process(process: subprocess.Popen) -> None:
+def stop_redis_process(process: subprocess.Popen[bytes]) -> None:
     """
     回收测试子进程，超时后强制结束并等待退出。
 

@@ -1,5 +1,6 @@
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -12,7 +13,7 @@ from plugins.core.validation.manifest import PluginManifestChecker
 from plugins.core.validation.structure import PluginStructureChecker
 
 
-def manifest_data(*, native: bool = False, asgi: bool = False, bundle: bool = False) -> dict:
+def manifest_data(*, native: bool = False, asgi: bool = False, bundle: bool = False) -> dict[str, Any]:
     """
     按后端类型准备插件清单字段。
 

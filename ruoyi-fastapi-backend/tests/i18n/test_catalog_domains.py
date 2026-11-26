@@ -3,6 +3,7 @@ import json
 from collections.abc import Generator
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, create_autospec
 
 import pytest
@@ -115,7 +116,7 @@ def test_plugin_plural_rules_and_domain_isolation(tmp_path: Path, count: int, ex
 
 
 @pytest.mark.parametrize('options', [{'count': 2}, {'plural_key': 'many'}, {'count': True, 'plural_key': 'many'}])
-def test_plural_contract_requires_explicit_pair(options: dict) -> None:
+def test_plural_contract_requires_explicit_pair(options: dict[str, Any]) -> None:
     """验证调用方必须同时提供数量和复数消息标识。"""
     with pytest.raises(ValueError):
         t('one', **options)

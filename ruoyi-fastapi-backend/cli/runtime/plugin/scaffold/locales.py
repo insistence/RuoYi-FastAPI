@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar
 
 
 class PluginLocaleScaffoldBuilder:
@@ -143,7 +143,7 @@ export default {{
         return files
 
     @classmethod
-    def load_metadata(cls, frontend_root: Path) -> dict:
+    def load_metadata(cls, frontend_root: Path) -> dict[str, Any]:
         """
         读取目标应用语言配置，独立测试目录使用模板默认配置。
 

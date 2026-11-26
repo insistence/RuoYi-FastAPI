@@ -31,6 +31,8 @@ from utils.gen_i18n_util import GenI18nUtil
 from utils.gen_util import GenUtils
 from utils.template_util import TemplateInitializer, TemplateUtils
 
+RenderInfo = tuple[list[str], list[str], dict[str, Any], GenTableModel]
+
 
 class GenTableService:
     """代码生成业务表服务层。"""
@@ -62,7 +64,7 @@ class GenTableService:
     @overload
     async def get_gen_table_list_services(
         cls, query_db: AsyncSession, query_object: GenTablePageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -73,7 +75,7 @@ class GenTableService:
     @classmethod
     async def get_gen_table_list_services(
         cls, query_db: AsyncSession, query_object: GenTablePageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取代码生成业务表列表信息service。
 
@@ -90,7 +92,7 @@ class GenTableService:
     @overload
     async def get_gen_db_table_list_services(
         cls, query_db: AsyncSession, query_object: GenTablePageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -104,7 +106,7 @@ class GenTableService:
         query_db: AsyncSession,
         query_object: GenTablePageQueryModel,
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取数据库列表信息service。
 
@@ -482,7 +484,7 @@ class GenTableService:
         return zip_data
 
     @classmethod
-    def _render_files(cls, env: Environment, render_info: list) -> dict[str, str]:
+    def _render_files(cls, env: Environment, render_info: RenderInfo) -> dict[str, str]:
         """
         渲染源码后收集模板登记的独立语言资源。
 
@@ -542,7 +544,7 @@ class GenTableService:
         return root
 
     @classmethod
-    async def __get_gen_render_info(cls, query_db: AsyncSession, table_name: str, source_name: str) -> list:
+    async def __get_gen_render_info(cls, query_db: AsyncSession, table_name: str, source_name: str) -> RenderInfo:
         """
         获取生成代码渲染模板相关信息。
 
@@ -566,7 +568,7 @@ class GenTableService:
         template_list = TemplateUtils.get_template_list(gen_table)
         output_files = [TemplateUtils.get_file_name(template, gen_table) for template in template_list]
 
-        return [template_list, output_files, context, gen_table]
+        return template_list, output_files, context, gen_table
 
     @classmethod
     async def sync_db_services(

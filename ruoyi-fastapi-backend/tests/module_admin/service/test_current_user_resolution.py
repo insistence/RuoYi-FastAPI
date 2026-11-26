@@ -13,7 +13,7 @@ from httpx import ASGITransport, AsyncClient
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import NoPermissionError, RedisError
 from redis.exceptions import TimeoutError as RedisTimeoutError
-from sqlalchemy import delete, event, update
+from sqlalchemy import delete, event, null, update
 from sqlalchemy.dialects.mysql import TINYINT
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.compiler import compiles
@@ -122,12 +122,14 @@ async def resolution_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Asy
                 SysPost(post_id=USER_ID, post_name='Developer', post_code='dev', post_sort=1, status='0'),
                 SysMenu(menu_id=USER_ID, menu_name='Read', perms='demo:read', status='0'),
                 SysMenu(menu_id=USER_ID + 1, menu_name='Disabled', perms='demo:disabled', status='1'),
+                SysMenu(menu_id=USER_ID + 2, menu_name='Directory', perms=null(), status='0'),
                 SysUserRole(user_id=ADMIN_ID, role_id=ADMIN_ID),
                 SysUserRole(user_id=USER_ID, role_id=USER_ID),
                 SysUserPost(user_id=ADMIN_ID, post_id=USER_ID),
                 SysUserPost(user_id=USER_ID, post_id=USER_ID),
                 SysRoleMenu(role_id=USER_ID, menu_id=USER_ID),
                 SysRoleMenu(role_id=USER_ID, menu_id=USER_ID + 1),
+                SysRoleMenu(role_id=USER_ID, menu_id=USER_ID + 2),
             ]
         )
     statements = []
@@ -243,7 +245,7 @@ async def test_use_cache_false_queries_and_renews_again_in_the_same_request(reso
     async def revalidate(
         first: Annotated[CurrentUserModel, CurrentUserDependency()],
         second: Annotated[CurrentUserModel, Depends(LoginService.get_current_user, use_cache=False)],
-    ) -> dict:
+    ) -> dict[str, object]:
         """
         返回含 ``sameUser``, ``permissions``, ``contextIsFresh`` 的测试数据。
 
@@ -470,7 +472,7 @@ async def test_redis_failure_rejects_protected_requests_and_recovers_without_rel
         description='返回服务健康状态，用于检查缓存服务故障时的公开访问。',
         dependencies=[PreAuthDependency([{'path': '/public-health'}])],
     )
-    async def public_health() -> dict:
+    async def public_health() -> dict[str, object]:
         """
         返回含 ``status`` 的测试数据。
 

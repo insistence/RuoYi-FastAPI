@@ -70,7 +70,7 @@ class FileRetentionDispositionService:
         current_user: CurrentUserModel,
         notice_id: int,
         extend_retention: ExtendFileRetentionModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
@@ -216,7 +216,7 @@ class FileRetentionDispositionService:
         current_user: CurrentUserModel,
         notice_id: int,
         dispose_file: DisposeExpiredFileModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
@@ -437,7 +437,7 @@ class FileLifecycleService:
         query_db: AsyncSession,
         current_user: CurrentUserModel,
         delete_file: DeleteFileModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
@@ -553,7 +553,7 @@ class FileLifecycleService:
         query_db: AsyncSession,
         current_user: CurrentUserModel,
         file_ids: str,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
@@ -756,7 +756,7 @@ class FileLifecycleService:
         query_db: AsyncSession,
         current_user: CurrentUserModel,
         file_ids: str,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
@@ -960,9 +960,9 @@ class FileQueryService:
         cls,
         query_db: AsyncSession,
         query_object: FileInfoPageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: Literal[True] = True,
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -970,7 +970,7 @@ class FileQueryService:
         cls,
         query_db: AsyncSession,
         query_object: FileInfoPageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: Literal[False],
     ) -> list[dict[str, Any]]: ...
 
@@ -979,9 +979,9 @@ class FileQueryService:
         cls,
         query_db: AsyncSession,
         query_object: FileInfoPageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: bool = True,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取文件信息列表service。
 
@@ -1003,7 +1003,7 @@ class FileQueryService:
         cls,
         query_db: AsyncSession,
         query_object: FileInfoPageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> FileStatsModel:
         """
         获取文件管理统计信息service。
@@ -1020,7 +1020,7 @@ class FileQueryService:
         cls,
         query_db: AsyncSession,
         file_id: str,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> FileInfoDisplayModel:
         """
         获取文件详细信息service。
@@ -1046,9 +1046,9 @@ class FileQueryService:
         query_db: AsyncSession,
         file_id: str,
         query_object: FileAccessLogPageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: Literal[True] = True,
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -1057,7 +1057,7 @@ class FileQueryService:
         query_db: AsyncSession,
         file_id: str,
         query_object: FileAccessLogPageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: Literal[False],
     ) -> list[dict[str, Any]]: ...
 
@@ -1067,9 +1067,9 @@ class FileQueryService:
         query_db: AsyncSession,
         file_id: str,
         query_object: FileAccessLogPageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: bool = True,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取文件访问审计列表service。
 
@@ -1108,9 +1108,9 @@ class FileTransferService:
         current_user: CurrentUserModel,
         file_ids: str,
         transfer_file: TransferFileModel,
-        file_data_scope_sql: ColumnElement,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
         request: Request | None = None,
     ) -> CrudResponseModel:
         """
@@ -1388,7 +1388,7 @@ class FileReconcileService:
         current_user: CurrentUserModel,
         query_object: FileReconcileRunPageQueryModel,
         is_page: Literal[True] = True,
-    ) -> PageModel: ...
+    ) -> PageModel[FileReconcileRunModel]: ...
 
     @classmethod
     @overload
@@ -1407,7 +1407,7 @@ class FileReconcileService:
         current_user: CurrentUserModel,
         query_object: FileReconcileRunPageQueryModel,
         is_page: bool = True,
-    ) -> PageModel | list[FileReconcileRunModel]:
+    ) -> PageModel[FileReconcileRunModel] | list[FileReconcileRunModel]:
         """
         获取文件存储对账任务列表。
 
@@ -1420,7 +1420,7 @@ class FileReconcileService:
         cls._require_admin(current_user)
         run_list = await FileInfoDao.get_reconcile_run_list(query_db, query_object, is_page)
         if isinstance(run_list, PageModel):
-            return PageModel.model_validate(
+            return PageModel[FileReconcileRunModel].model_validate(
                 {
                     'rows': [FileReconcileRunModel.model_validate(row, by_name=True) for row in run_list.rows],
                     'page_num': run_list.page_num,
@@ -1440,7 +1440,7 @@ class FileReconcileService:
         current_user: CurrentUserModel,
         query_object: FileReconcileIssuePageQueryModel,
         is_page: Literal[True] = True,
-    ) -> PageModel: ...
+    ) -> PageModel[FileReconcileIssueModel]: ...
 
     @classmethod
     @overload
@@ -1459,7 +1459,7 @@ class FileReconcileService:
         current_user: CurrentUserModel,
         query_object: FileReconcileIssuePageQueryModel,
         is_page: bool = True,
-    ) -> PageModel | list[FileReconcileIssueModel]:
+    ) -> PageModel[FileReconcileIssueModel] | list[FileReconcileIssueModel]:
         """
         获取文件存储对账异常列表。
 
@@ -1478,7 +1478,7 @@ class FileReconcileService:
             issue_model.available_actions = cls._get_available_actions(issue_model)
             issue_models.append(issue_model)
         if isinstance(issue_list, PageModel):
-            return PageModel.model_validate(
+            return PageModel[FileReconcileIssueModel].model_validate(
                 {
                     'rows': issue_models,
                     'page_num': issue_list.page_num,

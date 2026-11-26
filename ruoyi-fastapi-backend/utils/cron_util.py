@@ -1,6 +1,7 @@
 import re
 from calendar import monthrange
 from datetime import UTC, datetime, tzinfo
+from typing import Any
 
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.cron.expressions import AllExpression
@@ -88,7 +89,7 @@ class MyCronTrigger(CronTrigger):
     WEEKDAYS = ('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat')
     NUMERIC_FIELD = re.compile(r'(?:\*|\d+(?:-\d+)?)(?:/\d+)?(?:,(?:\*|\d+(?:-\d+)?)(?:/\d+)?)*')
 
-    def __getstate__(self) -> dict:
+    def __getstate__(self) -> dict[str, Any]:
         """
         序列化Cron规则及业务分组快照。
 
@@ -96,7 +97,7 @@ class MyCronTrigger(CronTrigger):
         """
         return {**super().__getstate__(), 'task_job_group': getattr(self, 'task_job_group', 'default')}
 
-    def __setstate__(self, state: dict) -> None:
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """
         恢复Cron规则及业务分组快照。
 

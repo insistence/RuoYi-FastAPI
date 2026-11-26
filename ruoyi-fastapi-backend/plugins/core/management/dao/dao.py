@@ -79,7 +79,7 @@ class PluginDao:
         db: AsyncSession,
         query_object: PluginPageQueryModel,
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取插件列表。
 
@@ -100,7 +100,7 @@ class PluginDao:
             .order_by(SysPlugin.plugin_id)
             .distinct()
         )
-        plugin_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        plugin_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db,
             query,
             query_object.page_num,
@@ -139,7 +139,7 @@ class PluginDao:
         )
 
     @classmethod
-    async def update_plugin(cls, db: AsyncSession, plugin: dict) -> None:
+    async def update_plugin(cls, db: AsyncSession, plugin: dict[str, Any]) -> None:
         """
         更新插件。
 
@@ -603,7 +603,7 @@ class PluginDao:
         return db_plugin_config
 
     @classmethod
-    async def update_plugin_config(cls, db: AsyncSession, plugin_config: dict) -> None:
+    async def update_plugin_config(cls, db: AsyncSession, plugin_config: dict[str, Any]) -> None:
         """
         更新插件配置。
 
@@ -642,7 +642,7 @@ class PluginDao:
         db: AsyncSession,
         query_object: PluginOperationLogPageQueryModel,
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取插件批量操作审计日志列表。
 
@@ -654,7 +654,7 @@ class PluginDao:
         query = (
             cls._build_operation_log_query(query_object).order_by(SysPluginOperationLog.operation_id.desc()).distinct()
         )
-        operation_log_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        operation_log_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db,
             query,
             query_object.page_num,
@@ -929,7 +929,7 @@ class PluginDao:
         return db_menu
 
     @classmethod
-    async def update_sys_menu(cls, db: AsyncSession, menu: dict) -> None:
+    async def update_sys_menu(cls, db: AsyncSession, menu: dict[str, Any]) -> None:
         """
         更新系统菜单。
 

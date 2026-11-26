@@ -27,8 +27,12 @@ class AiModelDao:
 
     @classmethod
     async def get_ai_model_list(
-        cls, db: AsyncSession, query_object: AiModelPageQueryModel, data_scope_sql: ColumnElement, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+        cls,
+        db: AsyncSession,
+        query_object: AiModelPageQueryModel,
+        data_scope_sql: ColumnElement[bool],
+        is_page: bool = False,
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取AI模型列表信息。
 
@@ -50,7 +54,7 @@ class AiModelDao:
             )
             .order_by(AiModels.model_sort)
         )
-        ai_model_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        ai_model_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -72,7 +76,7 @@ class AiModelDao:
         return db_model
 
     @classmethod
-    async def edit_ai_model_dao(cls, db: AsyncSession, ai_model: dict) -> None:
+    async def edit_ai_model_dao(cls, db: AsyncSession, ai_model: dict[str, Any]) -> None:
         """
         编辑AI模型数据库操作。
 

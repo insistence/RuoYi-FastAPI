@@ -30,15 +30,15 @@ PUBLICATION_READS_WITH_ONE_CONFLICT = 3
 async def test_late_dict_refresh_cannot_overwrite_a_newer_publication(
     cache_redis: Redis,  # noqa: F811
     monkeypatch: pytest.MonkeyPatch,
-    latest: list[dict | None],
+    latest: list[dict[str, object] | None],
 ) -> None:
     """在旧查询读完后发布新值，确认重试使用新的数据库会话。"""
-    rows: list[dict | None] = [{'dictLabel': '红', 'dictLabelI18n': {'en-US': 'Red'}}]
+    rows: list[dict[str, object] | None] = [{'dictLabel': '红', 'dictLabelI18n': {'en-US': 'Red'}}]
     old_read = asyncio.Event()
     resume_refresh = asyncio.Event()
     read_sessions: list[AsyncSession] = []
 
-    async def query(db: AsyncSession, name: str) -> list[dict | None]:
+    async def query(db: AsyncSession, name: str) -> list[dict[str, object] | None]:
         """
         模拟读取数据库快照并记录查询状态。
 

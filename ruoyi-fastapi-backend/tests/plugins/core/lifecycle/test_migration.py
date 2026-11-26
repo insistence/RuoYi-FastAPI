@@ -13,7 +13,7 @@ from plugins.core.lifecycle.migration import (
 )
 
 
-class FakeManagedMigrationSession(list):
+class FakeManagedMigrationSession(list[object]):
     """
     测试用托管 migration 执行 session。
 

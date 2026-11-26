@@ -522,7 +522,7 @@ class LoggerInitializer:
         exception_text = self._get_exception_traceback_text(record.get('exception'))
         return f'\n{exception_text}' if exception_text else ''
 
-    def _build_json_payload(self, record: 'Record') -> dict:
+    def _build_json_payload(self, record: 'Record') -> dict[str, object]:
         """
         构建统一的 JSON 日志结构。
 

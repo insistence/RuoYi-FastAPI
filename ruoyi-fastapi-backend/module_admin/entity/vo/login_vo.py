@@ -14,7 +14,7 @@ class UserLogin(CamelModel):
     password: str = Field(description='用户密码')
     code: str | None = Field(default=None, description='验证码')
     uuid: str | None = Field(default=None, description='会话编号')
-    login_info: dict | None = Field(default=None, description='登录信息，前端无需传递')
+    login_info: dict[str, object] | None = Field(default=None, description='登录信息，前端无需传递')
     captcha_enabled: bool | None = Field(default=None, description='是否启用验证码，前端无需传递')
 
 

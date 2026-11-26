@@ -26,7 +26,7 @@ from scripts.migrate_job_fields import (
         ('{"a": 1}', [{'a': 1}]),
     ],
 )
-def test_legacy_args_keep_the_old_execution_meaning(value: str | None, expected: list) -> None:
+def test_legacy_args_keep_the_old_execution_meaning(value: str | None, expected: list[object]) -> None:
     """旧版参数保留原执行语义。"""
     assert parse_legacy_args(value) == expected
 

@@ -210,7 +210,7 @@ class TemplateUtils:
                     column.html_type = semantics.control
 
     @classmethod
-    def set_extensions_context(cls, context: dict, gen_table: GenTableModel) -> None:
+    def set_extensions_context(cls, context: dict[str, Any], gen_table: GenTableModel) -> None:
         """
         设置扩展功能上下文。
 
@@ -221,7 +221,7 @@ class TemplateUtils:
         context['genView'] = cls.get_gen_view(params_obj)
 
     @classmethod
-    def set_menu_context(cls, context: dict, gen_table: GenTableModel) -> None:
+    def set_menu_context(cls, context: dict[str, Any], gen_table: GenTableModel) -> None:
         """
         设置菜单上下文。
 
@@ -232,7 +232,7 @@ class TemplateUtils:
         context['parentMenuId'] = cls.get_parent_menu_id(params_obj)
 
     @classmethod
-    def set_tree_context(cls, context: dict, gen_table: GenTableModel) -> None:
+    def set_tree_context(cls, context: dict[str, Any], gen_table: GenTableModel) -> None:
         """
         设置树形结构上下文。
 
@@ -246,7 +246,7 @@ class TemplateUtils:
         context['expandColumn'] = cls.get_expand_column(gen_table)
 
     @classmethod
-    def set_sub_context(cls, context: dict, gen_table: GenTableModel) -> None:
+    def set_sub_context(cls, context: dict[str, Any], gen_table: GenTableModel) -> None:
         """
         设置子表上下文。
 
@@ -499,7 +499,7 @@ class TemplateUtils:
         return cls.FORM_COL_SPAN_MAP.get(form_col_num, '24')
 
     @classmethod
-    def get_parent_menu_id(cls, params_obj: dict) -> int | str:
+    def get_parent_menu_id(cls, params_obj: dict[str, Any]) -> int | str:
         """
         获取上级菜单ID。
 
@@ -512,7 +512,7 @@ class TemplateUtils:
         return cls.DEFAULT_PARENT_MENU_ID
 
     @classmethod
-    def get_gen_view(cls, params_obj: dict | None) -> bool:
+    def get_gen_view(cls, params_obj: dict[str, Any] | None) -> bool:
         """
         获取是否生成详情页。
 
@@ -529,7 +529,7 @@ class TemplateUtils:
         return str(value).lower() in {'1', 'true', 'yes', 'y'}
 
     @classmethod
-    def get_tree_code(cls, params_obj: dict) -> str:
+    def get_tree_code(cls, params_obj: dict[str, Any]) -> str:
         """
         获取树编码。
 
@@ -541,7 +541,7 @@ class TemplateUtils:
         return ''
 
     @classmethod
-    def get_tree_parent_code(cls, params_obj: dict) -> str:
+    def get_tree_parent_code(cls, params_obj: dict[str, Any]) -> str:
         """
         获取树父编码。
 
@@ -553,7 +553,7 @@ class TemplateUtils:
         return ''
 
     @classmethod
-    def get_tree_name(cls, params_obj: dict) -> str:
+    def get_tree_name(cls, params_obj: dict[str, Any]) -> str:
         """
         获取树名称。
 

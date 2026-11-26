@@ -68,10 +68,10 @@ class SessionMetricsModel(CamelModel):
     input_tokens: int | None = Field(default=None, description='输入Token数量')
     total_tokens: int | None = Field(default=None, description='总Token数量')
     output_tokens: int | None = Field(default=None, description='输出Token数量')
-    provider_metrics: dict | None = Field(default=None, description='提供者指标')
+    provider_metrics: dict[str, object] | None = Field(default=None, description='提供者指标')
     reasoning_tokens: int | None = Field(default=None, description='推理Token数量')
     cache_read_tokens: int | None = Field(default=None, description='缓存读取Token数量')
-    additional_metrics: dict | None = Field(default=None, description='其他指标')
+    additional_metrics: dict[str, object] | None = Field(default=None, description='其他指标')
     audio_input_tokens: int | None = Field(default=None, description='音频输入Token数量')
     audio_total_tokens: int | None = Field(default=None, description='音频总Token数量')
     cache_write_tokens: int | None = Field(default=None, description='缓存写入Token数量')
@@ -82,7 +82,7 @@ class SessionMetricsModel(CamelModel):
 class SessionDataModel(CamelModel):
     """对话会话数据模型。"""
 
-    session_state: dict | None = Field(default=None, description='会话状态')
+    session_state: dict[str, object] | None = Field(default=None, description='会话状态')
     session_metrics: SessionMetricsModel | None = Field(default=None, description='会话指标')
 
 

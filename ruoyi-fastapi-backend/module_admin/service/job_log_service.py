@@ -21,7 +21,7 @@ class JobLogService:
     @overload
     async def get_job_log_list_services(
         cls, query_db: AsyncSession, query_object: JobLogPageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -32,7 +32,7 @@ class JobLogService:
     @classmethod
     async def get_job_log_list_services(
         cls, query_db: AsyncSession, query_object: JobLogPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取定时任务日志列表信息service。
 
@@ -108,7 +108,7 @@ class JobLogService:
         return result
 
     @staticmethod
-    async def export_job_log_list_services(request: Request, job_log_list: list) -> bytes:
+    async def export_job_log_list_services(request: Request, job_log_list: list[dict[str, Any]]) -> bytes:
         """
         导出定时任务日志信息service。
 

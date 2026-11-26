@@ -117,7 +117,7 @@ class RedisPluginLifecycleLock:
         lock_key = self._build_lock_key()
         lock_value = f'{plugin_id}:{operation}:{uuid4()}'
         acquired = False
-        renewal_task: asyncio.Task | None = None
+        renewal_task: asyncio.Task[None] | None = None
         body_failed = False
         try:
             try:
@@ -170,8 +170,8 @@ class RedisPluginLifecycleLock:
         redis: aioredis.Redis,
         lock_key: str,
         lock_value: str,
-        owner_task: asyncio.Task | None = None,
-    ) -> asyncio.Task:
+        owner_task: asyncio.Task[object] | None = None,
+    ) -> asyncio.Task[None]:
         """
         启动生命周期锁续期任务。
 
@@ -188,7 +188,7 @@ class RedisPluginLifecycleLock:
         redis: aioredis.Redis,
         lock_key: str,
         lock_value: str,
-        owner_task: asyncio.Task | None = None,
+        owner_task: asyncio.Task[object] | None = None,
     ) -> None:
         """
         周期性续期生命周期锁。
@@ -218,7 +218,7 @@ class RedisPluginLifecycleLock:
                 raise PluginLifecycleLockLost(data='', message=message) from exc
 
     @staticmethod
-    def _get_renewal_error(renewal_task: asyncio.Task | None) -> PluginLifecycleLockLost | None:
+    def _get_renewal_error(renewal_task: asyncio.Task[None] | None) -> PluginLifecycleLockLost | None:
         """
         获取续期任务失败原因。
 
@@ -233,7 +233,7 @@ class RedisPluginLifecycleLock:
             return None
         return exc if isinstance(exc, PluginLifecycleLockLost) else None
 
-    async def _stop_lock_renewal(self, renewal_task: asyncio.Task) -> PluginLifecycleLockLost | None:
+    async def _stop_lock_renewal(self, renewal_task: asyncio.Task[None]) -> PluginLifecycleLockLost | None:
         """
         停止锁续期任务并返回续期失败原因。
 

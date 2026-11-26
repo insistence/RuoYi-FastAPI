@@ -70,7 +70,7 @@ def test_react_preview_preserves_unicode_and_safe_string_literals(category: str,
     environment = TemplateInitializer.init_jinja2()
     templates = TemplateUtils.get_template_list(table)
     filenames = [TemplateUtils.get_file_name(name, table) for name in templates]
-    files = GenTableService._render_files(environment, [templates, filenames, context, table])
+    files = GenTableService._render_files(environment, (templates, filenames, context, table))
     namespace = context['i18nNamespace']
     resource = files[f'frontend/src/i18n/locales/zh-CN/{namespace}.json']
     assert '中文名称「测试」😀' in resource

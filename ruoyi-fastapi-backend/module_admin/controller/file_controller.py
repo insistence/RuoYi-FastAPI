@@ -83,7 +83,7 @@ async def get_system_file_list(
     file_page_query: Annotated[FileInfoPageQueryModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -110,7 +110,7 @@ async def get_system_file_stats(
     file_page_query: Annotated[FileInfoPageQueryModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -359,7 +359,7 @@ async def get_system_file_retention_reminder_list(
     reminder_page_query: Annotated[FileRetentionNoticePageQueryModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -390,7 +390,7 @@ async def scan_system_file_retention_reminder(
     request: Request,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -422,7 +422,7 @@ async def read_system_file_retention_reminder(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -456,7 +456,7 @@ async def extend_system_file_retention(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -489,7 +489,7 @@ async def dispose_system_expired_file(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -517,8 +517,8 @@ async def search_system_file_acl_subjects(
     request: Request,
     subject_type: Annotated[Literal['user', 'role', 'dept'], Query(alias='subjectType')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    user_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysUser)],
-    dept_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    user_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysUser)],
+    dept_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
     keyword: Annotated[str | None, Query(max_length=50)] = None,
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> Response:
@@ -545,7 +545,7 @@ async def search_system_file_acl_subjects(
 async def get_system_file_acl_dept_tree(
     request: Request,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    dept_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    dept_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     dept_tree_result = await FileAclService.get_file_acl_dept_tree_services(query_db, dept_data_scope_sql)
     logger.info('文件授权部门树获取成功')
@@ -568,11 +568,11 @@ async def batch_save_system_file_acl(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
-    user_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysUser)],
-    dept_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    user_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysUser)],
+    dept_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     save_file_acl_result = await FileAclService.batch_save_file_acl_services(
         query_db,
@@ -600,11 +600,11 @@ async def get_system_file_acl_list(
     file_id: UUID,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
-    user_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysUser)],
-    dept_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    user_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysUser)],
+    dept_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     file_acl_list_result = await FileAclService.get_file_acl_list_services(
         query_db,
@@ -634,11 +634,11 @@ async def save_system_file_acl(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
-    user_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysUser)],
-    dept_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    user_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysUser)],
+    dept_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     save_file_acl_result = await FileAclService.save_file_acl_services(
         query_db,
@@ -667,7 +667,7 @@ async def get_system_file_reference_list(
     file_id: UUID,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -694,7 +694,7 @@ async def get_system_file_access_log_list(
     access_log_page_query: Annotated[FileAccessLogPageQueryModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -736,7 +736,7 @@ async def download_system_file(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -779,11 +779,11 @@ async def transfer_system_file(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
-    user_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysUser)],
-    dept_data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    user_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysUser)],
+    dept_data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     transfer_file_result = await FileTransferService.transfer_file_services(
         query_db,
@@ -815,7 +815,7 @@ async def delete_system_file(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -846,7 +846,7 @@ async def restore_system_file(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -877,7 +877,7 @@ async def purge_system_file(
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:
@@ -905,7 +905,7 @@ async def get_system_file_detail(
     file_id: UUID,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     file_data_scope_sql: Annotated[
-        ColumnElement,
+        ColumnElement[bool],
         DataScopeDependency(SysFileInfo, user_alias='owner_user_id', dept_alias='dept_id'),
     ],
 ) -> Response:

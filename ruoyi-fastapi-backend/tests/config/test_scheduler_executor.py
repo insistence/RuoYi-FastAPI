@@ -169,7 +169,7 @@ async def test_thread_queue_wait_does_not_become_execution_start() -> None:
     scheduler.add_job(pow, args=[2, 3])
     original_run_in_executor = loop.run_in_executor
 
-    def use_single_worker(executor: object, function: Callable, *args) -> asyncio.Future:
+    def use_single_worker(executor: object, function: Callable[..., object], *args) -> asyncio.Future[object]:
         """
         将执行任务提交给指定的工作线程池。
 

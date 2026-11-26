@@ -20,6 +20,7 @@ from module_identity.controller.authorization_controller import authorization_co
 from module_identity.controller.oauth_session_controller import oauth_grant_controller
 from module_identity.dao.sso_session_dao import SsoSessionDao
 from module_identity.entity.do.oauth_grant_do import SysOAuthGrant, SysSsoSessionClient
+from module_identity.entity.vo.oauth_client_vo import ClientSecretResponseModel
 from module_identity.entity.vo.oauth_session_vo import (
     AccessPolicyPageQueryModel,
     GrantPageQueryModel,
@@ -34,7 +35,7 @@ from module_identity.service.oauth_management_service import OAuthClientManageme
 from module_identity.service.oauth_session_management_service import OAuthSessionManagementService
 from module_identity.service.session_service import LogoutService, SsoSessionService
 from module_identity.service.token_protocol_service import IntrospectionService, RevocationService
-from module_identity.service.token_service import TokenService
+from module_identity.service.token_service import TokenResult, TokenService
 from tests.module_identity.services.test_authentication_regressions import (
     _PEPPER,
     _VERIFIER,
@@ -61,7 +62,7 @@ def _basic(client_id: str, secret: str) -> str:
     return 'Basic ' + base64.b64encode(f'{quote_plus(client_id)}:{quote_plus(secret)}'.encode()).decode()
 
 
-async def _confidential_token(flow: SimpleNamespace) -> tuple:
+async def _confidential_token(flow: SimpleNamespace) -> tuple[TokenResult, ClientSecretResponseModel, str]:
     """
     通过机密客户端的真实授权码流程签发离线令牌。
 

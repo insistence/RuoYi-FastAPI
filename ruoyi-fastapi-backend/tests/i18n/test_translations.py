@@ -1,5 +1,6 @@
 from collections.abc import Awaitable, Callable
 from copy import deepcopy
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -71,7 +72,7 @@ def test_query_models_do_not_expose_translation_objects_as_query_parameters() ->
 )
 async def test_updates_merge_languages_and_preserve_maps_from_old_clients(
     model: type[Base],
-    dao: Callable[[AsyncSession, dict], Awaitable[None]],
+    dao: Callable[[AsyncSession, dict[str, Any]], Awaitable[None]],
     primary_key: str,
     field: str,
     attributes: dict[str, str],

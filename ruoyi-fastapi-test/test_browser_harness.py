@@ -21,7 +21,9 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.harness
 
 
-def login_response(status: HTTPStatus, *, retry_after: str | None = None, payload: dict | None = None) -> MagicMock:
+def login_response(
+    status: HTTPStatus, *, retry_after: str | None = None, payload: dict[str, object] | None = None
+) -> MagicMock:
     """
     构造登录协议响应，保留 HTTP 状态、响应头和异步 JSON 读取语义。
 

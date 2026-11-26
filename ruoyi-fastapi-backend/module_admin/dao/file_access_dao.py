@@ -73,7 +73,7 @@ class FileAclDao:
         )
 
     @classmethod
-    async def get_acl_dept_list(cls, db: AsyncSession, dept_data_scope_sql: ColumnElement) -> list[SysDept]:
+    async def get_acl_dept_list(cls, db: AsyncSession, dept_data_scope_sql: ColumnElement[bool]) -> list[SysDept]:
         """
         获取文件授权可选部门列表。
 
@@ -131,8 +131,8 @@ class FileAclDao:
         cls,
         db: AsyncSession,
         subject_ids: dict[str, set[int]],
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> dict[tuple[str, int], str]:
         """
         获取访问控制主体名称映射。
@@ -200,8 +200,8 @@ class FileAclDao:
         subject_type: str,
         keyword: str | None,
         limit: int,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> list[dict[str, Any]]:
         """
         查询访问控制主体选项。
@@ -263,7 +263,7 @@ class FileAclDao:
         cls,
         db: AsyncSession,
         role_rows: Sequence[Row[int, str] | tuple[int, str]],
-        user_data_scope_sql: ColumnElement,
+        user_data_scope_sql: ColumnElement[bool],
     ) -> list[tuple[int, str]]:
         """
         过滤包含数据权限范围外成员的角色。
@@ -337,7 +337,7 @@ class FileAccessLogDao:
         file_id: str,
         query_object: FileAccessLogPageQueryModel,
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取文件访问审计列表。
 

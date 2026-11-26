@@ -1,5 +1,6 @@
 import re
 from http import HTTPStatus
+from typing import Any
 from urllib.parse import urlparse
 
 import pytest
@@ -12,7 +13,7 @@ from common.ui import button_name
 pytestmark = pytest.mark.e2e
 
 
-async def assert_monitor_snapshot(page: Page, payload: dict) -> None:
+async def assert_monitor_snapshot(page: Page, payload: dict[str, Any]) -> None:
     """
     核对同一响应中的启用状态、计数及环境配置。
 

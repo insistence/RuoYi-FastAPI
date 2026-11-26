@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Any
 
 from sqlalchemy import ColumnElement, bindparam, func, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,7 +72,7 @@ class DeptDao:
 
     @classmethod
     async def get_dept_info_for_edit_option(
-        cls, db: AsyncSession, dept_info: DeptModel, data_scope_sql: ColumnElement
+        cls, db: AsyncSession, dept_info: DeptModel, data_scope_sql: ColumnElement[bool]
     ) -> Sequence[SysDept]:
         """
         获取部门编辑对应的在用部门列表信息。
@@ -121,7 +122,7 @@ class DeptDao:
 
     @classmethod
     async def get_dept_list_for_tree(
-        cls, db: AsyncSession, dept_info: DeptModel, data_scope_sql: ColumnElement
+        cls, db: AsyncSession, dept_info: DeptModel, data_scope_sql: ColumnElement[bool]
     ) -> Sequence[SysDept]:
         """
         获取所有在用部门列表信息。
@@ -153,7 +154,7 @@ class DeptDao:
 
     @classmethod
     async def get_dept_list(
-        cls, db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement
+        cls, db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement[bool]
     ) -> Sequence[SysDept]:
         """
         根据查询参数获取部门列表信息。
@@ -200,7 +201,7 @@ class DeptDao:
         return db_dept
 
     @classmethod
-    async def edit_dept_dao(cls, db: AsyncSession, dept: dict) -> None:
+    async def edit_dept_dao(cls, db: AsyncSession, dept: dict[str, Any]) -> None:
         """
         编辑部门数据库操作。
 
@@ -213,7 +214,7 @@ class DeptDao:
         )
 
     @classmethod
-    async def update_dept_children_dao(cls, db: AsyncSession, update_dept: list) -> None:
+    async def update_dept_children_dao(cls, db: AsyncSession, update_dept: list[dict[str, int | str]]) -> None:
         """
         更新子部门信息。
 
@@ -250,7 +251,7 @@ class DeptDao:
         )
 
     @classmethod
-    async def update_dept_status_normal_dao(cls, db: AsyncSession, dept_id_list: list) -> None:
+    async def update_dept_status_normal_dao(cls, db: AsyncSession, dept_id_list: list[int]) -> None:
         """
         批量更新部门状态为正常。
 

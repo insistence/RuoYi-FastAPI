@@ -277,8 +277,8 @@ class UserLocaleModel(BaseModel):
 class CurrentUserModel(CamelModel):
     """当前已认证用户及其权限信息。"""
 
-    permissions: list = Field(description='权限信息')
-    roles: list = Field(description='角色信息')
+    permissions: list[str] = Field(description='权限信息')
+    roles: list[str] = Field(description='角色信息')
     user: UserInfoModel = Field(description='用户信息')
     app_timezone: str = Field(default='UTC', description='业务时区（IANA）')
     pwd_chrtype: str = Field(default='0', description='密码字符范围')
@@ -290,9 +290,9 @@ class UserDetailModel(CamelModel):
     """获取用户详情信息响应模型。"""
 
     data: UserInfoModel | None = Field(default=None, description='用户信息')
-    post_ids: list | None = Field(default=None, description='岗位ID信息')
+    post_ids: list[int] | None = Field(default=None, description='岗位ID信息')
     posts: list[PostModel | None] = Field(description='岗位信息')
-    role_ids: list | None = Field(default=None, description='角色ID信息')
+    role_ids: list[int] | None = Field(default=None, description='角色ID信息')
     roles: list[RoleModel | None] = Field(description='角色信息')
 
 
@@ -327,15 +327,15 @@ class UserPageQueryModel(UserQueryModel):
 class AddUserModel(UserModel):
     """新增用户模型。"""
 
-    role_ids: list | None = Field(default=[], description='角色ID信息')
-    post_ids: list | None = Field(default=[], description='岗位ID信息')
+    role_ids: list[int] | None = Field(default=[], description='角色ID信息')
+    post_ids: list[int] | None = Field(default=[], description='岗位ID信息')
     type: str | None = Field(default=None, description='操作类型')
 
 
 class EditUserModel(AddUserModel):
     """编辑用户模型。"""
 
-    role: list | None = Field(default=[], description='角色信息')
+    role: list[RoleModel | None] | None = Field(default=[], description='角色信息')
 
 
 class ResetPasswordModel(CamelModel):

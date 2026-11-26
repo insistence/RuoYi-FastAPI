@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -36,7 +36,7 @@ def test_http_boundaries_return_validation_errors() -> None:
     @app.get(
         '/query', summary='校验日期查询参数', description='返回通过校验的日期查询条件，错误参数触发 HTTP 校验响应。'
     )
-    def date_query(query: Annotated[ConfigPageQueryModel, Query()]) -> dict:
+    def date_query(query: Annotated[ConfigPageQueryModel, Query()]) -> dict[str, Any]:
         return query.model_dump()
 
     with TestClient(app, raise_server_exceptions=False) as client:

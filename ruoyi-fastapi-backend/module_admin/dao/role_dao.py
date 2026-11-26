@@ -129,8 +129,12 @@ class RoleDao:
 
     @classmethod
     async def get_role_list(
-        cls, db: AsyncSession, query_object: RolePageQueryModel, data_scope_sql: ColumnElement, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+        cls,
+        db: AsyncSession,
+        query_object: RolePageQueryModel,
+        data_scope_sql: ColumnElement[bool],
+        is_page: bool = False,
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取角色列表信息。
 
@@ -161,7 +165,7 @@ class RoleDao:
             .order_by(SysRole.role_sort)
             .distinct()
         )
-        role_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        role_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -183,7 +187,7 @@ class RoleDao:
         return db_role
 
     @classmethod
-    async def edit_role_dao(cls, db: AsyncSession, role: dict) -> None:
+    async def edit_role_dao(cls, db: AsyncSession, role: dict[str, Any]) -> None:
         """
         编辑角色数据库操作。
 

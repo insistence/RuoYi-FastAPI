@@ -67,7 +67,7 @@ class DictTypeDao:
     @classmethod
     async def get_dict_type_list(
         cls, db: AsyncSession, query_object: DictTypePageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取字典类型列表信息。
 
@@ -91,7 +91,7 @@ class DictTypeDao:
             .order_by(SysDictType.dict_id)
             .distinct()
         )
-        dict_type_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        dict_type_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -114,7 +114,7 @@ class DictTypeDao:
         return db_dict_type
 
     @classmethod
-    async def edit_dict_type_dao(cls, db: AsyncSession, dict_type: dict) -> None:
+    async def edit_dict_type_dao(cls, db: AsyncSession, dict_type: dict[str, Any]) -> None:
         """
         编辑字典类型数据库操作。
 
@@ -188,7 +188,7 @@ class DictDataDao:
     @classmethod
     async def get_dict_data_list(
         cls, db: AsyncSession, query_object: DictDataPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取字典数据列表信息。
 
@@ -207,7 +207,7 @@ class DictDataDao:
             .order_by(SysDictData.dict_sort)
             .distinct()
         )
-        dict_data_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        dict_data_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -260,7 +260,7 @@ class DictDataDao:
         return db_data_type
 
     @classmethod
-    async def edit_dict_data_dao(cls, db: AsyncSession, dict_data: dict) -> None:
+    async def edit_dict_data_dao(cls, db: AsyncSession, dict_data: dict[str, Any]) -> None:
         """
         编辑字典数据数据库操作。
 

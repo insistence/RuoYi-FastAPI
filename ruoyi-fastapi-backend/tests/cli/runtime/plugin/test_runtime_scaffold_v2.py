@@ -8,6 +8,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -25,7 +26,7 @@ PLUGIN_ID = 'invoice_ops_27'
 TEMPLATES = ('python-asgi', 'python-bundle', 'rust-asgi', 'rust-bundle')
 
 
-def generate(tmp_path: Path, template: str, *, dry_run: bool = False, test: bool = True) -> tuple[dict, Path]:
+def generate(tmp_path: Path, template: str, *, dry_run: bool = False, test: bool = True) -> tuple[dict[str, Any], Path]:
     """
     在临时宿主目录中生成指定 v2 模板。
 
@@ -301,7 +302,7 @@ def test_v2_python_templates_describe_explicit_release_files(tmp_path: Path, tem
     ],
 )
 def test_v2_templates_reject_incompatible_legacy_options(
-    tmp_path: Path, template: str, options: dict, error: str
+    tmp_path: Path, template: str, options: dict[str, Any], error: str
 ) -> None:
     """验证 v2 模板拒绝不兼容的旧版选项。"""
     payload = build_runtime(tmp_path / 'backend', frontend_root=FRONTEND_ROOT).create_plugin(

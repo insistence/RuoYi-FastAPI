@@ -51,7 +51,7 @@ def catalogs() -> None:
     ],
 )
 def test_explicit_type_messages_preserve_only_public_constraints(
-    error: dict[str, Any], key: str, params: dict, text: str
+    error: dict[str, Any], key: str, params: dict[str, object], text: str
 ) -> None:
     """验证错误类型映射仅公开该类型声明的约束参数。"""
     token = RequestContext.set_current_locale(LocaleContext('en-US'))
@@ -96,7 +96,7 @@ async def test_real_422_handles_json_and_custom_validation_without_echoing_input
     add_locale_middleware(app)
 
     @app.post('/validate', summary='校验请求字段', description='校验请求体中的名称和查询参数中的数量，并返回有效值。')
-    async def validate(body: ValidationBody, count: Annotated[int, Query(ge=1)]) -> dict:
+    async def validate(body: ValidationBody, count: Annotated[int, Query(ge=1)]) -> dict[str, object]:
         return {'name': body.name, 'count': count}
 
     @app.get(

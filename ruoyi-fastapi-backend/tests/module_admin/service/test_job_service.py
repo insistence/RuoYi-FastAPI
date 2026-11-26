@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -42,7 +43,7 @@ async def test_job_mutations_only_request_targeted_sync_after_commit(
                 raise RuntimeError('transaction failed')
             await commit()
 
-        async def sync(job_ids: set[int], *, immediate: bool) -> dict:
+        async def sync(job_ids: set[int], *, immediate: bool) -> dict[str, Any]:
             """
             验证提交顺序后执行调度同步。
 

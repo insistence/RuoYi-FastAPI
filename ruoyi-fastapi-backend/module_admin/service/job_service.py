@@ -95,7 +95,7 @@ class JobService:
     @overload
     async def get_job_list_services(
         cls, query_db: AsyncSession, query_object: JobPageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -106,7 +106,7 @@ class JobService:
     @classmethod
     async def get_job_list_services(
         cls, query_db: AsyncSession, query_object: JobPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取定时任务列表信息service。
 
@@ -369,7 +369,9 @@ class JobService:
         return JobRuntimeDao.execution_result(execution)
 
     @staticmethod
-    async def execution_list_services(query_db: AsyncSession, query: JobExecutionQueryModel) -> PageModel:
+    async def execution_list_services(
+        query_db: AsyncSession, query: JobExecutionQueryModel
+    ) -> PageModel[dict[str, Any]]:
         """
         查询任务执行记录及未执行原因。
 
@@ -380,7 +382,7 @@ class JobService:
         return await JobRuntimeDao.execution_page(query_db, query)
 
     @staticmethod
-    async def sync_list_services(query_db: AsyncSession, query: JobSyncQueryModel) -> PageModel:
+    async def sync_list_services(query_db: AsyncSession, query: JobSyncQueryModel) -> PageModel[dict[str, Any]]:
         """
         查询配置和删除操作的调度应用状态。
 
@@ -406,7 +408,7 @@ class JobService:
         return await cls._after_commit([states[job_id]], '同步')
 
     @staticmethod
-    async def export_job_list_services(request: Request, job_list: list) -> bytes:
+    async def export_job_list_services(request: Request, job_list: list[dict[str, Any]]) -> bytes:
         """
         导出定时任务信息service。
 

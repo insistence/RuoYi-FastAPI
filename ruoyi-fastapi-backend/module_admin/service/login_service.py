@@ -201,7 +201,7 @@ class LoginService:
         return True
 
     @classmethod
-    async def create_access_token(cls, data: dict, expires_delta: timedelta | None = None) -> str:
+    async def create_access_token(cls, data: dict[str, object], expires_delta: timedelta | None = None) -> str:
         """
         根据登录信息创建当前用户token。
 
@@ -379,7 +379,7 @@ class LoginService:
         current_user = CurrentUserModel(
             permissions=['*:*:*']
             if any(role.role_id == 1 for role in roles)
-            else [menu.perms for menu in query_user.get('user_menu_info') or []],
+            else [menu.perms for menu in query_user.get('user_menu_info') or [] if menu.perms is not None],
             roles=[role.role_key for role in roles],
             user=UserInfoModel(
                 **user_info,

@@ -106,7 +106,7 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
     async def both(
         user: Annotated[CurrentUserModel, CurrentUserDependency()],
         same_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    ) -> dict:
+    ) -> dict[str, object]:
         await asyncio.sleep(0)
         return {
             'userId': user.user.user_id,
@@ -116,7 +116,7 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         }
 
     @app.get('/current', summary='读取当前用户标识', description='通过当前用户依赖返回已登录用户的标识。')
-    async def current(user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict:
+    async def current(user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict[str, object]:
         return {'userId': user.user.user_id}
 
     @app.get(
@@ -128,7 +128,7 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
     async def direct(
         user: Annotated[CurrentUserModel, CurrentUserDependency()],
         direct_user: Annotated[CurrentUserModel, Depends(LoginService.get_current_user)],
-    ) -> dict:
+    ) -> dict[str, object]:
         return {'userId': user.user.user_id, 'sameUser': user is direct_user}
 
     @app.get(
@@ -137,7 +137,7 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         description='从当前请求上下文返回已通过预认证的用户标识。',
         dependencies=[PreAuthDependency()],
     )
-    async def pre() -> dict:
+    async def pre() -> dict[str, object]:
         return {'userId': RequestContext.get_current_user().user.user_id}
 
     excluded = PreAuthDependency([{'path': '/public/{name}', 'methods': ['GET'], 'ignore_paths': ['/public/private']}])
@@ -149,7 +149,7 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         methods=['GET', 'POST'],
         dependencies=[excluded],
     )
-    async def public(name: str) -> dict:
+    async def public(name: str) -> dict[str, object]:
         return {'name': name}
 
     @app.get(
@@ -158,7 +158,7 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         description='即使路径命中预认证排除项，仍从显式依赖读取当前用户。',
         dependencies=[PreAuthDependency([{'path': '/excluded-current'}])],
     )
-    async def excluded_current(user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict:
+    async def excluded_current(user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict[str, object]:
         return {'userId': user.user.user_id}
 
     try:
@@ -360,7 +360,7 @@ async def test_original_dependency_override_applies_to_both_declarations(auth_ap
     async def overridden(
         current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
         direct_user: Annotated[CurrentUserModel, Depends(LoginService.get_current_user)],
-    ) -> dict:
+    ) -> dict[str, object]:
         """
         返回含 ``userId``, ``contextUserId``, ``sameUser`` 的测试数据。
 
@@ -457,7 +457,7 @@ async def test_use_cache_false_reauthenticates_after_pre_auth(auth_app: SimpleNa
     async def fresh(
         first: Annotated[CurrentUserModel, CurrentUserDependency()],
         current: Annotated[CurrentUserModel, Depends(LoginService.get_current_user, use_cache=False)],
-    ) -> dict:
+    ) -> dict[str, object]:
         """
         返回含 ``sameUser``, ``userId``, ``currentContext`` 的测试数据。
 
@@ -489,7 +489,7 @@ async def test_use_cache_false_does_not_fall_back_to_previous_success(auth_app: 
     )
     async def fresh_denied(
         current: Annotated[CurrentUserModel, Depends(LoginService.get_current_user, use_cache=False)],
-    ) -> dict:
+    ) -> dict[str, object]:
         """
         模拟此操作抛出 AssertionError 的情形。
 
@@ -548,7 +548,7 @@ async def test_later_pre_auth_cannot_restore_permissions_before_forced_authentic
         another: Annotated[CurrentUserModel, PreAuthDependency()],
         observed: Annotated[None, Depends(observe_context)],
         permitted: Annotated[bool, UserInterfaceAuthDependency(f'user:{USER_IDS["bob"]}:read')],
-    ) -> dict:
+    ) -> dict[str, object]:
         """
         模拟此操作抛出 AssertionError 的情形。
 
@@ -610,7 +610,7 @@ async def test_nested_current_user_dependency_requires_login_on_excluded_route(a
         description='从嵌套的当前用户依赖返回用户标识。',
         dependencies=[PreAuthDependency([{'path': '/nested'}])],
     )
-    async def nested(user_id: Annotated[int, Depends(identity)]) -> dict:
+    async def nested(user_id: Annotated[int, Depends(identity)]) -> dict[str, object]:
         """
         返回含 ``userId`` 的测试数据。
 
@@ -656,7 +656,7 @@ async def test_override_cannot_add_authentication_to_an_excluded_dependency_with
         description='从覆盖后的依赖读取用户，验证额外认证要求生效。',
         dependencies=[PreAuthDependency([{'path': '/override-nested'}])],
     )
-    async def nested(user_id: Annotated[int, Depends(identity)]) -> dict:
+    async def nested(user_id: Annotated[int, Depends(identity)]) -> dict[str, object]:
         """
         返回含 ``userId`` 的测试数据。
 
@@ -699,7 +699,7 @@ async def test_excluded_pre_auth_cannot_cancel_another_auth_requirement(
         description='返回当前用户标识，用于验证多个依赖中仍生效的认证要求。',
         dependencies=dependencies,
     )
-    async def mixed() -> dict:
+    async def mixed() -> dict[str, object]:
         """
         返回含 ``userId`` 的测试数据。
 
@@ -729,7 +729,7 @@ async def test_multiple_excluded_pre_auth_dependencies_do_not_require_login(auth
             PreAuthDependency([{'path': '/all-public', 'methods': ['GET']}]),
         ],
     )
-    async def public() -> dict:
+    async def public() -> dict[str, bool]:
         """
         返回含 ``public`` 的测试数据。
 
@@ -759,7 +759,7 @@ async def test_first_required_dependency_keeps_missing_token_response(
         description='按注册顺序执行认证依赖，用于验证缺少令牌时的响应。',
         dependencies=dependencies,
     )
-    async def ordered() -> dict:
+    async def ordered() -> dict[str, bool]:
         """
         返回含 ``ok`` 的测试数据。
 
@@ -836,8 +836,8 @@ async def test_interface_role_and_data_permissions_are_still_checked(auth_app: S
     )
     async def scope(
         user: Annotated[CurrentUserModel, CurrentUserDependency()],
-        data_scope: Annotated[ColumnElement, DataScopeDependency(SysUser)],
-    ) -> dict:
+        data_scope: Annotated[ColumnElement[bool], DataScopeDependency(SysUser)],
+    ) -> dict[str, object]:
         """
         返回含 ``userId``, ``scope`` 的测试数据。
 
@@ -859,7 +859,7 @@ async def test_interface_role_and_data_permissions_are_still_checked(auth_app: S
         description='尝试访问需要指定角色的资源，用于检查拒绝响应。',
         dependencies=[PreAuthDependency(), RoleInterfaceAuthDependency('administrator')],
     )
-    async def forbidden() -> dict:
+    async def forbidden() -> dict[str, object]:
         """
         模拟此操作抛出 AssertionError 的情形。
 
@@ -920,7 +920,7 @@ async def test_explicit_oauth_dependency_returns_bare_token_and_still_requires_l
         description='从显式 OAuth 依赖读取并返回请求携带的令牌。',
         dependencies=[PreAuthDependency(exclude_routes)],
     )
-    async def token_endpoint(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
+    async def token_endpoint(token: Annotated[str, Depends(oauth2_scheme)]) -> dict[str, object]:
         """
         返回含 ``token`` 的测试数据。
 
@@ -963,7 +963,7 @@ async def test_unrelated_override_keeps_an_excluded_route_public(auth_app: Simpl
     @router.get(
         '/public', summary='读取公开语言配置', description='返回语言依赖提供的值，用于检查无关依赖覆盖后的公开访问。'
     )
-    async def public(locale: Annotated[str, Depends(language)]) -> dict:
+    async def public(locale: Annotated[str, Depends(language)]) -> dict[str, object]:
         return {'locale': locale}
 
     auth_app.app.include_router(router, prefix='/translated')
@@ -1001,7 +1001,7 @@ async def test_parent_router_authentication_cannot_be_excluded_by_child(
     router = APIRouter(dependencies=[PreAuthDependency([{'path': path}])])
 
     @router.get('/profile', summary='访问父路由保护的资料', description='验证子路由挂载后仍执行父路由的认证依赖。')
-    async def profile() -> dict:
+    async def profile() -> dict[str, bool]:
         return {'protected': True}
 
     if nested:
@@ -1038,7 +1038,7 @@ async def test_router_inclusions_keep_their_own_authentication_requirements(auth
     @router.get(
         '/info', summary='查询挂载路由状态', description='返回可用状态，用于比对同一路由在不同挂载位置的认证要求。'
     )
-    async def info() -> dict:
+    async def info() -> dict[str, bool]:
         return {'available': True}
 
     auth_app.app.include_router(router, prefix='/open')
@@ -1074,7 +1074,7 @@ async def test_parent_override_added_authentication_is_required(auth_app: Simple
     router = APIRouter(dependencies=[PreAuthDependency([{'path': '/overridden/public'}])])
 
     @router.get('/public', summary='验证父级依赖覆盖', description='访问子路由以检查父级新增的认证要求。')
-    async def public() -> dict:
+    async def public() -> dict[str, bool]:
         return {'available': True}
 
     auth_app.app.include_router(router, prefix='/overridden', dependencies=[Depends(identity)])
@@ -1098,7 +1098,7 @@ async def test_business_prefix_is_not_removed_as_a_deployment_prefix(
 
     @router.get('/public', summary='访问带业务前缀的公开资源', description='按带前缀的公开路径检查匿名访问。')
     @router.get('/private', summary='访问带业务前缀的受保护资源', description='按带前缀的受保护路径检查登录要求。')
-    async def endpoint() -> dict:
+    async def endpoint() -> dict[str, bool]:
         return {'available': True}
 
     auth_app.app.include_router(router)
@@ -1127,7 +1127,7 @@ async def test_deployment_prefix_requires_a_path_segment_boundary(
         description='访问与部署前缀相近的业务路径，确认按完整路径段匹配。',
         dependencies=[PreAuthDependency([{'path': '/api-extra/public'}])],
     )
-    async def public() -> dict:
+    async def public() -> dict[str, bool]:
         """
         返回含 ``available`` 的测试数据。
 
@@ -1169,7 +1169,7 @@ async def test_permission_dependencies_use_the_same_excluded_application_path(
         description='在公开路径上运行业务权限依赖，核对排除规则使用的路径。',
     )
     @router.get('/private-scope', summary='检查受限路径的数据范围', description='在受保护路径上执行业务权限检查。')
-    async def endpoint() -> dict:
+    async def endpoint() -> dict[str, bool]:
         return {'available': True}
 
     auth_app.app.include_router(router)
@@ -1206,7 +1206,7 @@ async def test_encoded_path_separators_cannot_expand_public_routes(
         description='回显已匹配的路径参数，用于验证编码分隔符的访问边界。',
         dependencies=[PreAuthDependency([rule])],
     )
-    async def endpoint(name: str) -> dict:
+    async def endpoint(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 
@@ -1247,7 +1247,7 @@ async def test_permission_check_uses_the_full_decoded_path(
             UserInterfaceAuthDependency(f'user:{USER_IDS["bob"]}:read'),
         ],
     )
-    async def endpoint(name: str) -> dict:
+    async def endpoint(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 

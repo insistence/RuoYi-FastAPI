@@ -18,12 +18,12 @@ from common.context import LocaleContext
 from exceptions.exception import ServiceException, ServiceWarning
 from i18n.translator import I18nUtil
 from module_generator.entity.vo.gen_vo import GenTableModel, GenTableParamsModel
-from module_generator.service.gen_service import GenTableService
+from module_generator.service.gen_service import GenTableService, RenderInfo
 from utils.gen_i18n_util import GenI18nUtil
 from utils.template_util import TemplateInitializer, TemplateUtils
 
 
-def render_info(table: GenTableModel) -> list[Any]:
+def render_info(table: GenTableModel) -> RenderInfo:
     """
     根据表定义生成模板预览内容。
 
@@ -32,10 +32,10 @@ def render_info(table: GenTableModel) -> list[Any]:
     """
     context = TemplateUtils.prepare_context(table)
     templates = TemplateUtils.get_template_list(table)
-    return [templates, [TemplateUtils.get_file_name(name, table) for name in templates], context, table]
+    return templates, [TemplateUtils.get_file_name(name, table) for name in templates], context, table
 
 
-def render_files(table: GenTableModel) -> tuple[list[Any], dict[str, str]]:
+def render_files(table: GenTableModel) -> tuple[RenderInfo, dict[str, str]]:
     """
     使用测试上下文渲染代码生成文件。
 
@@ -48,7 +48,7 @@ def render_files(table: GenTableModel) -> tuple[list[Any], dict[str, str]]:
     return info, GenTableService._render_files(env, info)
 
 
-def flatten(value: dict, prefix: str = '') -> dict:
+def flatten(value: dict[str, object], prefix: str = '') -> dict[str, str]:
     """
     将嵌套翻译资源展开为键值映射。
 
@@ -62,6 +62,7 @@ def flatten(value: dict, prefix: str = '') -> dict:
         if isinstance(entry, dict):
             result.update(flatten(entry, full))
         else:
+            assert isinstance(entry, str)
             result[full] = entry
     return result
 

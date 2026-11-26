@@ -8,6 +8,7 @@ from common.vo import PageModel
 from config.database import Base
 from utils.common_util import CamelCaseUtil
 
+_Item = TypeVar('_Item')
 _Entity = TypeVar('_Entity', bound=Base)
 _JoinedEntity = TypeVar('_JoinedEntity', bound=Base)
 _EntityPairs = list[list[dict[str, Any] | None]]
@@ -18,7 +19,7 @@ class PageUtil:
     """分页工具类。"""
 
     @classmethod
-    def get_page_obj(cls, data_list: list, page_num: int, page_size: int) -> PageModel:
+    def get_page_obj(cls, data_list: list[_Item], page_num: int, page_size: int) -> PageModel[_Item]:
         """
         输入数据列表data_list和分页信息，返回分页数据列表结果。
 
@@ -35,7 +36,7 @@ class PageUtil:
         paginated_data = data_list[start:end]
         has_next = math.ceil(len(data_list) / page_size) > page_num
 
-        result = PageModel[Any](
+        result: PageModel[_Item] = PageModel(
             rows=paginated_data, page_num=page_num, page_size=page_size, total=len(data_list), has_next=has_next
         )
 
@@ -46,26 +47,65 @@ class PageUtil:
     async def paginate(
         cls,
         db: AsyncSession,
-        query: Select,
+        query: Select[*tuple[Any, ...]],
         page_num: int,
         page_size: int,
         is_page: Literal[True],
         *,
-        as_mappings: bool = False,
-    ) -> PageModel: ...
+        as_mappings: Literal[True],
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
     async def paginate(
         cls,
         db: AsyncSession,
-        query: Select,
+        query: Select[_Entity, _JoinedEntity],
+        page_num: int,
+        page_size: int,
+        is_page: Literal[True],
+        *,
+        as_mappings: Literal[False] = False,
+    ) -> PageModel[list[dict[str, Any] | None]]: ...
+
+    @classmethod
+    @overload
+    async def paginate(
+        cls,
+        db: AsyncSession,
+        query: Select[_Entity],
+        page_num: int,
+        page_size: int,
+        is_page: Literal[True],
+        *,
+        as_mappings: Literal[False] = False,
+    ) -> PageModel[dict[str, Any]]: ...
+
+    @classmethod
+    @overload
+    async def paginate(
+        cls,
+        db: AsyncSession,
+        query: Select[*tuple[Any, ...]],
+        page_num: int,
+        page_size: int,
+        is_page: Literal[True],
+        *,
+        as_mappings: bool = False,
+    ) -> PageModel[Any]: ...
+
+    @classmethod
+    @overload
+    async def paginate(
+        cls,
+        db: AsyncSession,
+        query: Select[*tuple[Any, ...]],
         page_num: int,
         page_size: int,
         is_page: bool = False,
         *,
         as_mappings: Literal[True],
-    ) -> PageModel | list[dict[str, Any]]: ...
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -76,31 +116,31 @@ class PageUtil:
         page_num: int,
         page_size: int,
         is_page: bool = False,
-    ) -> PageModel | _EntityPairs: ...
+    ) -> PageModel[list[dict[str, Any] | None]] | _EntityPairs: ...
 
     @classmethod
     @overload
     async def paginate(
         cls, db: AsyncSession, query: Select[_Entity], page_num: int, page_size: int, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]: ...
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]: ...
 
     @classmethod
     @overload
     async def paginate(
-        cls, db: AsyncSession, query: Select, page_num: int, page_size: int, is_page: bool = False
-    ) -> PageModel | _Rows: ...
+        cls, db: AsyncSession, query: Select[*tuple[Any, ...]], page_num: int, page_size: int, is_page: bool = False
+    ) -> PageModel[Any] | _Rows: ...
 
     @classmethod
     async def paginate(
         cls,
         db: AsyncSession,
-        query: Select,
+        query: Select[*tuple[Any, ...]],
         page_num: int,
         page_size: int,
         is_page: bool = False,
         *,
         as_mappings: bool = False,
-    ) -> PageModel | _Rows:
+    ) -> PageModel[Any] | _Rows:
         """
         输入查询语句和分页信息，返回分页数据列表结果。
 
@@ -133,7 +173,7 @@ class PageUtil:
         )
 
 
-def get_page_obj(data_list: list, page_num: int, page_size: int) -> PageModel:
+def get_page_obj(data_list: list[_Item], page_num: int, page_size: int) -> PageModel[_Item]:
     """
     输入数据列表data_list和分页信息，返回分页数据列表结果。
 
@@ -142,16 +182,4 @@ def get_page_obj(data_list: list, page_num: int, page_size: int) -> PageModel:
     :param page_size: 当前页面数据量
     :return: 分页数据对象
     """
-    # 计算起始索引和结束索引
-    start = (page_num - 1) * page_size
-    end = page_num * page_size
-
-    # 根据计算得到的起始索引和结束索引对数据列表进行切片
-    paginated_data = data_list[start:end]
-    has_next = math.ceil(len(data_list) / page_size) > page_num
-
-    result = PageModel[Any](
-        rows=paginated_data, page_num=page_num, page_size=page_size, total=len(data_list), has_next=has_next
-    )
-
-    return result
+    return PageUtil.get_page_obj(data_list, page_num, page_size)

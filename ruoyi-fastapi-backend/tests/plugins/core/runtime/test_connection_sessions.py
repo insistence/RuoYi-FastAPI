@@ -94,7 +94,7 @@ async def test_websocket_cookie_origin_and_live_login_revocation(
     loaded.gateway.connections.recheck_interval = 0.01
     opened = asyncio.Event()
     messages = []
-    incoming: asyncio.Queue = asyncio.Queue()
+    incoming: asyncio.Queue[Message] = asyncio.Queue()
 
     @loaded.lifespan.app.websocket('/ws/events')
     async def events(websocket: WebSocket) -> None:

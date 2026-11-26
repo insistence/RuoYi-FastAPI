@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 from plugins.core.discovery.scanner import DiscoveredPlugin
-from plugins.core.management.entity.vo.schemas import PluginModel
+from plugins.core.management.entity.vo.schemas import PluginConfigValueModel, PluginModel
+from plugins.core.types import PluginConfigValue
 from plugins.core.validation.dependency_policy import DependencyInstallPolicyConfig
 from tests.plugins.core.runtime.fakes import (
     FakePluginRuntimeGateway,
@@ -87,7 +88,9 @@ async def test_config_read_resolves_selected_artifact_without_source_directory(t
             assert backend_root == tmp_path / 'backend'
             return selected
 
-        async def get_plugin_config(self, discovered_plugin: DiscoveredPlugin, *, reveal_secret: bool = False) -> list:
+        async def get_plugin_config(
+            self, discovered_plugin: DiscoveredPlugin, *, reveal_secret: bool = False
+        ) -> list[PluginConfigValueModel]:
             """
             检查插件选择和配置读取参数。
 
@@ -99,7 +102,9 @@ async def test_config_read_resolves_selected_artifact_without_source_directory(t
             assert reveal_secret is False
             return []
 
-        async def set_plugin_config(self, discovered_plugin: DiscoveredPlugin, values: dict, **kwargs: object) -> list:
+        async def set_plugin_config(
+            self, discovered_plugin: DiscoveredPlugin, values: dict[str, PluginConfigValue], **kwargs: object
+        ) -> list[PluginConfigValueModel]:
             """
             校验写入配置的目标插件及字段值。
 

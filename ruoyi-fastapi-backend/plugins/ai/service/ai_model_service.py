@@ -20,9 +20,9 @@ class AiModelService:
         cls,
         query_db: AsyncSession,
         query_object: AiModelPageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[True],
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -30,7 +30,7 @@ class AiModelService:
         cls,
         query_db: AsyncSession,
         query_object: AiModelPageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[False] = False,
     ) -> list[dict[str, Any]]: ...
 
@@ -39,9 +39,9 @@ class AiModelService:
         cls,
         query_db: AsyncSession,
         query_object: AiModelPageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取AI模型列表信息service。
 
@@ -65,7 +65,7 @@ class AiModelService:
         cls,
         query_db: AsyncSession,
         model_id: int | None,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
     ) -> CrudResponseModel:
         """
         校验用户是否有AI模型数据权限service。

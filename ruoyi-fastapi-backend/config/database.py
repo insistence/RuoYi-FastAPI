@@ -634,7 +634,7 @@ def create_async_session_factory(engine: AsyncEngine) -> async_sessionmaker[Asyn
     )
 
 
-def create_sync_session_factory(engine: Engine) -> sessionmaker:
+def create_sync_session_factory(engine: Engine) -> sessionmaker[Session]:
     """
     创建同步Session工厂。
 

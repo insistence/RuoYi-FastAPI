@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from http import HTTPStatus
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
 from playwright.async_api import expect
@@ -226,7 +226,7 @@ class SystemPage(BasePageTest):
         return response.request.method == method and urlsplit(response.url).path.rstrip('/').endswith(path)
 
     @staticmethod
-    async def payload(response: Response) -> dict:
+    async def payload(response: Response) -> dict[str, Any]:
         """
         HTTP 与应用状态都必须成功，不让 200 包装的业务错误通过测试。
 
@@ -238,7 +238,7 @@ class SystemPage(BasePageTest):
         assert payload.get('code') == HTTPStatus.OK, f'{response.url}: {payload}'
         return payload
 
-    async def action(self, trigger: Callable[[], Awaitable[object]], path: str, method: str = 'GET') -> dict:
+    async def action(self, trigger: Callable[[], Awaitable[object]], path: str, method: str = 'GET') -> dict[str, Any]:
         """
         先监听目标响应，再执行点击，避免固定睡眠和遗漏快速响应。
 
@@ -260,7 +260,7 @@ class SystemPage(BasePageTest):
         await expect(self.page.locator(f'.app-main {loading}:visible')).to_have_count(0)
         await expect(self.page.locator(f'.app-main {table}:visible').first).to_be_visible()
 
-    async def open(self, route: str, list_path: str) -> dict:
+    async def open(self, route: str, list_path: str) -> dict[str, Any]:
         """
         打开真实管理页面并核对首个列表响应。
 
@@ -273,7 +273,7 @@ class SystemPage(BasePageTest):
         await self.rendered()
         return payload
 
-    async def search(self, fields: dict[str, str] | None = None) -> dict:
+    async def search(self, fields: dict[str, str] | None = None) -> dict[str, Any]:
         """
         按界面查询并返回真实响应。
 
@@ -287,7 +287,7 @@ class SystemPage(BasePageTest):
         await self.rendered()
         return payload
 
-    async def reset(self) -> dict:
+    async def reset(self) -> dict[str, Any]:
         """
         通过重置按钮恢复查询条件。
 
@@ -325,7 +325,7 @@ class SystemPage(BasePageTest):
         await expect(self.dialog).to_be_visible()
         return self.dialog
 
-    async def save(self, resource: str, method: str) -> dict:
+    async def save(self, resource: str, method: str) -> dict[str, Any]:
         """
         保存表单，要求写请求、列表刷新和弹窗关闭全部完成。
 
@@ -341,7 +341,7 @@ class SystemPage(BasePageTest):
         await self.rendered()
         return payload
 
-    async def delete(self, identity: str, resource: str, record_id: int) -> dict:
+    async def delete(self, identity: str, resource: str, record_id: int) -> dict[str, Any]:
         """
         删除本用例创建的目标行，并核对其消失。
 
@@ -405,7 +405,7 @@ class SystemPage(BasePageTest):
             await expect(confirmation).to_have_count(0)
             await self.persisted(resource, record_id, {'status': status})
 
-    async def confirm_refresh(self, path: str, method: str = 'DELETE') -> dict:
+    async def confirm_refresh(self, path: str, method: str = 'DELETE') -> dict[str, Any]:
         """
         确认危险操作，并等待操作及其列表刷新均成功。
 
@@ -422,7 +422,7 @@ class SystemPage(BasePageTest):
         await self.rendered()
         return payload
 
-    async def persisted(self, resource: str, record_id: int, expected: dict) -> dict:
+    async def persisted(self, resource: str, record_id: int, expected: dict[str, Any]) -> dict[str, Any]:
         """
         从真实后端重读已保存数据，防止仅验证成功提示或前端本地状态。
 
@@ -441,7 +441,7 @@ class SystemPage(BasePageTest):
         return record
 
     @staticmethod
-    def records(payload: dict) -> list[dict]:
+    def records(payload: dict[str, Any]) -> list[dict[str, Any]]:
         """
         兼容分页 rows 与树形列表 data 的真实响应格式。
 
@@ -453,7 +453,7 @@ class SystemPage(BasePageTest):
         return rows
 
     @classmethod
-    def record(cls, payload: dict, field: str, value: str) -> dict:
+    def record(cls, payload: dict[str, Any], field: str, value: str) -> dict[str, Any]:
         """
         查询必须返回且仅返回一个目标记录。
 

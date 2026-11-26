@@ -19,7 +19,7 @@ class PostService:
     @overload
     async def get_post_list_services(
         cls, query_db: AsyncSession, query_object: PostPageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -30,7 +30,7 @@ class PostService:
     @classmethod
     async def get_post_list_services(
         cls, query_db: AsyncSession, query_object: PostPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取岗位列表信息service。
 
@@ -188,7 +188,7 @@ class PostService:
         return result
 
     @staticmethod
-    async def export_post_list_services(post_list: list) -> bytes:
+    async def export_post_list_services(post_list: list[dict[str, Any]]) -> bytes:
         """
         导出岗位信息service。
 

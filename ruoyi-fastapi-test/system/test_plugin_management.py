@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from http import HTTPStatus
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
@@ -23,7 +23,7 @@ PLUGIN_ID = 'ai'
 PLUGIN_WARNING = 601
 
 
-def validate_operation_envelope(payload: dict) -> dict:
+def validate_operation_envelope(payload: dict[str, Any]) -> dict[str, Any]:
     """
     601 是明确的业务阻断；异常状态、缺失数据和不一致的成功标志均不能通过。
 
@@ -39,7 +39,7 @@ def validate_operation_envelope(payload: dict) -> dict:
     return data
 
 
-async def plugin_payload(response: Response) -> dict:
+async def plugin_payload(response: Response) -> dict[str, Any]:
     """
     业务成功和业务阻断都必须是 HTTP 200，并进一步验证具体操作契约。
 
@@ -50,7 +50,7 @@ async def plugin_payload(response: Response) -> dict:
     return validate_operation_envelope(await response.json())
 
 
-def validate_capability(capability: dict, operation: str) -> bool:
+def validate_capability(capability: dict[str, Any], operation: str) -> bool:
     """
     以源码 AI 插件的运行模式验证阻断来源，不能把任意失败当作生产模式限制。
 
@@ -79,7 +79,7 @@ def validate_capability(capability: dict, operation: str) -> bool:
     return blocked
 
 
-def validate_dependency_report(report: dict) -> None:
+def validate_dependency_report(report: dict[str, Any]) -> None:
     """
     失败必须由实际缺失或版本不满足的依赖解释，而不是接口异常或空数据。
 
@@ -103,7 +103,7 @@ def validate_dependency_report(report: dict) -> None:
     assert report['message'] == ('插件依赖已满足' if report['ok'] else '插件依赖存在问题')
 
 
-def validate_install_plan(payload: dict, capability: dict) -> bool:
+def validate_install_plan(payload: dict[str, Any], capability: dict[str, Any]) -> bool:
     """
     AI 无插件间依赖；只有明确的环境能力限制可以阻断其拓扑计划。
 
@@ -160,7 +160,7 @@ def table_rows(scope: Locator) -> Locator:
     return scope.locator('.el-table__body-wrapper:visible .el-table__row, .ant-table-row:visible')
 
 
-async def open_plugins(browser_harness: BrowserHarness) -> tuple[SystemPage, dict]:
+async def open_plugins(browser_harness: BrowserHarness) -> tuple[SystemPage, dict[str, Any]]:
     """
     使用真实登录和列表，定位项目自带的 AI 插件。
 
@@ -207,7 +207,7 @@ async def close_dialog(view: SystemPage) -> None:
     await view.close_dialog()
 
 
-async def assert_unchanged(api: APIRequestContext, before: dict) -> None:
+async def assert_unchanged(api: APIRequestContext, before: dict[str, Any]) -> None:
     """
     计划查看不能修改插件的安装版本、启用设置或状态。
 
@@ -223,7 +223,7 @@ async def assert_unchanged(api: APIRequestContext, before: dict) -> None:
         assert payload['data'].get(key) == before.get(key), key
 
 
-async def verify_manifest_tabs(view: SystemPage, detail: dict) -> None:
+async def verify_manifest_tabs(view: SystemPage, detail: dict[str, Any]) -> None:
     """
     逐项核对清单声明，不能只验证标签页标题存在。
 
@@ -299,7 +299,7 @@ async def test_plugin_search_detail_and_metrics(browser_harness: BrowserHarness)
     await assert_unchanged(view.api, plugin)
 
 
-async def request_dependency_preview(view: SystemPage, endpoint: str) -> dict:
+async def request_dependency_preview(view: SystemPage, endpoint: str) -> dict[str, Any]:
     """
     只点击生成计划，并强制核对实际请求携带 dryRun=true。
 
@@ -316,7 +316,7 @@ async def request_dependency_preview(view: SystemPage, endpoint: str) -> dict:
     return await plugin_payload(response)
 
 
-def validate_blocked_preview(preview: dict, capability: dict) -> None:
+def validate_blocked_preview(preview: dict[str, Any], capability: dict[str, Any]) -> None:
     """
     服务模式的预演拒绝也必须有结构化能力依据，不接受普通 601 异常。
 
@@ -333,7 +333,7 @@ def validate_blocked_preview(preview: dict, capability: dict) -> None:
     assert not preview.get('plan') and not preview.get('results')
 
 
-async def verify_dependency_preview(view: SystemPage, preview: dict, report: dict) -> None:
+async def verify_dependency_preview(view: SystemPage, preview: dict[str, Any], report: dict[str, Any]) -> None:
     """
     开发模式必须完整展示真实预演报告，并且保持实际安装不可执行。
 
@@ -364,7 +364,7 @@ async def verify_dependency_preview(view: SystemPage, preview: dict, report: dic
     )
 
 
-async def verify_dependency_report_dialog(view: SystemPage, report: dict) -> None:
+async def verify_dependency_report_dialog(view: SystemPage, report: dict[str, Any]) -> None:
     """
     Vue2 的 601 拒绝值是 error，但警告 toast 必须展示真实依赖异常信息。
 
@@ -463,7 +463,7 @@ async def test_plugin_install_plan(browser_harness: BrowserHarness) -> None:
     await assert_unchanged(view.api, plugin)
 
 
-async def verify_install_plan_dialog(view: SystemPage, payload: dict) -> None:
+async def verify_install_plan_dialog(view: SystemPage, payload: dict[str, Any]) -> None:
     """
     可操作环境展示拓扑细节，但用例始终不点击实际执行入口。
 

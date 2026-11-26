@@ -31,7 +31,7 @@ from utils.dependency_util import DependencyUtil
     ],
 )
 def test_data_scope_filters_real_query(
-    monkeypatch: pytest.MonkeyPatch, roles: list[tuple], admin: bool, expected: list[int]
+    monkeypatch: pytest.MonkeyPatch, roles: list[tuple[str | None, str, str]], admin: bool, expected: list[int]
 ) -> None:
     """数据权限范围过滤实际查询。"""
     metadata = MetaData()
@@ -93,17 +93,19 @@ def test_data_scope_filters_real_query(
     ],
 )
 def test_incomplete_data_scope_grants_no_rows(
-    monkeypatch: pytest.MonkeyPatch, user: dict | None, user_alias: str | None, dept_alias: str | None
+    monkeypatch: pytest.MonkeyPatch, user: dict[str, object] | None, user_alias: str | None, dept_alias: str | None
 ) -> None:
     """用户、角色、本人标识或所需列缺失时，限制条件应拒绝全部记录。"""
     # 绕过认证依赖，验证数据权限对异常上下文的防御行为。
     profile = None
     if user is not None:
+        roles = user['role']
+        assert isinstance(roles, list)
         profile = SimpleNamespace(
             admin=False,
             user_id=user.get('userId'),
             dept_id=user.get('deptId'),
-            role=[RoleModel.model_validate(role) if role else None for role in user['role']],
+            role=[RoleModel.model_validate(role) if role else None for role in roles],
         )
     current = SimpleNamespace(user=profile)
     monkeypatch.setattr(RequestContext, 'get_current_user', lambda: current)

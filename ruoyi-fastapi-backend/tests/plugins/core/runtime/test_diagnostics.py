@@ -4,6 +4,7 @@ from contextlib import suppress
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -237,7 +238,7 @@ async def test_live_connection_counts_do_not_include_ordinary_http_or_auth_data(
         opened[scope['type']].set()
         await release.wait()
 
-    async def receive() -> dict:
+    async def receive() -> dict[str, Any]:
         """
         为下游 ASGI 应用提供待接收的测试消息。
 
@@ -400,7 +401,7 @@ def test_wire_snapshot_requires_every_nested_serialized_field(tmp_path: Path) ->
         ('plugins', 0, 'lastError'),
     ]
 
-    def object_at(document: dict, path: tuple[str | int, ...]) -> dict:
+    def object_at(document: dict[str, Any], path: tuple[str | int, ...]) -> dict[str, Any]:
         """
         沿字段名和数组下标定位待验证的协议对象。
 
@@ -412,9 +413,10 @@ def test_wire_snapshot_requires_every_nested_serialized_field(tmp_path: Path) ->
         for key in path:
             if isinstance(key, int):
                 assert isinstance(node, list)
+                node = node[key]
             else:
                 assert isinstance(node, dict)
-            node = node[key]
+                node = node[key]
         assert isinstance(node, dict)
         return node
 

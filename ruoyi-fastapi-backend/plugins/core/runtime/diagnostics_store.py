@@ -183,7 +183,7 @@ class PluginDiagnosticsReporter:
         self.worker_id = worker_id
         self.redis: Any = None
         self.namespace = ''
-        self.task: asyncio.Task | None = None
+        self.task: asyncio.Task[None] | None = None
         self.publication_failed = False
         self._stopping = False
 

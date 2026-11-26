@@ -39,7 +39,7 @@ async def get_system_dept_tree_for_edit_option(
     request: Request,
     dept_id: Annotated[int, Path(description='部门id')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     dept_query = DeptModel(dept_id=dept_id)
     dept_query_result = await DeptService.get_dept_for_edit_option_services(query_db, dept_query, data_scope_sql)
@@ -60,7 +60,7 @@ async def get_system_dept_list(
     request: Request,
     dept_query: Annotated[DeptQueryModel, Query()],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     dept_query_result = await DeptService.get_dept_list_services(query_db, dept_query, data_scope_sql)
     logger.info('获取成功')
@@ -83,7 +83,7 @@ async def add_system_dept(
     add_dept: DeptModel,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     if not current_user.user.admin:
         await DeptService.check_dept_data_scope_services(query_db, add_dept.parent_id, data_scope_sql)
@@ -110,7 +110,7 @@ async def edit_system_dept(
     edit_dept: DeptModel,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     if not current_user.user.admin:
         await DeptService.check_dept_data_scope_services(query_db, edit_dept.dept_id, data_scope_sql)
@@ -138,7 +138,7 @@ async def update_system_dept_sort(
     dept_sort: DeptSortModel,
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     update_sort_result = await DeptService.update_dept_sort_services(
         query_db,
@@ -164,7 +164,7 @@ async def delete_system_dept(
     dept_ids: Annotated[str, Path(description='需要删除的部门id')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     dept_id_list = dept_ids.split(',') if dept_ids else []
     if dept_id_list:
@@ -192,7 +192,7 @@ async def query_detail_system_dept(
     dept_id: Annotated[int, Path(description='部门id')],
     query_db: Annotated[AsyncSession, DBSessionDependency()],
     current_user: Annotated[CurrentUserModel, CurrentUserDependency()],
-    data_scope_sql: Annotated[ColumnElement, DataScopeDependency(SysDept)],
+    data_scope_sql: Annotated[ColumnElement[bool], DataScopeDependency(SysDept)],
 ) -> Response:
     if not current_user.user.admin:
         await DeptService.check_dept_data_scope_services(query_db, dept_id, data_scope_sql)

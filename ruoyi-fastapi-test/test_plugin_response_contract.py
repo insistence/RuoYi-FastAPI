@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from http import HTTPStatus
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -20,7 +21,7 @@ from system.test_plugin_management import (
 pytestmark = pytest.mark.harness
 
 
-def capability(frontend: str = 'built', backend: str = 'service') -> dict:
+def capability(frontend: str = 'built', backend: str = 'service') -> dict[str, Any]:
     """
     构造与 CI 中源码 AI 插件一致的能力报告。
 
@@ -49,7 +50,7 @@ def capability(frontend: str = 'built', backend: str = 'service') -> dict:
     }
 
 
-def dependency_report(*, installed: bool, satisfied: bool, skipped: bool = False) -> dict:
+def dependency_report(*, installed: bool, satisfied: bool, skipped: bool = False) -> dict[str, Any]:
     """
     缺失、版本不满足与 built 模式跳过检查有不同且可验证的语义。
 
@@ -80,7 +81,7 @@ def dependency_report(*, installed: bool, satisfied: bool, skipped: bool = False
     }
 
 
-def install_plan(runtime: dict) -> dict:
+def install_plan(runtime: dict[str, Any]) -> dict[str, Any]:
     """
     有效拓扑与生产环境阻断分别保留，模拟已观测到的 CI 响应结构。
 
@@ -116,7 +117,7 @@ def install_plan(runtime: dict) -> dict:
     }
 
 
-def envelope(data: dict) -> dict:
+def envelope(data: dict[str, Any]) -> dict[str, Any]:
     """
     响应封装的成功字段必须与业务结果对应。
 

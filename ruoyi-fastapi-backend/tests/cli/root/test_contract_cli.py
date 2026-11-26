@@ -1,6 +1,7 @@
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -30,7 +31,7 @@ def test_root_help_shows_commands_without_completion_options(
 
 def test_oidc_key_bootstrap_dry_run_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """OIDC 初始化命令支持不连接基础设施的部署预演。"""
     completed = run_cli_command(
@@ -114,7 +115,7 @@ def test_powershell_completion_protocol_returns_candidates_without_not_supported
 
 def test_completion_doctor_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """补全诊断按约定输出 JSON。"""
     completed = run_cli_command('completion', 'doctor', '--output=json')
@@ -149,7 +150,7 @@ def test_completion_doctor_json_output_has_stable_contract(
 def test_completion_install_json_output_has_stable_contract(
     tmp_path: Path,
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """安装补全脚本按约定输出 JSON。"""
     target_file = tmp_path / 'ruoyi.bash'
@@ -203,7 +204,7 @@ def test_completion_install_json_output_has_stable_contract(
 def test_completion_install_powershell_json_output_has_stable_contract(
     tmp_path: Path,
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """安装 PowerShell 补全时按约定输出 JSON。"""
     target_file = tmp_path / 'ruoyi.ps1'

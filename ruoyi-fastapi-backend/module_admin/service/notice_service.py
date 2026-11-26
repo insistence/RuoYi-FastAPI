@@ -31,7 +31,7 @@ class NoticeService:
     @overload
     async def get_notice_list_services(
         cls, query_db: AsyncSession, query_object: NoticePageQueryModel, is_page: Literal[True] = True
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -42,7 +42,7 @@ class NoticeService:
     @classmethod
     async def get_notice_list_services(
         cls, query_db: AsyncSession, query_object: NoticePageQueryModel, is_page: bool = True
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取通知公告列表信息service。
 
@@ -78,7 +78,7 @@ class NoticeService:
     @overload
     async def get_notice_read_user_list_services(
         cls, query_db: AsyncSession, query_object: NoticeReadUserPageQueryModel, is_page: Literal[True] = True
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -89,7 +89,7 @@ class NoticeService:
     @classmethod
     async def get_notice_read_user_list_services(
         cls, query_db: AsyncSession, query_object: NoticeReadUserPageQueryModel, is_page: bool = True
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取公告已读用户列表。
 

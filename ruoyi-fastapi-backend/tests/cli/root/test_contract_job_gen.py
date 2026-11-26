@@ -1,5 +1,6 @@
 import subprocess
 from collections.abc import Callable
+from typing import Any
 
 import pytest
 
@@ -14,7 +15,7 @@ MISSING_GEN_TABLE_ID = 999999999
 
 def test_job_detail_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """任务详情按约定输出 JSON。"""
     list_completed = run_cli_command('job', 'list', '--env=dev', '--output=json')
@@ -49,7 +50,7 @@ def test_job_detail_json_output_has_stable_contract(
 
 def test_job_logs_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """任务日志按约定输出 JSON。"""
     completed = run_cli_command('job', 'logs', '--env=dev', '--output=json')
@@ -76,7 +77,7 @@ def test_job_logs_json_output_has_stable_contract(
 
 def test_gen_list_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """生成表列表按约定输出 JSON。"""
     completed = run_cli_command('gen', 'list', '--env=dev', '--output=json')
@@ -103,7 +104,7 @@ def test_gen_list_json_output_has_stable_contract(
 
 def test_gen_db_list_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """数据库表列表按约定输出 JSON。"""
     completed = run_cli_command('gen', 'db-list', '--env=dev', '--output=json')
@@ -129,7 +130,7 @@ def test_gen_db_list_json_output_has_stable_contract(
 
 def test_gen_detail_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """生成表详情按约定输出 JSON。"""
     list_completed = run_cli_command('gen', 'list', '--env=dev', '--output=json')
@@ -169,7 +170,7 @@ def test_gen_detail_json_output_has_stable_contract(
 
 def test_gen_sync_db_is_rejected_without_yes_in_non_interactive_mode(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """非交互同步数据库表前必须显式确认。"""
     completed = run_cli_command('gen', 'sync-db', 'demo_table', '--env=dev', '--output=json')
@@ -209,7 +210,7 @@ def test_gen_export_dry_run_text_output_has_stable_structure(
 
 def test_gen_export_dry_run_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """导出预演按约定输出 JSON。"""
     completed = run_cli_command(
@@ -262,7 +263,7 @@ def test_gen_create_table_dry_run_text_output_has_stable_structure(
 
 def test_gen_create_table_dry_run_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """建表预演按约定输出 JSON。"""
     completed = run_cli_command(
@@ -310,7 +311,7 @@ def test_gen_create_table_rejects_non_create_sql_in_text_output(
 
 def test_gen_create_table_rejects_non_create_sql_in_json_output(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """JSON 模式拒绝非建表 SQL。"""
     completed = run_cli_command(
@@ -359,7 +360,7 @@ def test_gen_create_table_rejects_conflicting_sql_inputs_in_text_output(
 
 def test_gen_create_table_rejects_conflicting_sql_inputs_in_json_output(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """JSON 模式拒绝冲突的 SQL 输入。"""
     completed = run_cli_command(

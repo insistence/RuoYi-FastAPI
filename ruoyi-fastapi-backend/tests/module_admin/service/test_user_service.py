@@ -20,10 +20,12 @@ from tests.module_admin.service.helpers import make_query_db
 @pytest.mark.asyncio
 @pytest.mark.parametrize('readonly_fields', [{}, {'role': [{'roleId': 2}]}], ids=['react-form', 'vue-form'])
 async def test_edit_user_accepts_form_without_readonly_roles(
-    monkeypatch: pytest.MonkeyPatch, readonly_fields: dict
+    monkeypatch: pytest.MonkeyPatch, readonly_fields: dict[str, object]
 ) -> None:
     """编辑表单可以省略只读角色详情，用户字段与角色/岗位关联仍全部保存。"""
-    user = EditUserModel(user_id=2, user_name='tester', sex='1', role_ids=[2], post_ids=[1], **readonly_fields)
+    user = EditUserModel.model_validate(
+        {'user_id': 2, 'user_name': 'tester', 'sex': '1', 'role_ids': [2], 'post_ids': [1], **readonly_fields}
+    )
     database = make_query_db()
     monkeypatch.setattr(UserService, 'user_detail_services', AsyncMock(return_value=SimpleNamespace(data=user)))
     monkeypatch.setattr(UserService, 'check_user_name_unique_services', AsyncMock(return_value=True))

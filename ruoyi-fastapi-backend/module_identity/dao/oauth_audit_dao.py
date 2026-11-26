@@ -2,7 +2,7 @@ from collections.abc import Iterable, Sequence
 from datetime import datetime
 from typing import TypedDict, Unpack
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import ColumnElement, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from module_identity.entity.do.oauth_audit_do import SysOAuthAuditArchive, SysOAuthAuditLog
@@ -113,7 +113,7 @@ class OAuthAuditDao:
         risk_level: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-    ) -> list:
+    ) -> list[ColumnElement[bool]]:
         """
         构造 OAuth Audit 查询条件。
 

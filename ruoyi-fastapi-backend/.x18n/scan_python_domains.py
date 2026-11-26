@@ -3,7 +3,7 @@ import json
 import sys
 
 
-def scan(source: dict) -> dict:
+def scan(source: dict[str, str]) -> dict[str, object]:
     """
     提取静态消息标识和显式 domain，位置使用 JavaScript UTF-16 偏移。
 

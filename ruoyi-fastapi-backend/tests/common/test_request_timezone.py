@@ -1,6 +1,7 @@
 import asyncio
 from datetime import UTC, datetime
 from io import BytesIO
+from typing import Any
 
 import httpx
 import pytest
@@ -33,7 +34,7 @@ def timezone_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     app = FastAPI()
     add_context_cleanup_middleware(app)
 
-    async def capture_query(db: object, query: Select, *args: object) -> list[dict]:
+    async def capture_query(db: object, query: Select[*tuple[Any, ...]], *args: object) -> list[dict[str, object]]:
         """
         提取 SQL 语句的绑定参数。
 
@@ -49,7 +50,7 @@ def timezone_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     @app.get(
         '/range', summary='查询请求时区的日期边界', description='按本次请求的时区计算日期区间，并返回归一化的边界。'
     )
-    async def date_range(request: Request, preference: str = 'auto') -> dict:
+    async def date_range(request: Request, preference: str = 'auto') -> dict[str, object]:
         RequestContext.set_current_user(
             CurrentUserModel(
                 permissions=[], roles=[], user=UserInfoModel(user_id=1, user_name='reader', time_zone=preference)

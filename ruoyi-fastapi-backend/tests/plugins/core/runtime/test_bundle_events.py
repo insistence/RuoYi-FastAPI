@@ -5,6 +5,7 @@ import httpx
 import pytest
 from starlette import status
 from starlette.middleware.gzip import GZipMiddleware
+from starlette.types import Message
 
 from config.env import TransportCryptoConfig
 from plugins.examples.python.bundle_demo.events import register_event_routes
@@ -25,12 +26,12 @@ async def test_authenticated_events_are_incremental_and_disconnect_stops_respons
     issued = await issue(browser)
     cookie = issued.headers['set-cookie'].split(';')[0]
     count = 20
-    incoming: asyncio.Queue = asyncio.Queue()
+    incoming: asyncio.Queue[Message] = asyncio.Queue()
     await incoming.put({'type': 'http.request', 'body': b'', 'more_body': False})
     first_event = asyncio.Event()
     chunks = []
 
-    async def send(message: dict) -> None:
+    async def send(message: Message) -> None:
         """
         保存实际 ASGI 响应片段并通知首条事件已到达。
 

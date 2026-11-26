@@ -190,7 +190,7 @@ async def test_registered_authentication_runs_without_importing_pre_auth_again(m
         description='允许匿名访问并返回公开状态。',
         dependencies=[PreAuthDependency([{'path': '/public'}])],
     )
-    async def public() -> dict:
+    async def public() -> dict[str, bool]:
         return {'public': True}
 
     @app.get(
@@ -199,7 +199,7 @@ async def test_registered_authentication_runs_without_importing_pre_auth_again(m
         description='认证成功后返回当前用户的标识。',
         dependencies=[PreAuthDependency()],
     )
-    async def protected(current_user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict:
+    async def protected(current_user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict[str, object]:
         return {'userId': current_user.user.user_id}
 
     try:
@@ -258,7 +258,7 @@ async def test_auth_policy_accepts_independent_authentication_dependencies() -> 
     @router.get(
         '/public', summary='访问独立认证示例', description='返回公开状态，用于验证单独注册的依赖所采用的认证策略。'
     )
-    async def public() -> dict:
+    async def public() -> dict[str, bool]:
         return {'public': True}
 
     app.include_router(router, prefix='/plain')
@@ -324,7 +324,7 @@ async def test_dependency_override_preserves_function_scope(public: bool, monkey
         description='返回依赖提供的值，用于检查覆盖依赖后的生命周期。',
         dependencies=[PreAuthDependency([{'path': '/scope'}] if public else [])],
     )
-    async def endpoint(value: Annotated[str, Depends(original, scope='function')]) -> dict:
+    async def endpoint(value: Annotated[str, Depends(original, scope='function')]) -> dict[str, object]:
         events.append('endpoint')
         return {'value': value}
 

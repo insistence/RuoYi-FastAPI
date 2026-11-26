@@ -57,7 +57,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         file_id: str,
-        file_data_scope_sql: ColumnElement | None = None,
+        file_data_scope_sql: ColumnElement[bool] | None = None,
     ) -> SysFileInfo | None:
         """
         根据文件ID获取有效文件信息。
@@ -147,7 +147,7 @@ class FileInfoDao:
         db: AsyncSession,
         query_object: FileReconcileRunPageQueryModel,
         is_page: bool = True,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取文件存储对账任务列表。
 
@@ -361,7 +361,7 @@ class FileInfoDao:
         db: AsyncSession,
         query_object: FileReconcileIssuePageQueryModel,
         is_page: bool = True,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取文件存储对账异常列表。
 
@@ -549,7 +549,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         file_id: str,
-        file_data_scope_sql: ColumnElement | None = None,
+        file_data_scope_sql: ColumnElement[bool] | None = None,
     ) -> SysFileInfo | None:
         """
         根据文件ID获取文件详细信息。
@@ -577,7 +577,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         file_id: str,
-        file_data_scope_sql: ColumnElement | None = None,
+        file_data_scope_sql: ColumnElement[bool] | None = None,
     ) -> SysFileInfo | None:
         """
         根据文件ID锁定有效文件信息。
@@ -609,7 +609,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         file_ids: list[str],
-        file_data_scope_sql: ColumnElement | None = None,
+        file_data_scope_sql: ColumnElement[bool] | None = None,
     ) -> list[SysFileInfo]:
         """
         根据文件ID列表锁定有效文件信息。
@@ -642,7 +642,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         file_ids: list[str],
-        file_data_scope_sql: ColumnElement | None = None,
+        file_data_scope_sql: ColumnElement[bool] | None = None,
     ) -> list[SysFileInfo]:
         """
         根据文件ID列表锁定已删除文件信息。
@@ -675,7 +675,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         file_ids: list[str],
-        file_data_scope_sql: ColumnElement | None = None,
+        file_data_scope_sql: ColumnElement[bool] | None = None,
     ) -> list[SysFileInfo]:
         """
         根据文件ID列表锁定可永久清理的文件信息。
@@ -751,9 +751,9 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         query_object: FileInfoPageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取文件信息列表。
 
@@ -801,7 +801,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         file_id: str,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> dict[str, Any] | None:
         """
         获取包含管理展示字段的文件详情。
@@ -851,7 +851,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         query_object: FileInfoPageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> FileStatsModel:
         """
         获取文件管理统计信息。
@@ -1093,7 +1093,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         user_id: int,
-        user_data_scope_sql: ColumnElement,
+        user_data_scope_sql: ColumnElement[bool],
     ) -> SysUser | None:
         """
         获取数据权限范围内的文件转移目标用户。
@@ -1125,7 +1125,7 @@ class FileInfoDao:
         cls,
         db: AsyncSession,
         dept_id: int,
-        dept_data_scope_sql: ColumnElement,
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> SysDept | None:
         """
         获取数据权限范围内的文件转移目标部门。

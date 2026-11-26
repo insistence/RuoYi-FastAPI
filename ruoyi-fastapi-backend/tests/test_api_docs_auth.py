@@ -10,6 +10,7 @@ import httpx
 import pytest
 from fastapi import APIRouter, Depends, FastAPI, Request, status
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+from pydantic import TypeAdapter
 
 from common.aspect.db_session import get_db_session_provider
 from common.aspect.pre_auth import CurrentUserDependency, PreAuth, PreAuthDependency
@@ -88,7 +89,7 @@ def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         description='返回公开状态，用于核对匿名接口的 OpenAPI 安全声明。',
         dependencies=[PreAuthDependency([{'path': '/public'}])],
     )
-    async def public() -> dict:
+    async def public() -> dict[str, bool]:
         return {'public': True}
 
     @app.get(
@@ -97,7 +98,7 @@ def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         description='从预认证上下文读取并返回用户标识。',
         dependencies=[PreAuthDependency()],
     )
-    async def protected() -> dict:
+    async def protected() -> dict[str, object]:
         return {'userId': RequestContext.get_current_user().user.user_id}
 
     @app.api_route(
@@ -107,7 +108,7 @@ def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         methods=['GET', 'POST'],
         dependencies=[PreAuthDependency([{'path': '/method', 'methods': ['GET']}])],
     )
-    async def method() -> dict:
+    async def method() -> dict[str, bool]:
         return {'ok': True}
 
     @app.get(
@@ -116,7 +117,7 @@ def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         description='回显条目名称，用于核对路径参数对应的认证规则。',
         dependencies=[PreAuthDependency([{'path': '/items/{name}'}])],
     )
-    async def items(name: str) -> dict:
+    async def items(name: str) -> dict[str, object]:
         return {'name': name}
 
     @app.get(
@@ -125,7 +126,7 @@ def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         description='回显路径参数，用于核对部分名称可匿名访问时的文档说明。',
         dependencies=[PreAuthDependency([{'path': '/mixed/{name}', 'ignore_paths': ['/mixed/private']}])],
     )
-    async def mixed(name: str) -> dict:
+    async def mixed(name: str) -> dict[str, object]:
         return {'name': name}
 
     @app.get(
@@ -134,7 +135,7 @@ def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         description='回显名称，用于验证带例外路径的匿名访问规则。',
         dependencies=[PreAuthDependency([{'path': '/partial/free'}])],
     )
-    async def partial(name: str) -> dict:
+    async def partial(name: str) -> dict[str, object]:
         return {'name': name}
 
     try:
@@ -143,7 +144,7 @@ def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         RequestContext.clear_all()
 
 
-def _security(app: FastAPI, path: str, method: str = 'get') -> list[dict]:
+def _security(app: FastAPI, path: str, method: str = 'get') -> list[dict[str, list[str]]]:
     """
     读取指定 OpenAPI 操作的安全要求。
 
@@ -152,7 +153,9 @@ def _security(app: FastAPI, path: str, method: str = 'get') -> list[dict]:
     :param method: 当前请求的 HTTP 方法
     :return: 指定 OpenAPI 操作的安全要求
     """
-    return app.openapi()['paths'][path][method].get('security', [])
+    return TypeAdapter(list[dict[str, list[str]]]).validate_python(
+        app.openapi()['paths'][path][method].get('security', [])
+    )
 
 
 @pytest.mark.asyncio
@@ -263,7 +266,7 @@ async def test_explicit_authentication_cannot_be_removed_from_public_route_schem
             description='返回当前用户标识，用于验证公开路径上显式声明的认证依赖。',
             dependencies=dependencies,
         )
-        async def current(user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict:
+        async def current(user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> dict[str, object]:
             """
             返回含 ``userId`` 的测试数据。
 
@@ -280,7 +283,7 @@ async def test_explicit_authentication_cannot_be_removed_from_public_route_schem
             description='从嵌套依赖获取用户标识，用于核对公开路径的安全声明。',
             dependencies=dependencies,
         )
-        async def nested(user_id: Annotated[int, Depends(identity)]) -> dict:
+        async def nested(user_id: Annotated[int, Depends(identity)]) -> dict[str, object]:
             """
             返回含 ``userId`` 的测试数据。
 
@@ -297,7 +300,7 @@ async def test_explicit_authentication_cannot_be_removed_from_public_route_schem
             description='从 OAuth 依赖读取令牌，用于核对公开路径的认证要求。',
             dependencies=dependencies,
         )
-        async def token(value: Annotated[str, Depends(oauth2_scheme)]) -> dict:
+        async def token(value: Annotated[str, Depends(oauth2_scheme)]) -> dict[str, object]:
             """
             返回含 ``token`` 的测试数据。
 
@@ -312,7 +315,7 @@ async def test_explicit_authentication_cannot_be_removed_from_public_route_schem
         @router.get(
             path, summary='访问有认证要求的插件路由', description='返回插件状态，用于验证挂载路由显式声明的认证要求。'
         )
-        async def plugin() -> dict:
+        async def plugin() -> dict[str, bool]:
             return {'ok': True}
 
         dependency = identity if declaration == 'plugin' else LoginService.get_current_user
@@ -343,7 +346,7 @@ async def test_all_pre_auth_dependencies_must_exclude_the_route(docs_app: Simple
         description='组合排除规则并返回成功状态，用于验证匿名访问范围。',
         dependencies=dependencies,
     )
-    async def multiple() -> dict:
+    async def multiple() -> dict[str, bool]:
         """
         返回含 ``ok`` 的测试数据。
 
@@ -373,7 +376,7 @@ async def test_disjoint_exclusions_do_not_make_a_parameterized_route_public(docs
             PreAuthDependency([{'path': '/disjoint/second'}]),
         ],
     )
-    async def disjoint(name: str) -> dict:
+    async def disjoint(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 
@@ -400,7 +403,7 @@ def test_fixed_route_honors_wildcard_exclusion_and_ignore_paths(docs_app: Simple
         description='在固定路径返回成功状态，用于核对通配规则及例外路径。',
         dependencies=[PreAuthDependency([{'path': '/fixed/{name}', 'ignore_paths': ['/fixed/private']}])],
     )
-    async def fixed() -> dict:
+    async def fixed() -> dict[str, bool]:
         """
         返回含 ``ok`` 的测试数据。
 
@@ -430,7 +433,7 @@ def test_irrelevant_or_reallowed_exceptions_do_not_make_fully_public_routes_cond
             )
         ],
     )
-    async def reallowed(name: str) -> dict:
+    async def reallowed(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 
@@ -458,7 +461,7 @@ async def test_public_login_exclusion_preserves_other_required_security(
         description='返回依赖解析的凭证，用于确认登录排除后仍保留其他安全要求。',
         dependencies=[PreAuthDependency([rule])],
     )
-    async def key(value: Annotated[str, Depends(api_key)]) -> dict:
+    async def key(value: Annotated[str, Depends(api_key)]) -> dict[str, object]:
         """
         返回含 ``key`` 的测试数据。
 
@@ -492,7 +495,7 @@ async def test_independent_oauth_scheme_with_the_same_name_remains_required(docs
         description='返回独立 OAuth 方案解析的令牌，用于核对安全声明。',
         dependencies=[PreAuthDependency([{'path': '/independent'}])],
     )
-    async def independent_token(token: Annotated[str, Depends(independent)]) -> dict:
+    async def independent_token(token: Annotated[str, Depends(independent)]) -> dict[str, object]:
         """
         返回含 ``token`` 的测试数据。
 
@@ -522,7 +525,7 @@ async def test_nested_router_prefix_and_root_path_match_runtime_rules(
     @child.get(
         '/public', summary='访问嵌套的公开路由', description='返回成功状态，用于核对嵌套前缀与部署路径的认证规则。'
     )
-    async def public() -> dict:
+    async def public() -> dict[str, bool]:
         return {'ok': True}
 
     parent = APIRouter(prefix='/api')
@@ -559,7 +562,7 @@ def test_schema_adjustment_is_idempotent_and_tracks_late_router_registration(doc
     @router.get(
         '/public', summary='访问后注册的公开路由', description='在初次生成文档后注册公开接口，用于检查文档刷新。'
     )
-    async def public() -> dict:
+    async def public() -> dict[str, bool]:
         return {'ok': True}
 
     @router.get(
@@ -567,7 +570,7 @@ def test_schema_adjustment_is_idempotent_and_tracks_late_router_registration(doc
         summary='访问后注册的受保护路由',
         description='在初次生成文档后注册受保护接口，用于检查安全声明刷新。',
     )
-    async def protected() -> dict:
+    async def protected() -> dict[str, bool]:
         return {'ok': True}
 
     docs_app.app.include_router(router)
@@ -597,7 +600,7 @@ async def test_duplicate_route_preserves_native_security(
         dependencies=[PreAuthDependency([{'path': path}] if public_first else [])],
         include_in_schema=include_first,
     )
-    async def first() -> dict:
+    async def first() -> dict[str, str]:
         """
         返回含 ``route`` 的测试数据。
 
@@ -611,7 +614,7 @@ async def test_duplicate_route_preserves_native_security(
         description='声明第二个处理函数，用于验证重复注册时保留的安全要求。',
         dependencies=[PreAuthDependency([] if public_first else [{'path': path}])],
     )
-    async def second() -> dict:
+    async def second() -> dict[str, str]:
         """
         返回含 ``route`` 的测试数据。
 
@@ -648,7 +651,7 @@ async def test_duplicate_path_with_different_convertors_preserves_native_securit
         dependencies=[PreAuthDependency([rule] if public_first else [])],
         include_in_schema=include_first,
     )
-    async def integer(value: int) -> dict:
+    async def integer(value: int) -> dict[str, object]:
         """
         返回含 ``route``, ``value`` 的测试数据。
 
@@ -663,7 +666,7 @@ async def test_duplicate_path_with_different_convertors_preserves_native_securit
         description='返回通过字符串路径转换器解析的值。',
         dependencies=[PreAuthDependency([] if public_first else [rule])],
     )
-    async def string(value: str) -> dict:
+    async def string(value: str) -> dict[str, object]:
         """
         返回含 ``route``, ``value`` 的测试数据。
 
@@ -721,7 +724,7 @@ async def test_duplicate_route_with_other_authentication_preserves_native_securi
         description='返回首个处理函数的标记，用于比对同路径上的不同认证方案。',
         dependencies=dependencies[first_auth],
     )
-    async def first() -> dict:
+    async def first() -> dict[str, str]:
         """
         返回含 ``route`` 的测试数据。
 
@@ -735,7 +738,7 @@ async def test_duplicate_route_with_other_authentication_preserves_native_securi
         description='返回后注册处理函数的标记，用于比对同路径上的不同认证方案。',
         dependencies=dependencies[second_auth],
     )
-    async def second() -> dict:
+    async def second() -> dict[str, str]:
         """
         返回含 ``route`` 的测试数据。
 
@@ -768,7 +771,7 @@ def test_unrelated_schema_details_and_security_schemes_are_preserved(docs_app: S
         tags=['外部接口'],
         openapi_extra={'x-external': {'enabled': True}},
     )
-    async def external(key: Annotated[str, Depends(api_key)]) -> dict:
+    async def external(key: Annotated[str, Depends(api_key)]) -> dict[str, object]:
         """
         返回含 ``key`` 的测试数据。
 
@@ -780,7 +783,7 @@ def test_unrelated_schema_details_and_security_schemes_are_preserved(docs_app: S
     @docs_app.app.get(
         '/plain-public', summary='访问无认证的公开路由', description='返回成功状态，用于确认公开接口的安全要求为空。'
     )
-    async def plain_public() -> dict:
+    async def plain_public() -> dict[str, bool]:
         """
         返回含 ``ok`` 的测试数据。
 
@@ -832,7 +835,7 @@ async def test_parameter_convertors_exclude_impossible_public_values(
         description='回显转换后的值，用于排除无法由路径转换器匹配的公开规则。',
         dependencies=[PreAuthDependency([{'path': f'/converted/{excluded_value}'}])],
     )
-    async def converted(value: int | UUID) -> dict:
+    async def converted(value: int | UUID) -> dict[str, object]:
         """
         返回含 ``value`` 的测试数据。
 
@@ -871,7 +874,7 @@ async def test_overlapping_public_values_respect_each_pre_auth_exception(
         description='回显名称，用于核对多组公开规则和例外的交集。',
         dependencies=[PreAuthDependency(rules), PreAuthDependency([{'path': '/overlap/free'}])],
     )
-    async def overlap(name: str) -> dict:
+    async def overlap(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 
@@ -924,7 +927,7 @@ async def test_changed_exclusion_rules_restore_native_security_and_description(d
     description = '原有接口描述必须保留。'
 
     @docs_app.app.get('/mutable/{name}', summary='验证可变的认证规则', dependencies=[pre_auth], description=description)
-    async def mutable(name: str) -> dict:
+    async def mutable(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 
@@ -961,7 +964,7 @@ def test_compound_security_from_openapi_extra_is_preserved(docs_app: SimpleNames
     )
     async def security_definitions(
         gateway_key: Annotated[str, Depends(gateway)], audit_key: Annotated[str, Depends(audit)]
-    ) -> dict:
+    ) -> dict[str, object]:
         """
         返回含 ``gateway``, ``audit`` 的测试数据。
 
@@ -982,7 +985,7 @@ def test_compound_security_from_openapi_extra_is_preserved(docs_app: SimpleNames
         description=description,
         openapi_extra={'security': [{**LOGIN_SECURITY, **additional_security}], 'x-gateway': {'required': True}},
     )
-    async def compound() -> dict:
+    async def compound() -> dict[str, bool]:
         """
         返回含 ``ok`` 的测试数据。
 
@@ -1023,7 +1026,7 @@ async def test_embedded_parameters_and_literal_dots_preserve_full_exclusion(
         description='回显路径中的名称，用于核对嵌入参数和字面点号的匹配。',
         dependencies=[PreAuthDependency([{'path': path, 'ignore_paths': ignored_paths}])],
     )
-    async def embedded(name: str) -> dict:
+    async def embedded(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 
@@ -1063,7 +1066,7 @@ async def test_modifying_documented_rules_cannot_change_runtime_authentication(d
             )
         ],
     )
-    async def documented(name: str) -> dict:
+    async def documented(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 
@@ -1100,7 +1103,7 @@ async def test_explicit_anonymous_security_for_optional_api_key_is_preserved(doc
         dependencies=[PreAuthDependency([{'path': '/optional-key'}])],
         openapi_extra={'security': [{}]},
     )
-    async def optional(key: Annotated[str | None, Depends(optional_key)]) -> dict:
+    async def optional(key: Annotated[str | None, Depends(optional_key)]) -> dict[str, object]:
         """
         返回含 ``key`` 的测试数据。
 
@@ -1131,7 +1134,7 @@ async def test_complex_rule_cannot_override_a_proven_empty_public_intersection(d
             PreAuthDependency([{'path': '/complex/c'}]),
         ],
     )
-    async def complex_rule(name: str) -> dict:
+    async def complex_rule(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 
@@ -1157,7 +1160,7 @@ async def test_unresolved_complex_rules_do_not_add_an_unproven_anonymous_alterna
         description='回显路径参数，用于验证复杂匹配规则的认证声明。',
         dependencies=[PreAuthDependency([{'path': '/unresolved/(a|b)'}])],
     )
-    async def unresolved(name: str) -> dict:
+    async def unresolved(name: str) -> dict[str, object]:
         """
         返回含 ``name`` 的测试数据。
 

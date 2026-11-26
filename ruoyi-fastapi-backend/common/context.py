@@ -56,7 +56,7 @@ class RequestContext:
     @staticmethod
     def set_current_exclude_patterns(
         exclude_patterns: list[CompiledExcludeRoute],
-    ) -> Token:
+    ) -> Token[list[CompiledExcludeRoute] | None]:
         """
         设置当前请求的编译后的排除路由模式列表。
 
@@ -78,7 +78,7 @@ class RequestContext:
         return _exclude_patterns
 
     @staticmethod
-    def set_current_user(user: 'CurrentUserModel') -> Token:
+    def set_current_user(user: 'CurrentUserModel') -> Token['CurrentUserModel | None']:
         """
         设置当前用户信息。
 
@@ -103,7 +103,7 @@ class RequestContext:
         return _current_user
 
     @staticmethod
-    def reset_current_exclude_patterns(token: Token) -> None:
+    def reset_current_exclude_patterns(token: Token[list[CompiledExcludeRoute] | None]) -> None:
         """
         重置当前请求的编译后的排除路由模式列表。
 
@@ -112,7 +112,7 @@ class RequestContext:
         current_exclude_patterns.reset(token)
 
     @staticmethod
-    def reset_current_user(token: Token) -> None:
+    def reset_current_user(token: Token['CurrentUserModel | None']) -> None:
         """
         重置当前用户信息。
 
@@ -121,7 +121,7 @@ class RequestContext:
         current_user.reset(token)
 
     @staticmethod
-    def set_current_timezone(timezone_name: str | None) -> Token:
+    def set_current_timezone(timezone_name: str | None) -> Token[str | None]:
         """
         保存中间件已校验的请求时区。
 
@@ -131,7 +131,7 @@ class RequestContext:
         return current_timezone.set(timezone_name)
 
     @staticmethod
-    def reset_current_timezone(token: Token) -> None:
+    def reset_current_timezone(token: Token[str | None]) -> None:
         """
         恢复请求进入前的时区，避免并发请求之间串用。
 

@@ -1,6 +1,7 @@
 import json
 from collections.abc import Generator
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from fastapi import Request
@@ -58,7 +59,7 @@ def build_request(path: str = '/system/plugin/batch', method: str = 'POST') -> R
     )
 
 
-def load_response_body(response: Response) -> dict:
+def load_response_body(response: Response) -> dict[str, Any]:
     """
     解析测试响应体。
 
@@ -323,7 +324,7 @@ async def test_enable_system_plugin_returns_runtime_payload_when_not_ok(monkeypa
     class FakePluginRuntimeService:
         """测试用插件运行时服务。"""
 
-        async def set_plugin_enabled(self, plugin_id: str, *, enabled: bool, dry_run: bool = False) -> dict:
+        async def set_plugin_enabled(self, plugin_id: str, *, enabled: bool, dry_run: bool = False) -> dict[str, Any]:
             """
             返回失败启用结果。
 
@@ -358,7 +359,7 @@ async def test_disable_system_plugin_delegates_runtime_service(monkeypatch: pyte
     class FakePluginRuntimeService:
         """测试用插件运行时服务。"""
 
-        async def set_plugin_enabled(self, plugin_id: str, *, enabled: bool, dry_run: bool = False) -> dict:
+        async def set_plugin_enabled(self, plugin_id: str, *, enabled: bool, dry_run: bool = False) -> dict[str, Any]:
             """
             记录插件启停参数。
 

@@ -57,7 +57,7 @@ async def _read_release_payload(operation: Callable[[], Awaitable[dict[str, Any]
     '/artifacts/list',
     summary='获取已验证插件制品列表接口',
     description='用于获取已验证的插件制品列表，支持按插件ID筛选',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
 )
 async def list_plugin_artifacts(
     plugin_id: Annotated[
@@ -71,7 +71,7 @@ async def list_plugin_artifacts(
     '/release/status',
     summary='获取插件发布状态接口',
     description='用于查询插件发布目标及各工作进程的实际状态，支持按插件ID筛选',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
 )
 async def get_plugin_release_status(
     plugin_id: Annotated[
@@ -85,7 +85,7 @@ async def get_plugin_release_status(
     '/release/plan',
     summary='获取插件发布预检计划接口',
     description='用于根据插件ID和制品摘要获取维护发布前的静态预检计划',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
 )
 async def plan_plugin_release(
     plugin_id: Annotated[str, Query(alias='pluginId', description='插件ID', pattern=r'^[a-z][a-z0-9_]{1,63}$')],

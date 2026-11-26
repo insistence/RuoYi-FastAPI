@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -13,7 +14,7 @@ OTHER = 'b' * 32
 DIGEST = 'd' * 64
 
 
-def snapshot(worker_id: str = WORKER, **overrides: object) -> dict:
+def snapshot(worker_id: str = WORKER, **overrides: object) -> dict[str, Any]:
     """
     构造真正加载但尚无请求的运行快照。
 
@@ -45,7 +46,7 @@ def snapshot(worker_id: str = WORKER, **overrides: object) -> dict:
     }
 
 
-def report(*workers: dict, **overrides: object) -> dict:
+def report(*workers: dict[str, Any], **overrides: object) -> dict[str, Any]:
     """
     构造已通过报告器校验的集群观测结果。
 
@@ -67,7 +68,7 @@ def report(*workers: dict, **overrides: object) -> dict:
     }
 
 
-def release(*worker_ids: str, expected: int = 1) -> dict:
+def release(*worker_ids: str, expected: int = 1) -> dict[str, Any]:
     """
     构造当前发布目标，故意与实际运行摘要不同以检验身份边界。
 

@@ -205,7 +205,7 @@ async def test_use_cache_false_reauthenticates_even_when_both_calls_hit_cache(ca
     async def revalidate(
         first: Annotated[CurrentUserModel, CurrentUserDependency()],
         second: Annotated[CurrentUserModel, Depends(LoginService.get_current_user, use_cache=False)],
-    ) -> dict:
+    ) -> dict[str, object]:
         """
         返回含 ``sameUser``, ``contextIsFresh`` 的测试数据。
 

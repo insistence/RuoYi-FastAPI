@@ -68,7 +68,7 @@ class AuthRule:
                 }
             )
 
-    def _compile_path_pattern(self, path: str) -> re.Pattern:
+    def _compile_path_pattern(self, path: str) -> re.Pattern[str]:
         """
         将FastAPI路径转换为正则表达式模式。
 
@@ -124,8 +124,8 @@ class AuthPolicy:
     def iter_auth_dependencies(
         cls,
         dependant: Dependant,
-        auth_dependencies: tuple[Callable, ...],
-        overrides: dict[Callable, Callable] | None = None,
+        auth_dependencies: tuple[Callable[..., object], ...],
+        overrides: dict[Callable[..., object], Callable[..., object]] | None = None,
     ) -> Iterator[AuthRule | None]:
         """
         遍历实际生效的登录认证声明。
@@ -169,7 +169,7 @@ class AuthPolicy:
 
     @classmethod
     def get_auth_mode(
-        cls, request: Request, auth_dependencies: tuple[Callable, ...]
+        cls, request: Request, auth_dependencies: tuple[Callable[..., object], ...]
     ) -> Literal['pre_auth', 'current_user', 'excluded']:
         """
         根据路由的依赖声明确定登录认证方式。

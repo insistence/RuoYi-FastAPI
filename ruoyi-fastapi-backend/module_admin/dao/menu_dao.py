@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Any
 
 from sqlalchemy import and_, bindparam, delete, func, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -211,7 +212,7 @@ class MenuDao:
         return db_menu
 
     @classmethod
-    async def edit_menu_dao(cls, db: AsyncSession, menu: dict) -> None:
+    async def edit_menu_dao(cls, db: AsyncSession, menu: dict[str, Any]) -> None:
         """
         编辑菜单数据库操作。
 

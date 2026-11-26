@@ -201,7 +201,7 @@ async def browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
     app.include_router(plugin_browser_controller)
 
     @app.get('/system/private', summary='检查宿主私有端点', description='检查请求携带的令牌并返回认证状态。')
-    async def private(token_value: Annotated[str, Depends(oauth2_scheme)]) -> dict:
+    async def private(token_value: Annotated[str, Depends(oauth2_scheme)]) -> dict[str, object]:
         return {'authenticated': bool(token_value)}
 
     app.add_middleware(TransportCryptoMiddleware)

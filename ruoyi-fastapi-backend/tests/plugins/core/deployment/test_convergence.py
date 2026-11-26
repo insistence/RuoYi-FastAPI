@@ -20,7 +20,7 @@ EXTRA = 'e' * 32
 EXPECTED_WORKERS = 2
 
 
-def worker(worker_id: str, plugin_id: str = '__runtime__', **changes: object) -> dict:
+def worker(worker_id: str, plugin_id: str = '__runtime__', **changes: object) -> dict[str, Any]:
     """
     创建与数据库只读 status 一致的宿主或插件报告。
 
@@ -42,7 +42,7 @@ def worker(worker_id: str, plugin_id: str = '__runtime__', **changes: object) ->
     }
 
 
-def ready(*worker_ids: str) -> list[dict]:
+def ready(*worker_ids: str) -> list[dict[str, Any]]:
     """
     生成指定 worker 的宿主与插件配对就绪报告。
 
@@ -53,13 +53,13 @@ def ready(*worker_ids: str) -> list[dict]:
 
 
 def payload(
-    reports: list[dict] | None = None,
+    reports: list[dict[str, Any]] | None = None,
     *,
     digest: str | None = DIGEST,
     generation: str = GENERATION,
     expected: int = 2,
     enabled: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """
     使用既有聚合器生成读取时刻的摘要，后续测试单独推进返回时刻。
 
@@ -143,7 +143,7 @@ def clock(monkeypatch: pytest.MonkeyPatch) -> Clock:
     return value
 
 
-async def wait(reader: Callable[[str], Awaitable[dict[str, Any]]], **changes: object) -> dict:
+async def wait(reader: Callable[[str], Awaitable[dict[str, Any]]], **changes: object) -> dict[str, Any]:
     """
     使用固定身份调用被测等待器，同时允许单项参数边界覆盖。
 
@@ -218,7 +218,9 @@ async def test_wait_reads_new_snapshots_until_all_workers_converge(clock: Clock)
         [*ready(WORKER, OTHER), worker(EXTRA), worker(EXTRA, PLUGIN_ID, generation='f' * 32)],
     ],
 )
-async def test_assertion_rejects_short_capacity_orphans_and_extra_mismatched_live_worker(reports: list[dict]) -> None:
+async def test_assertion_rejects_short_capacity_orphans_and_extra_mismatched_live_worker(
+    reports: list[dict[str, Any]],
+) -> None:
     """验收拒绝容量不足、孤立进程及不匹配的额外进程。"""
     result = await wait(AsyncMock(return_value=payload(reports)), timeout_seconds=0)
     assert result['reason'] == 'not_converged' and result['ok'] is False
@@ -233,7 +235,9 @@ async def test_assertion_rejects_short_capacity_orphans_and_extra_mismatched_liv
         {'expected': 3},
     ],
 )
-async def test_changed_target_generation_or_recorded_capacity_is_never_followed(changes: dict, clock: Clock) -> None:
+async def test_changed_target_generation_or_recorded_capacity_is_never_followed(
+    changes: dict[str, Any], clock: Clock
+) -> None:
     """目标代次或记录容量改变时不追随新值。"""
     reader = AsyncMock(side_effect=[payload(**changes), payload(ready(WORKER, OTHER))])
     result = await wait(reader)
@@ -245,7 +249,7 @@ async def test_changed_target_generation_or_recorded_capacity_is_never_followed(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('state', [{'ok': True, 'releases': [], 'workers': []}, payload(digest=None)])
-async def test_missing_release_or_target_stops_immediately(state: dict) -> None:
+async def test_missing_release_or_target_stops_immediately(state: dict[str, Any]) -> None:
     """发布或目标缺失时立即停止。"""
     result = await wait(AsyncMock(return_value=state))
     assert result['reason'] == 'target_missing' and result['attempts'] == 1
@@ -338,7 +342,7 @@ async def test_polling_stops_on_total_deadline_and_sleep_never_overshoots(clock:
 async def test_active_result_returned_after_deadline_is_still_timeout(clock: Clock) -> None:
     """超过截止时间才返回的启用结果仍视为超时。"""
 
-    async def reader(plugin_id: str) -> dict:
+    async def reader(plugin_id: str) -> dict[str, Any]:
         """
         推进测试时钟并返回工作进程状态。
 
@@ -366,7 +370,9 @@ async def test_read_timeout_is_bounded_and_classified_by_budget_source(
 ) -> None:
     """按预算来源限制并归类读取超时。"""
 
-    def time_out(tasks: set, *, timeout: float) -> tuple[set, set]:
+    def time_out(
+        tasks: set[asyncio.Task[object]], *, timeout: float
+    ) -> tuple[set[asyncio.Task[object]], set[asyncio.Task[object]]]:
         """
         推进测试时钟以模拟读取超时。
 
@@ -391,7 +397,7 @@ async def test_timer_before_monotonic_deadline_cannot_become_unavailable_or_late
     """单调时钟截止前触发计时器不会误报不可用或迟到成功。"""
     cleaned = asyncio.Event()
 
-    async def reader(plugin_id: str) -> dict:
+    async def reader(plugin_id: str) -> dict[str, Any]:
         """
         推进测试时钟并返回工作进程状态。
 
@@ -400,7 +406,7 @@ async def test_timer_before_monotonic_deadline_cannot_become_unavailable_or_late
         :raises asyncio.CancelledError: 异步操作被取消时
         """
         try:
-            return await asyncio.Future[dict]()
+            return await asyncio.Future[dict[str, Any]]()
         except asyncio.CancelledError:
             if swallow_cancel:
                 return payload(ready(WORKER, OTHER))
@@ -433,7 +439,7 @@ async def test_cancellation_propagates_and_does_not_continue_polling(
     entered = asyncio.Event()
     finished = asyncio.Event()
 
-    async def blocked(value: object) -> dict:
+    async def blocked(value: object) -> dict[str, Any]:
         """
         将调用保持在等待状态以验证取消行为。
 
@@ -442,7 +448,7 @@ async def test_cancellation_propagates_and_does_not_continue_polling(
         """
         entered.set()
         try:
-            return await asyncio.Future[dict]()
+            return await asyncio.Future[dict[str, Any]]()
         finally:
             finished.set()
 
@@ -475,7 +481,7 @@ async def test_cancellation_propagates_and_does_not_continue_polling(
         {'poll_interval_seconds': float('inf')},
     ],
 )
-async def test_invalid_pins_or_time_limits_do_not_query(changes: dict) -> None:
+async def test_invalid_pins_or_time_limits_do_not_query(changes: dict[str, Any]) -> None:
     """无效的固定目标或时间限制不会触发查询。"""
     reader = AsyncMock()
     with pytest.raises(ValueError):
@@ -500,7 +506,7 @@ async def test_invalid_pins_or_time_limits_do_not_query(changes: dict) -> None:
         {'expectedWorkers': False},
     ],
 )
-async def test_contradictory_or_malformed_summary_never_becomes_success(changes: dict) -> None:
+async def test_contradictory_or_malformed_summary_never_becomes_success(changes: dict[str, Any]) -> None:
     """矛盾或格式错误的摘要无法通过验收。"""
     state = payload(ready(WORKER, OTHER))
     state['releases'][0].update(changes)
@@ -549,7 +555,7 @@ async def test_missing_raw_worker_fields_cannot_pass_via_summary(field: str) -> 
         {'pluginId': 'other_demo'},
     ],
 )
-async def test_invalid_worker_state_identity_or_naive_time_is_fail_closed(changes: dict) -> None:
+async def test_invalid_worker_state_identity_or_naive_time_is_fail_closed(changes: dict[str, Any]) -> None:
     """无效进程状态、身份或无时区时刻导致验收失败。"""
     state = payload(ready(WORKER, OTHER))
     state['workers'][0].update(changes)

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -66,7 +67,7 @@ def held_process_job(directory: str) -> int:
     return os.getpid()
 
 
-def claim_in_process(execution_id: str, job: dict) -> bool:
+def claim_in_process(execution_id: str, job: dict[str, Any]) -> bool:
     """
     不同进程同时尝试占用同一任务，保留占用供父进程断言。
 
@@ -155,7 +156,7 @@ class Runtime:
             await db.commit()
             return JobAdapter.from_record(row)
 
-    async def execution(self, execution_id: str) -> dict:
+    async def execution(self, execution_id: str) -> dict[str, Any]:
         """
         读取当前执行状态。
 
@@ -167,7 +168,7 @@ class Runtime:
             assert result is not None, execution_id
             return JobRuntimeDao.execution_result(result)
 
-    async def wait_execution(self, execution_id: str, expected: set[str]) -> dict:
+    async def wait_execution(self, execution_id: str, expected: set[str]) -> dict[str, Any]:
         """
         等待执行进入预期状态，失败时打印最后观察到的状态。
 

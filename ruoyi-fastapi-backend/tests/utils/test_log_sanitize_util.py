@@ -320,7 +320,7 @@ def test_plain_log_formatter_separates_consecutive_records() -> None:
 def test_get_request_params_returns_structured_payload() -> None:
     """读取请求参数时返回结构化数据。"""
 
-    async def receive() -> dict:
+    async def receive() -> dict[str, object]:
         """
         提供下游 ASGI 应用读取的 HTTP 请求体消息。
 
@@ -354,7 +354,7 @@ def test_get_request_params_returns_structured_payload() -> None:
 def test_get_request_params_falls_back_to_raw_body_when_json_invalid() -> None:
     """无效 JSON 请求体回退为原始内容。"""
 
-    async def receive() -> dict:
+    async def receive() -> dict[str, object]:
         """
         提供下游 ASGI 应用读取的 HTTP 请求体消息。
 
@@ -391,7 +391,7 @@ def test_get_request_params_falls_back_to_raw_body_when_json_invalid() -> None:
 def test_get_request_params_decodes_non_utf8_body_without_raising() -> None:
     """非 UTF-8 请求体可以安全解码。"""
 
-    async def receive() -> dict:
+    async def receive() -> dict[str, object]:
         """
         提供下游 ASGI 应用读取的 HTTP 请求体消息。
 

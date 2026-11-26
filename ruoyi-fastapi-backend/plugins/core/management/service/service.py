@@ -86,7 +86,7 @@ class PluginService:
         *,
         backend_root: Path | None = None,
         frontend_root: Path | None = None,
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -109,7 +109,7 @@ class PluginService:
         *,
         backend_root: Path | None = None,
         frontend_root: Path | None = None,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取插件分页列表。
 
@@ -547,7 +547,7 @@ class PluginService:
         query_db: AsyncSession,
         query_object: PluginOperationLogPageQueryModel,
         is_page: Literal[True] = True,
-    ) -> PageModel: ...
+    ) -> PageModel[PluginOperationLogDetailModel]: ...
 
     @classmethod
     @overload
@@ -564,7 +564,7 @@ class PluginService:
         query_db: AsyncSession,
         query_object: PluginOperationLogPageQueryModel,
         is_page: bool = True,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[PluginOperationLogDetailModel] | list[dict[str, Any]]:
         """
         获取插件批量操作审计日志分页列表。
 
@@ -577,9 +577,13 @@ class PluginService:
         if not isinstance(page_result, PageModel):
             return page_result
 
-        page_result.rows = [PluginOperationLogBuilder.build_detail(row) for row in page_result.rows]
-
-        return page_result
+        return PageModel[PluginOperationLogDetailModel](
+            rows=[PluginOperationLogBuilder.build_detail(row) for row in page_result.rows],
+            page_num=page_result.page_num,
+            page_size=page_result.page_size,
+            total=page_result.total,
+            has_next=page_result.has_next,
+        )
 
     @classmethod
     async def get_plugin_operation_log_export_list_services(

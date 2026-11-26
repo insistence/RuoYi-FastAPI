@@ -6,6 +6,7 @@ import re
 import sys
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from dotenv import dotenv_values
@@ -45,7 +46,7 @@ def load_source(args: argparse.Namespace) -> DataSourceSettings:
     return DataSourceSettings.model_validate(sources[args.source or values['DB_DEFAULT_SOURCE']])
 
 
-def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings:  # noqa: PLR0915
+def initialize(source: DataSourceSettings, report: dict[str, Any]) -> DataSourceSettings:  # noqa: PLR0915
     """
     创建隔离测试库并验证UTC种子数据。
 
@@ -123,7 +124,7 @@ def initialize(source: DataSourceSettings, report: dict) -> DataSourceSettings: 
     return target
 
 
-def inspect_schema(source: DataSourceSettings, report: dict) -> None:
+def inspect_schema(source: DataSourceSettings, report: dict[str, Any]) -> None:
     """
     逐列核对实际数据库和ORM的时间类型约定。
 
@@ -187,7 +188,7 @@ def inspect_schema(source: DataSourceSettings, report: dict) -> None:
         engine.dispose()
 
 
-async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
+async def verify_drivers(source: DataSourceSettings, report: dict[str, Any]) -> None:
     """
     验证同步和异步驱动的UTC会话、精度及重连行为。
 
@@ -237,7 +238,7 @@ async def verify_drivers(source: DataSourceSettings, report: dict) -> None:
         await async_engine.dispose()
 
 
-async def verify_generator(source: DataSourceSettings, report: dict) -> None:
+async def verify_generator(source: DataSourceSettings, report: dict[str, Any]) -> None:
     """
     使用真实数据库验证普通表、树表和主子表生成代码。
 
@@ -267,7 +268,7 @@ async def verify_generator(source: DataSourceSettings, report: dict) -> None:
         engine.dispose()
 
 
-async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict) -> None:
+async def verify_metadata_and_scheduler(source: DataSourceSettings, report: dict[str, Any]) -> None:
     """
     验证数据库元数据时间及持久化调度行为。
 

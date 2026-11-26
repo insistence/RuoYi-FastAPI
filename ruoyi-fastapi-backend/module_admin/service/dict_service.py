@@ -34,7 +34,7 @@ class DictTypeService:
     @overload
     async def get_dict_type_list_services(
         cls, query_db: AsyncSession, query_object: DictTypePageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -45,7 +45,7 @@ class DictTypeService:
     @classmethod
     async def get_dict_type_list_services(
         cls, query_db: AsyncSession, query_object: DictTypePageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取字典类型列表信息service。
 
@@ -216,7 +216,7 @@ class DictTypeService:
         return result
 
     @staticmethod
-    async def export_dict_type_list_services(dict_type_list: list) -> bytes:
+    async def export_dict_type_list_services(dict_type_list: list[dict[str, Any]]) -> bytes:
         """
         导出字典类型信息service。
 
@@ -268,7 +268,7 @@ class DictDataService:
     @overload
     async def get_dict_data_list_services(
         cls, query_db: AsyncSession, query_object: DictDataPageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -279,7 +279,7 @@ class DictDataService:
     @classmethod
     async def get_dict_data_list_services(
         cls, query_db: AsyncSession, query_object: DictDataPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取字典数据列表信息service。
 
@@ -504,7 +504,7 @@ class DictDataService:
         return result
 
     @staticmethod
-    async def export_dict_data_list_services(dict_data_list: list) -> bytes:
+    async def export_dict_data_list_services(dict_data_list: list[dict[str, Any]]) -> bytes:
         """
         导出字典数据信息service。
 

@@ -22,7 +22,7 @@ class ConfigService:
     @overload
     async def get_config_list_services(
         cls, query_db: AsyncSession, query_object: ConfigPageQueryModel, is_page: Literal[True]
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -33,7 +33,7 @@ class ConfigService:
     @classmethod
     async def get_config_list_services(
         cls, query_db: AsyncSession, query_object: ConfigPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取参数配置列表信息service。
 
@@ -220,7 +220,7 @@ class ConfigService:
         return result
 
     @staticmethod
-    async def export_config_list_services(config_list: list) -> bytes:
+    async def export_config_list_services(config_list: list[dict[str, Any]]) -> bytes:
         """
         导出参数配置信息service。
 

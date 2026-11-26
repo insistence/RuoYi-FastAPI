@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(
-    item: pytest.Item, call: pytest.CallInfo
+    item: pytest.Item, call: pytest.CallInfo[None]
 ) -> Generator[None, pytest.TestReport, pytest.TestReport]:
     """
     在浏览器 fixture 回收前保存调用结果，确保断言失败仍能导出诊断。

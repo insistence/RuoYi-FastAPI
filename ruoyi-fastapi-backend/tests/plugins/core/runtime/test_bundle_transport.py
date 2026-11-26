@@ -4,6 +4,7 @@ import os
 import secrets
 import time
 from types import SimpleNamespace
+from typing import Any
 
 import httpx
 import pytest
@@ -85,7 +86,7 @@ def crypto(browser: SimpleNamespace, monkeypatch: pytest.MonkeyPatch) -> SimpleN
     return SimpleNamespace(public_key=public_key, kid=settings['transport_crypto_kid'])
 
 
-def _envelope(crypto: SimpleNamespace, method: str, path: str, payload: object) -> tuple[dict, bytes]:
+def _envelope(crypto: SimpleNamespace, method: str, path: str, payload: object) -> tuple[dict[str, Any], bytes]:
     """
     按浏览器协议构造信封，每个请求使用独立 AES key、IV 和防重放 nonce。
 
@@ -114,7 +115,7 @@ def _envelope(crypto: SimpleNamespace, method: str, path: str, payload: object) 
     }, aes_key
 
 
-def _decrypt_response(response: httpx.Response, aes_key: bytes, *, method: str, path: str) -> dict:
+def _decrypt_response(response: httpx.Response, aes_key: bytes, *, method: str, path: str) -> dict[str, Any]:
     """
     校验并解密测试响应的传输信封。
 

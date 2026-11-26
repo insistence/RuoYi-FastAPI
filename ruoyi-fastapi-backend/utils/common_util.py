@@ -51,8 +51,10 @@ class SqlalchemyUtil:
 
     @classmethod
     def base_to_dict(
-        cls, obj: Base | dict, transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
-    ) -> dict:
+        cls,
+        obj: Base | dict[Any, Any],
+        transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case',
+    ) -> dict[Any, Any]:
         """
         将sqlalchemy模型对象转换为字典。
 
@@ -84,13 +86,15 @@ class SqlalchemyUtil:
     @classmethod
     @overload
     def serialize_result(
-        cls, result: dict, transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
+        cls, result: dict[Any, Any], transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
     ) -> dict[Any, Any]: ...
 
     @classmethod
     @overload
     def serialize_result(
-        cls, result: Row, transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
+        cls,
+        result: Row[*tuple[Any, ...]],
+        transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case',
     ) -> dict[str, Any] | list[dict[Any, Any]]: ...
 
     @classmethod
@@ -102,13 +106,17 @@ class SqlalchemyUtil:
     @classmethod
     @overload
     def serialize_result(
-        cls, result: Sequence[dict], transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
+        cls,
+        result: Sequence[dict[Any, Any]],
+        transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case',
     ) -> list[dict[Any, Any]]: ...
 
     @classmethod
     @overload
     def serialize_result(
-        cls, result: Sequence[Row], transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case'
+        cls,
+        result: Sequence[Row[*tuple[Any, ...]]],
+        transform_case: Literal['no_case', 'snake_to_camel', 'camel_to_snake'] = 'no_case',
     ) -> list[dict[str, Any] | list[dict[Any, Any]]]: ...
 
     @classmethod
@@ -187,11 +195,11 @@ class CamelCaseUtil:
 
     @classmethod
     @overload
-    def transform_result(cls, result: dict) -> dict[Any, Any]: ...
+    def transform_result(cls, result: dict[Any, Any]) -> dict[Any, Any]: ...
 
     @classmethod
     @overload
-    def transform_result(cls, result: Row) -> dict[str, Any] | list[dict[Any, Any]]: ...
+    def transform_result(cls, result: Row[*tuple[Any, ...]]) -> dict[str, Any] | list[dict[Any, Any]]: ...
 
     @classmethod
     @overload
@@ -199,11 +207,13 @@ class CamelCaseUtil:
 
     @classmethod
     @overload
-    def transform_result(cls, result: Sequence[dict]) -> list[dict[Any, Any]]: ...
+    def transform_result(cls, result: Sequence[dict[Any, Any]]) -> list[dict[Any, Any]]: ...
 
     @classmethod
     @overload
-    def transform_result(cls, result: Sequence[Row]) -> list[dict[str, Any] | list[dict[Any, Any]]]: ...
+    def transform_result(
+        cls, result: Sequence[Row[*tuple[Any, ...]]]
+    ) -> list[dict[str, Any] | list[dict[Any, Any]]]: ...
 
     @classmethod
     @overload
@@ -245,11 +255,11 @@ class SnakeCaseUtil:
 
     @classmethod
     @overload
-    def transform_result(cls, result: dict) -> dict[Any, Any]: ...
+    def transform_result(cls, result: dict[Any, Any]) -> dict[Any, Any]: ...
 
     @classmethod
     @overload
-    def transform_result(cls, result: Row) -> dict[str, Any] | list[dict[Any, Any]]: ...
+    def transform_result(cls, result: Row[*tuple[Any, ...]]) -> dict[str, Any] | list[dict[Any, Any]]: ...
 
     @classmethod
     @overload
@@ -257,11 +267,13 @@ class SnakeCaseUtil:
 
     @classmethod
     @overload
-    def transform_result(cls, result: Sequence[dict]) -> list[dict[Any, Any]]: ...
+    def transform_result(cls, result: Sequence[dict[str, object]]) -> list[dict[Any, Any]]: ...
 
     @classmethod
     @overload
-    def transform_result(cls, result: Sequence[Row]) -> list[dict[str, Any] | list[dict[Any, Any]]]: ...
+    def transform_result(
+        cls, result: Sequence[Row[*tuple[Any, ...]]]
+    ) -> list[dict[str, Any] | list[dict[Any, Any]]]: ...
 
     @classmethod
     @overload
@@ -318,7 +330,7 @@ def bytes2file_response(bytes_info: bytes) -> Generator[bytes]:
     yield bytes_info
 
 
-def export_list2excel(list_data: list) -> bytes:
+def export_list2excel(list_data: list[dict[str, Any]]) -> bytes:
     """
     工具方法：将需要导出的list数据转化为对应excel的二进制数据。
 
@@ -333,7 +345,9 @@ def export_list2excel(list_data: list) -> bytes:
     return binary_data
 
 
-def get_excel_template(header_list: list, selector_header_list: list, option_list: list[dict]) -> bytes:
+def get_excel_template(
+    header_list: list[str], selector_header_list: list[str], option_list: list[dict[str, list[str]]]
+) -> bytes:
     """
     工具方法：将需要导出的list数据转化为对应excel的二进制数据。
 

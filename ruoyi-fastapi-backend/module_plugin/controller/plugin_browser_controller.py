@@ -21,7 +21,7 @@ plugin_browser_controller = APIRouterPro(prefix='/plugin/runtime', tags=['插件
     '/{plugin_id}/session',
     summary='创建插件浏览器会话接口',
     description='用于为当前登录用户创建插件页面访问会话，并返回访问地址和防跨站请求令牌',
-    response_model=DataResponseModel[dict],
+    response_model=DataResponseModel[dict[str, object]],
 )
 async def create_plugin_browser_session(
     request: Request,

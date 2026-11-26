@@ -3,6 +3,7 @@ import json
 import re
 from http import HTTPStatus
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 from zipfile import ZipFile
@@ -39,7 +40,7 @@ class GenTableTest(SystemPage):
         """
         return self.row(self.table_name)
 
-    async def search_table(self) -> dict:
+    async def search_table(self) -> dict[str, Any]:
         """
         等待搜索接口与表格完成，避免初始响应覆盖查询结果。
 

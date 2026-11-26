@@ -127,7 +127,7 @@ async def test_immediate_sync_stops_local_updates_if_lease_is_lost_during_read(
     await SchedulerManager._sync_jobs_from_database()
     original = runtime.scheduler.get_job('42')
 
-    async def read_jobs(_session: object) -> list:
+    async def read_jobs(_session: object) -> list[object]:
         """
         模拟调度工作进程读取任务列表。
 

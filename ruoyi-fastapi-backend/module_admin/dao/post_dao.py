@@ -71,7 +71,7 @@ class PostDao:
     @classmethod
     async def get_post_list(
         cls, db: AsyncSession, query_object: PostPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取岗位列表信息。
 
@@ -90,7 +90,7 @@ class PostDao:
             .order_by(SysPost.post_sort)
             .distinct()
         )
-        post_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        post_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -112,7 +112,7 @@ class PostDao:
         return db_post
 
     @classmethod
-    async def edit_post_dao(cls, db: AsyncSession, post: dict) -> None:
+    async def edit_post_dao(cls, db: AsyncSession, post: dict[str, Any]) -> None:
         """
         编辑岗位数据库操作。
 

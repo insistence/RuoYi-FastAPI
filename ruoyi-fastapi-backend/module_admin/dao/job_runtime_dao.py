@@ -230,7 +230,7 @@ class JobRuntimeDao:
         return await db.get(SysJobExecution, execution_id)
 
     @staticmethod
-    async def execution_page(db: AsyncSession, query: JobExecutionQueryModel) -> PageModel:
+    async def execution_page(db: AsyncSession, query: JobExecutionQueryModel) -> PageModel[dict[str, Any]]:
         """
         分页查询执行状态，排除配置参数和内部占用凭据。
 
@@ -267,7 +267,7 @@ class JobRuntimeDao:
         return await PageUtil.paginate(db, statement, query.page_num, query.page_size, is_page=True)
 
     @staticmethod
-    async def sync_page(db: AsyncSession, query: JobSyncQueryModel) -> PageModel:
+    async def sync_page(db: AsyncSession, query: JobSyncQueryModel) -> PageModel[dict[str, Any]]:
         """
         分页查询同步状态，删除任务后仍能查看结果和发起重试。
 

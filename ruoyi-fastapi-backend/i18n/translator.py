@@ -44,7 +44,7 @@ class I18nUtil:
         cls,
         code: str,
         msg_key: str,
-        params: dict | None,
+        params: dict[str, object] | None,
         *,
         domain: str = 'core',
         count: int | None = None,
@@ -85,7 +85,7 @@ class I18nUtil:
     def translate(
         cls,
         msg_key: str,
-        params: dict | None = None,
+        params: dict[str, object] | None = None,
         *,
         locale: str | None = None,
         domain: str = 'core',
@@ -130,13 +130,13 @@ class I18nUtil:
         msg: str | None = None,
         *,
         msg_key: str | None = None,
-        msg_params: dict | None = None,
+        msg_params: dict[str, object] | None = None,
         default_key: str = 'common.error',
         context: LocaleContext | None = None,
         domain: str | None = None,
         count: int | None = None,
         plural_key: str | None = None,
-    ) -> dict:
+    ) -> dict[str, object]:
         """
         根据请求语言和消息标识生成响应消息字段。
 
@@ -185,7 +185,7 @@ class I18nUtil:
 
 def t(
     msg_key: str,
-    params: dict | None = None,
+    params: dict[str, object] | None = None,
     *,
     locale: str | None = None,
     domain: str = 'core',

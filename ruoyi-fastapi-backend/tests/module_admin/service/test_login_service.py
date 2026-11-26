@@ -145,7 +145,7 @@ async def test_register_uses_front_end_default_password_rule() -> None:
 
 
 @pytest.mark.parametrize('profile', [None, {}, {'userId': 1}, {'userName': 'reader'}])
-def test_current_user_requires_identity(profile: dict | None) -> None:
+def test_current_user_requires_identity(profile: dict[str, object] | None) -> None:
     """受保护操作应拒绝缺少用户资料的快照。"""
     with pytest.raises(ValidationError):
         CurrentUserModel.model_validate({'permissions': [], 'roles': [], 'user': profile})

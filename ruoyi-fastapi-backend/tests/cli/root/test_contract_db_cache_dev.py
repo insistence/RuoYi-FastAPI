@@ -1,6 +1,7 @@
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -12,7 +13,7 @@ DB_HISTORY_TEST_LIMIT = 5
 
 def test_dangerous_command_is_rejected_without_yes_in_non_interactive_mode(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """非交互执行危险命令时必须显式确认。"""
     completed = run_cli_command('db', 'revision', '--env=dev', '--message=test-contract', '--output=json')
@@ -26,7 +27,7 @@ def test_dangerous_command_is_rejected_without_yes_in_non_interactive_mode(
 
 def test_prod_dangerous_command_is_rejected_without_allow_prod(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """生产环境的危险命令需要显式授权。"""
     completed = run_cli_command('db', 'revision', '--env=prod', '--message=test-contract', '--output=json')
@@ -42,7 +43,7 @@ def test_prod_dangerous_command_is_rejected_without_allow_prod(
 def test_dry_run_command_returns_structured_preview_payload(
     backend_dir: Path,
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """命令预演返回结构化预览。"""
     completed = run_cli_command(
@@ -66,7 +67,7 @@ def test_dry_run_command_returns_structured_preview_payload(
 
 def test_db_heads_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """数据库迁移头按约定输出 JSON。"""
     completed = run_cli_command('db', 'heads', '--env=dev', '--output=json')
@@ -96,7 +97,7 @@ def test_db_heads_json_output_has_stable_contract(
 
 def test_db_history_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """数据库迁移历史按约定输出 JSON。"""
     completed = run_cli_command(
@@ -125,7 +126,7 @@ def test_db_history_json_output_has_stable_contract(
 
 def test_cache_ttl_json_output_has_stable_contract_for_missing_key_or_redis_error(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """缓存键缺失或 Redis 报错时仍按约定输出 TTL 信息。"""
     completed = run_cli_command(
@@ -192,7 +193,7 @@ def test_dry_run_text_output_contains_preview_command_and_workdir(
 
 def test_dev_lint_json_output_has_stable_contract(
     run_cli_command: Callable[..., subprocess.CompletedProcess[str]],
-    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict],
+    parse_json_stdout: Callable[[subprocess.CompletedProcess[str]], dict[str, Any]],
 ) -> None:
     """代码检查按约定输出 JSON。"""
     completed = run_cli_command(

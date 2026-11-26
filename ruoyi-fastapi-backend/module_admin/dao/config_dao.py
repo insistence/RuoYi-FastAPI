@@ -53,7 +53,7 @@ class ConfigDao:
     @classmethod
     async def get_config_list(
         cls, db: AsyncSession, query_object: ConfigPageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         根据查询参数获取参数配置列表信息。
 
@@ -77,7 +77,7 @@ class ConfigDao:
             .order_by(SysConfig.config_id)
             .distinct()
         )
-        config_list: PageModel | list[dict[str, Any]] = await PageUtil.paginate(
+        config_list: PageModel[dict[str, Any]] | list[dict[str, Any]] = await PageUtil.paginate(
             db, query, query_object.page_num, query_object.page_size, is_page
         )
 
@@ -99,7 +99,7 @@ class ConfigDao:
         return db_config
 
     @classmethod
-    async def edit_config_dao(cls, db: AsyncSession, config: dict) -> None:
+    async def edit_config_dao(cls, db: AsyncSession, config: dict[str, Any]) -> None:
         """
         编辑参数配置数据库操作。
 

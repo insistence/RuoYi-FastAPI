@@ -61,9 +61,9 @@ class RoleService:
         cls,
         query_db: AsyncSession,
         query_object: RolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[True],
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -71,7 +71,7 @@ class RoleService:
         cls,
         query_db: AsyncSession,
         query_object: RolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[False] = False,
     ) -> list[dict[str, Any]]: ...
 
@@ -80,9 +80,9 @@ class RoleService:
         cls,
         query_db: AsyncSession,
         query_object: RolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取角色列表信息service。
 
@@ -111,7 +111,7 @@ class RoleService:
 
     @classmethod
     async def check_role_data_scope_services(
-        cls, query_db: AsyncSession, role_ids: str, data_scope_sql: ColumnElement
+        cls, query_db: AsyncSession, role_ids: str, data_scope_sql: ColumnElement[bool]
     ) -> None:
         """
         校验角色是否有数据权限service。
@@ -402,7 +402,7 @@ class RoleService:
         return result
 
     @staticmethod
-    async def export_role_list_services(role_list: list) -> bytes:
+    async def export_role_list_services(role_list: list[dict[str, Any]]) -> bytes:
         """
         导出角色列表信息service。
 
@@ -438,7 +438,7 @@ class RoleService:
         cls,
         query_db: AsyncSession,
         page_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[True],
     ) -> PageModel[UserInfoModel]: ...
 
@@ -448,7 +448,7 @@ class RoleService:
         cls,
         query_db: AsyncSession,
         page_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[False] = False,
     ) -> list[UserInfoModel]: ...
 
@@ -457,7 +457,7 @@ class RoleService:
         cls,
         query_db: AsyncSession,
         page_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
     ) -> PageModel[UserInfoModel] | list[UserInfoModel]:
         """
@@ -482,7 +482,7 @@ class RoleService:
         cls,
         query_db: AsyncSession,
         page_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[True],
     ) -> PageModel[UserInfoModel]: ...
 
@@ -492,7 +492,7 @@ class RoleService:
         cls,
         query_db: AsyncSession,
         page_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[False] = False,
     ) -> list[UserInfoModel]: ...
 
@@ -501,7 +501,7 @@ class RoleService:
         cls,
         query_db: AsyncSession,
         page_object: UserRolePageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
     ) -> PageModel[UserInfoModel] | list[UserInfoModel]:
         """

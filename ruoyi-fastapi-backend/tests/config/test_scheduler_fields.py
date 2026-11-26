@@ -40,10 +40,10 @@ from utils.time_util import TimezoneUtil
         {'concurrent': '0'},
     ],
 )
-def test_job_fields_reject_ambiguous_or_invalid_configuration(change: dict) -> None:
+def test_job_fields_reject_ambiguous_or_invalid_configuration(change: dict[str, object]) -> None:
     """任务字段拒绝有歧义或无效的配置。"""
     with pytest.raises(ValidationError):
-        JobModel(**change)
+        JobModel.model_validate(change)
 
 
 @pytest.mark.asyncio

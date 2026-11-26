@@ -31,7 +31,7 @@ async def test_primary_keys_use_marked_column_or_first_child_column() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('columns', [None, []])
-async def test_primary_key_requires_columns_or_an_existing_key(columns: list | None) -> None:
+async def test_primary_key_requires_columns_or_an_existing_key(columns: list[GenTableColumnModel] | None) -> None:
     """缺少字段时返回配置错误，已有的主键配置仍然有效。"""
     table = GenTableModel(columns=columns)
     with pytest.raises(ServiceException) as exc:
@@ -178,7 +178,9 @@ async def test_edit_gen_table_services_preserves_alias_fields_for_both_daos() ->
         ({'tplCategory': 'sub', 'subTableName': 'detail'}, 'generator.childForeignKeyRequired'),
     ],
 )
-async def test_validate_edit_reports_missing_template_fields(configuration: dict, expected_key: str) -> None:
+async def test_validate_edit_reports_missing_template_fields(
+    configuration: dict[str, object], expected_key: str
+) -> None:
     """树表和主子表缺少必填配置时返回对应的错误消息。"""
     with pytest.raises(ServiceException) as error:
         await GenTableService.validate_edit(EditGenTableModel.model_validate(configuration))

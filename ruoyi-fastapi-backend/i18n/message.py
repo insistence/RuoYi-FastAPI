@@ -24,7 +24,7 @@ class I18nMessage(str):
     """
 
     msg_key: str
-    msg_params: dict | None
+    msg_params: dict[str, object] | None
     domain: str
     plural_count: int | None
     plural_key: str | None
@@ -34,7 +34,7 @@ class I18nMessage(str):
         message: str,
         *,
         msg_key: str,
-        msg_params: dict | None = None,
+        msg_params: dict[str, object] | None = None,
         domain: str = 'core',
         count: int | None = None,
         plural_key: str | None = None,
@@ -68,7 +68,7 @@ class I18nMessage(str):
         self.__dict__.update(state)
         self.__dict__.pop('count', None)
 
-    def __getnewargs_ex__(self) -> tuple[tuple[str], dict]:
+    def __getnewargs_ex__(self) -> tuple[tuple[str], dict[str, object]]:
         """
         复制或序列化时保留消息元数据。
 

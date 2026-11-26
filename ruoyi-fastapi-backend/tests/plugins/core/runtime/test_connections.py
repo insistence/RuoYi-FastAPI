@@ -287,7 +287,9 @@ async def test_regular_json_response_never_creates_revalidation_task(tmp_path: P
     await manager.shutdown()
 
 
-async def _cancel_or_drain_request(task: asyncio.Task, gateway: PluginGatewayASGI, external_cancel: bool) -> None:
+async def _cancel_or_drain_request(
+    task: asyncio.Task[object], gateway: PluginGatewayASGI, external_cancel: bool
+) -> None:
     """
     触发外部取消或网关排空，并等待请求任务结束。
 

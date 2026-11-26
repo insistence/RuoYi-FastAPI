@@ -128,7 +128,7 @@ class UserService:
         cls,
         query_db: AsyncSession,
         query_object: UserPageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[True],
     ) -> PageModel[UserRowModel]: ...
 
@@ -138,7 +138,7 @@ class UserService:
         cls,
         query_db: AsyncSession,
         query_object: UserPageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: Literal[False] = False,
     ) -> list[dict[str, Any]]: ...
 
@@ -147,7 +147,7 @@ class UserService:
         cls,
         query_db: AsyncSession,
         query_object: UserPageQueryModel,
-        data_scope_sql: ColumnElement,
+        data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
     ) -> PageModel[UserRowModel] | list[dict[str, Any]]:
         """
@@ -186,7 +186,7 @@ class UserService:
 
     @classmethod
     async def check_user_data_scope_services(
-        cls, query_db: AsyncSession, user_id: int | None, data_scope_sql: ColumnElement
+        cls, query_db: AsyncSession, user_id: int | None, data_scope_sql: ColumnElement[bool]
     ) -> CrudResponseModel:
         """
         校验用户数据权限service。
@@ -651,8 +651,8 @@ class UserService:
         file: UploadFile,
         update_support: bool,
         current_user: CurrentUserModel,
-        user_data_scope_sql: ColumnElement,
-        dept_data_scope_sql: ColumnElement,
+        user_data_scope_sql: ColumnElement[bool],
+        dept_data_scope_sql: ColumnElement[bool],
     ) -> CrudResponseModel:
         """
         批量导入用户service。
@@ -790,7 +790,7 @@ class UserService:
             I18nMessage('用户性别', msg_key='export.userGender'),
             I18nMessage('帐号状态', msg_key='export.accountStatus'),
         ]
-        option_list = [
+        option_list: list[dict[str, list[str]]] = [
             {
                 I18nMessage('用户性别', msg_key='export.userGender'): [
                     I18nMessage('男', msg_key='export.male'),
@@ -812,7 +812,7 @@ class UserService:
         return binary_data
 
     @staticmethod
-    async def export_user_list_services(user_list: list) -> bytes:
+    async def export_user_list_services(user_list: list[dict[str, Any]]) -> bytes:
         """
         导出用户信息service。
 
@@ -837,7 +837,7 @@ class UserService:
         }
 
         for item in user_list:
-            item['deptName'] = item.get('dept').get('deptName')
+            item['deptName'] = (item.get('dept') or {}).get('deptName')
             if item.get('status') == '0':
                 item['status'] = I18nMessage('正常', msg_key='export.active')
             else:

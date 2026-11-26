@@ -18,7 +18,7 @@ class DeptService:
 
     @classmethod
     async def get_dept_tree_services(
-        cls, query_db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement
+        cls, query_db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement[bool]
     ) -> list[dict[str, Any]]:
         """
         获取部门树信息service。
@@ -36,7 +36,7 @@ class DeptService:
 
     @classmethod
     async def get_dept_for_edit_option_services(
-        cls, query_db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement
+        cls, query_db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement[bool]
     ) -> list[dict[str, Any]]:
         """
         获取部门编辑部门树信息service。
@@ -52,7 +52,7 @@ class DeptService:
 
     @classmethod
     async def get_dept_list_services(
-        cls, query_db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement
+        cls, query_db: AsyncSession, page_object: DeptModel, data_scope_sql: ColumnElement[bool]
     ) -> list[dict[str, Any]]:
         """
         获取部门列表信息service。
@@ -68,7 +68,7 @@ class DeptService:
 
     @classmethod
     async def check_dept_data_scope_services(
-        cls, query_db: AsyncSession, dept_id: int | None, data_scope_sql: ColumnElement
+        cls, query_db: AsyncSession, dept_id: int | None, data_scope_sql: ColumnElement[bool]
     ) -> CrudResponseModel:
         """
         校验部门是否有数据权限service。
@@ -212,7 +212,7 @@ class DeptService:
         cls,
         query_db: AsyncSession,
         page_object: DeptSortModel,
-        data_scope_sql: ColumnElement | None = None,
+        data_scope_sql: ColumnElement[bool] | None = None,
     ) -> CrudResponseModel:
         """
         批量保存部门显示顺序。

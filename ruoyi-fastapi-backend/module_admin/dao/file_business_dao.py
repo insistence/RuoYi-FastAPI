@@ -217,7 +217,7 @@ class FileReferenceDao:
                 ).where(SysFileReference.file_id.in_(file_ids))
             )
         ).all()
-        retention_map: dict[str, list] = {file_id: [] for file_id in file_ids}
+        retention_map: dict[str, list[datetime | None]] = {file_id: [] for file_id in file_ids}
         for file_id, retention_expire_time in rows:
             retention_map[str(file_id)].append(retention_expire_time)
 
@@ -230,7 +230,9 @@ class FileReferenceDao:
             if has_legacy_reference or any(expire_time is None for expire_time in retention_expire_times):
                 file_info.expire_time = None
             else:
-                file_info.expire_time = max(retention_expire_times, default=None)
+                file_info.expire_time = max(
+                    (expiry for expiry in retention_expire_times if expiry is not None), default=None
+                )
             await FileRetentionNoticeDao.invalidate_changed_expire_time_notices(
                 db,
                 file_id,
@@ -303,7 +305,7 @@ class FileRetentionPolicyDao:
         cls,
         db: AsyncSession,
         business_type: str,
-        policy: dict,
+        policy: dict[str, object],
     ) -> None:
         """
         修改文件业务保留策略。
@@ -340,7 +342,7 @@ class FileRetentionNoticeDao:
         current_time: datetime,
         reminder_deadline: datetime,
         batch_size: int,
-        file_data_scope_sql: ColumnElement | bool = True,
+        file_data_scope_sql: ColumnElement[bool] | bool = True,
     ) -> list[SysFileInfo]:
         """
         获取尚未生成当前到期提醒的文件。
@@ -464,9 +466,9 @@ class FileRetentionNoticeDao:
         cls,
         db: AsyncSession,
         query_object: FileRetentionNoticePageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: bool = False,
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取文件保留期限提醒列表。
 
@@ -535,7 +537,7 @@ class FileRetentionNoticeDao:
         cls,
         db: AsyncSession,
         notice_id: int,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> tuple[SysFileRetentionNotice, SysFileInfo] | None:
         """
         锁定数据权限范围内的有效提醒和文件。
@@ -568,7 +570,7 @@ class FileRetentionNoticeDao:
         cls,
         db: AsyncSession,
         notice_ids: list[int],
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> list[int]:
         """
         锁定数据权限范围内的有效提醒。

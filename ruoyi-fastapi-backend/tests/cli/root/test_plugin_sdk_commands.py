@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 import typer
@@ -38,7 +39,7 @@ def project(untracked_bundle_project: Path) -> Path:
     return untracked_bundle_project
 
 
-def invoke_sdk(operation: str, project: Path, *options: str) -> tuple[int, dict]:
+def invoke_sdk(operation: str, project: Path, *options: str) -> tuple[int, dict[str, Any]]:
     """
     使用真实离线 SDK 服务执行命令并解析结构化结果。
 

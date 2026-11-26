@@ -195,7 +195,7 @@ class CommonService:
         current_user: CurrentUserModel,
         file_id: str,
         enforce_owner_permission: bool = True,
-        file_data_scope_sql: ColumnElement | None = None,
+        file_data_scope_sql: ColumnElement[bool] | None = None,
         range_header: str | None = None,
     ) -> FileDownloadResult:
         """

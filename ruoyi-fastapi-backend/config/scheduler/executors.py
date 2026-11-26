@@ -332,7 +332,7 @@ class TimedAsyncIOExecutor(AsyncIOExecutor):
         """
         snapshot = JobSnapshot.from_job(job, managed=self._submission.manage_executions)
 
-        def callback(future: Future) -> None:
+        def callback(future: Future[list[TimedJobExecutionEvent]]) -> None:
             """
             将任务执行结果交回APScheduler处理。
 
@@ -398,7 +398,7 @@ class TimedProcessPoolExecutor(ProcessPoolExecutor):
         """
         snapshot = JobSnapshot.from_job(job, managed=self._submission.manage_executions)
 
-        def callback(future: Future) -> None:
+        def callback(future: Future[list[TimedJobExecutionEvent]]) -> None:
             """
             将任务执行结果交回APScheduler处理。
 

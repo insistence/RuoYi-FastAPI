@@ -244,7 +244,7 @@ class OpenAPIUtil:
         return [rule for rule in pre_auth.exclude_patterns if not rule['methods'] or method in rule['methods']]
 
     @staticmethod
-    def _get_path_shape(route: Any) -> tuple[tuple[str | None, ...], dict[int, Convertor]] | None:
+    def _get_path_shape(route: Any) -> tuple[tuple[str | None, ...], dict[int, Convertor[Any]]] | None:
         """
         将普通路径模板拆分为固定段和单段参数。
 
@@ -274,7 +274,7 @@ class OpenAPIUtil:
         pre_auth: AuthRule,
         method: str,
         segments: tuple[str | None, ...],
-        convertors: dict[int, Convertor],
+        convertors: dict[int, Convertor[Any]],
     ) -> tuple[list[tuple[str | None, ...]], bool]:
         """
         将排除规则转换为路径参数的取值约束。
@@ -315,7 +315,7 @@ class OpenAPIUtil:
     def _has_public_path(
         cls,
         segments: tuple[str | None, ...],
-        convertors: dict[int, Convertor],
+        convertors: dict[int, Convertor[Any]],
         groups: list[tuple[list[tuple[str | None, ...]], bool]],
         ignored_paths: set[str],
         requirements: list[AuthRule],
@@ -379,7 +379,7 @@ class OpenAPIUtil:
 
     @staticmethod
     def _get_candidate_path(
-        segments: tuple[str | None, ...], convertors: dict[int, Convertor], ignored_paths: set[str]
+        segments: tuple[str | None, ...], convertors: dict[int, Convertor[Any]], ignored_paths: set[str]
     ) -> str:
         """
         为未固定的参数选择不落入有限例外列表的值。

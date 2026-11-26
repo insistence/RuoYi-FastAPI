@@ -31,7 +31,7 @@ class {{ BusinessName }}Service:
     @classmethod
     async def get_{{ businessName }}_list_services(
         cls, query_db: AsyncSession, query_object: {{ BusinessName }}PageQueryModel, is_page: bool = False
-    ) -> PageModel | list[dict[str, Any]]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, Any]]:
         """
         获取{{ functionName }}列表信息service。
 
@@ -198,7 +198,7 @@ class {{ BusinessName }}Service:
         return result
 
     @staticmethod
-    async def export_{{ businessName }}_list_services({% if dicts %}request: Request, {% endif %}{{ businessName }}_list: list) -> bytes:
+    async def export_{{ businessName }}_list_services({% if dicts %}request: Request, {% endif %}{{ businessName }}_list: list[dict[str, Any]]) -> bytes:
         """
         导出{{ functionName }}信息service。
 

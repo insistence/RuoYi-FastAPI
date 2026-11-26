@@ -205,7 +205,7 @@ async def test_failed_or_cancelled_read_keeps_previous_observation(
         finally:
             closed.append(True)
 
-    async def read(*args: object, **kwargs: object) -> list:
+    async def read(*args: object, **kwargs: object) -> list[object]:
         """
         控制测试读取操作的完成或失败。
 

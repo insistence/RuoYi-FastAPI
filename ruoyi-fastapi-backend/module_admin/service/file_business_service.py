@@ -43,7 +43,7 @@ class FileReferenceService:
         cls,
         query_db: AsyncSession,
         file_id: str,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> list[FileReferenceModel]:
         """
         获取文件业务引用列表service。
@@ -82,7 +82,7 @@ class FileReferenceService:
         business_id: str,
         file_ids: list[str],
         create_by: str,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         business_name: str | None = None,
     ) -> None:
         """
@@ -173,7 +173,7 @@ class FileReferenceService:
     async def get_file_reference_count_map_services(
         cls,
         query_db: AsyncSession,
-        file_infos: list[SysFileInfo] | list[dict],
+        file_infos: list[SysFileInfo] | list[dict[str, object]],
     ) -> dict[str, int]:
         """
         获取包含兼容字段的文件业务引用数量映射service。
@@ -251,7 +251,7 @@ class FileReferenceService:
         return normalized_value
 
     @staticmethod
-    def _get_value(item: SysFileInfo | dict, snake_name: str, camel_name: str) -> Any:
+    def _get_value(item: SysFileInfo | dict[str, object], snake_name: str, camel_name: str) -> Any:
         """
         兼容读取ORM对象和查询字典。
 
@@ -458,7 +458,7 @@ class FileRetentionNoticeService:
         query_db: AsyncSession,
         remind_days: int = DEFAULT_REMIND_DAYS,
         batch_size: int = 500,
-        file_data_scope_sql: ColumnElement | None = None,
+        file_data_scope_sql: ColumnElement[bool] | None = None,
     ) -> FileRetentionScanModel:
         """
         扫描并生成文件保留期限提醒service。
@@ -525,9 +525,9 @@ class FileRetentionNoticeService:
         cls,
         query_db: AsyncSession,
         query_object: FileRetentionNoticePageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: Literal[True] = True,
-    ) -> PageModel: ...
+    ) -> PageModel[dict[str, Any]]: ...
 
     @classmethod
     @overload
@@ -535,18 +535,18 @@ class FileRetentionNoticeService:
         cls,
         query_db: AsyncSession,
         query_object: FileRetentionNoticePageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: Literal[False],
-    ) -> list[dict]: ...
+    ) -> list[dict[str, object]]: ...
 
     @classmethod
     async def get_file_retention_notice_list_services(
         cls,
         query_db: AsyncSession,
         query_object: FileRetentionNoticePageQueryModel,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
         is_page: bool = True,
-    ) -> PageModel | list[dict]:
+    ) -> PageModel[dict[str, Any]] | list[dict[str, object]]:
         """
         获取文件保留期限提醒列表service。
 
@@ -569,7 +569,7 @@ class FileRetentionNoticeService:
         query_db: AsyncSession,
         notice_ids: str,
         read_by: str,
-        file_data_scope_sql: ColumnElement,
+        file_data_scope_sql: ColumnElement[bool],
     ) -> CrudResponseModel:
         """
         标记文件保留期限提醒为已读service。
