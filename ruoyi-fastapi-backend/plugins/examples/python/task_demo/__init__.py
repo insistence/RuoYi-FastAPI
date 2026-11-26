@@ -6,7 +6,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 
 from plugins.core.runtime.health import PluginHealthContext
-from plugins.core.sdk import PluginDefinition, PluginHostContext, PluginRequestContext
+from plugins.core.sdk import PluginDefinition, PluginHostContext, PluginHttpRequest, PluginRequestContext
 from plugins.core.sdk.asgi import plugin_endpoint
 
 from . import service
@@ -37,14 +37,27 @@ def _validate(model: type[_Model], values: dict[str, Any]) -> _Model:
         ) from exc
 
 
-def _task_id(context: PluginRequestContext) -> str:
+def _request(context: PluginRequestContext) -> PluginHttpRequest:
+    """
+    读取任务接口的请求快照。
+
+    :param context: 宿主传入的插件上下文
+    :return: 接口适配器填入的 HTTP 请求快照
+    :raises RuntimeError: 插件上下文缺少请求快照
+    """
+    if context.request is None:
+        raise RuntimeError('当前插件上下文缺少 HTTP 请求快照')
+    return context.request
+
+
+def _task_id(request: PluginHttpRequest) -> str:
     """
     读取 SDK 已提取的任务路径参数。
 
-    :param context: 含 HTTP 请求快照的宿主上下文
+    :param request: 含任务标识的 HTTP 请求快照
     :return: 已校验的任务标识
     """
-    return _validate(TaskIdentifier, {'id': context.http_request.path_params['task_id']}).id
+    return _validate(TaskIdentifier, {'id': request.path_params['task_id']}).id
 
 
 async def info(context: PluginRequestContext) -> dict[str, Any]:
@@ -52,26 +65,28 @@ async def info(context: PluginRequestContext) -> dict[str, Any]:
 
 
 async def list_tasks(context: PluginRequestContext) -> dict[str, Any]:
-    if any(len(values) != 1 for values in context.http_request.query.values()):
+    params = _request(context).query
+    if any(len(values) != 1 for values in params.values()):
         raise HTTPException(status_code=422, detail='查询参数不能重复')
-    query = _validate(TaskQuery, {key: values[0] for key, values in context.http_request.query.items()})
+    query = _validate(TaskQuery, {key: values[0] for key, values in params.items()})
     return await service.list_tasks(context, query)
 
 
 async def get_task(context: PluginRequestContext) -> dict[str, Any]:
-    return await service.get_task(context, _task_id(context))
+    return await service.get_task(context, _task_id(_request(context)))
 
 
 async def create_task(context: PluginRequestContext) -> dict[str, Any]:
-    return await service.create_task(context, context.http_request.body)
+    return await service.create_task(context, _request(context).body)
 
 
 async def update_task(context: PluginRequestContext) -> dict[str, Any]:
-    return await service.update_task(context, _task_id(context), context.http_request.body)
+    request = _request(context)
+    return await service.update_task(context, _task_id(request), request.body)
 
 
 async def delete_task(context: PluginRequestContext) -> dict[str, bool]:
-    return await service.delete_task(context, _task_id(context))
+    return await service.delete_task(context, _task_id(_request(context)))
 
 
 def create_plugin(host: PluginHostContext) -> PluginDefinition:

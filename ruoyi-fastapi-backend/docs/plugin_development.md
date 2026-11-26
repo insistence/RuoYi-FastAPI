@@ -904,7 +904,9 @@ class MessageBody(BaseModel):
     message: str = Field(min_length=1, max_length=200)
 
 
-async def echo(context: PluginRequestContext) -> dict:
+async def echo(context: PluginRequestContext) -> dict[str, object]:
+    if context.request is None:
+        raise RuntimeError('当前插件上下文缺少 HTTP 请求快照')
     return {**context.request.to_payload(), 'requestId': context.request_id}
 
 

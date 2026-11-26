@@ -97,7 +97,7 @@ class PluginRequestContext:
     :ivar permissions: 当前用户的接口权限集合
     :ivar request_id: 宿主提供的请求关联标识
     :ivar query_db: 显式事务块内有效的数据库会话，不得跨任务共享
-    :ivar request: SDK 接口适配器提供的 HTTP 请求数据快照
+    :ivar request: SDK 接口适配器填入的 HTTP 请求快照，未经适配时为 None
     :ivar _transaction: 宿主内部的会话所有权记录，业务代码不应自行构造
     """
 
@@ -108,18 +108,6 @@ class PluginRequestContext:
     query_db: Any = None
     request: PluginHttpRequest | None = None
     _transaction: '_PluginTransactionState | None' = field(default=None, repr=False, compare=False)
-
-    @property
-    def http_request(self) -> PluginHttpRequest:
-        """
-        获取当前 HTTP 接口的请求快照。
-
-        :return: 宿主已解析的 HTTP 请求
-        :raises RuntimeError: 当前上下文不属于 HTTP 接口
-        """
-        if self.request is None:
-            raise RuntimeError('当前插件上下文缺少 HTTP 请求快照')
-        return self.request
 
     def require_permission(self, permission: str) -> None:
         """

@@ -15,7 +15,9 @@ class EchoBody(BaseModel):
 
 
 async def echo(context: PluginRequestContext) -> dict[str, Any]:
-    return {**context.http_request.to_payload(), 'requestId': context.request_id}
+    if context.request is None:
+        raise RuntimeError('当前插件上下文缺少 HTTP 请求快照')
+    return {**context.request.to_payload(), 'requestId': context.request_id}
 
 
 def create_plugin(host: PluginHostContext) -> PluginDefinition:
