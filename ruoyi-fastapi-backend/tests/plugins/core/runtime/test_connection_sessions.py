@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import WebSocket
+from fastapi import FastAPI, WebSocket
 from starlette import status
 from starlette.types import Message
 
@@ -92,11 +92,13 @@ async def test_websocket_cookie_origin_and_live_login_revocation(
     """WebSocket 保留精确 Origin 门禁，已握手的连接在主登录失效后关闭。"""
     loaded = browser.runtime.loaded['browser_test']
     loaded.gateway.connections.recheck_interval = 0.01
+    plugin_app = loaded.lifespan.app
+    assert isinstance(plugin_app, FastAPI)
     opened = asyncio.Event()
     messages = []
     incoming: asyncio.Queue[Message] = asyncio.Queue()
 
-    @loaded.lifespan.app.websocket('/ws/events')
+    @plugin_app.websocket('/ws/events')
     async def events(websocket: WebSocket) -> None:
         """
         接受插件事件连接并处理测试消息。

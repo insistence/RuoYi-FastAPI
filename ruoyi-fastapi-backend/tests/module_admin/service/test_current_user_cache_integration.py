@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator
-from types import SimpleNamespace
+from dataclasses import dataclass
 from typing import Annotated, Any
 from unittest.mock import AsyncMock
 
@@ -34,6 +34,8 @@ from tests.module_admin.service.test_current_user_resolution import (
     REGULAR_QUERY_COUNT,
     TWO_AUTHENTICATIONS,
     USER_ID,
+    AuthenticationRedis,
+    UserResolutionEnv,
     resolution_env,  # noqa: F401
 )
 from tests.utils.test_current_user_cache_util import cache_redis, redis_socket  # noqa: F401
@@ -43,19 +45,40 @@ THREE_AUTHENTICATIONS = 3
 FOUR_AUTHENTICATIONS = 4
 
 
+@dataclass
+class UserCacheEnv(UserResolutionEnv[Redis]):
+    """
+    使用隔离 Redis 服务验证用户缓存的测试环境。
+
+    :ivar namespace: 当前数据库绑定的用户缓存命名空间
+    :ivar calls: 缓存客户端执行的 Lua 脚本
+    """
+
+    namespace: str
+    calls: list[str]
+
+    def renew_count(self) -> int:
+        """
+        统计主登录会话的续期次数。
+
+        :return: 已执行的续期脚本数量
+        """
+        return self.calls.count(_SESSION_RENEW_SCRIPT)
+
+
 @pytest_asyncio.fixture
 async def cache_env(
-    resolution_env: SimpleNamespace,  # noqa: F811
+    resolution_env: UserResolutionEnv[AuthenticationRedis],  # noqa: F811
     cache_redis: Redis,  # noqa: F811
     monkeypatch: pytest.MonkeyPatch,
-) -> AsyncIterator[SimpleNamespace]:
+) -> AsyncIterator[UserCacheEnv]:
     """
     复用真实鉴权路由和数据库，缓存及会话命令均由隔离Redis执行。
 
     :param resolution_env: 为当前用户解析测试准备隔离环境
     :param cache_redis: 测试使用的 Redis 缓存客户端
     :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
-    :yield: ``SimpleNamespace`` 实例
+    :yield: 包含 Redis 会话与脚本记录的缓存测试环境
     """
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', True)
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_ttl_seconds', 5)
@@ -95,20 +118,20 @@ async def cache_env(
         RedisUtil, 'create_redis_pool', AsyncMock(side_effect=AssertionError('应用会话应复用已有Redis客户端'))
     )
     resolution_env.app.dependency_overrides[get_db_session_provider(None)] = session_dependency
-    yield SimpleNamespace(
-        **{
-            **vars(resolution_env),
-            'redis': cache_redis,
-            'sessions': sessions,
-            'namespace': namespace,
-            'calls': calls,
-            'renew_count': lambda: calls.count(_SESSION_RENEW_SCRIPT),
-        }
+    yield UserCacheEnv(
+        app=resolution_env.app,
+        client=resolution_env.client,
+        redis=cache_redis,
+        sessions=sessions,
+        headers=resolution_env.headers,
+        statements=resolution_env.statements,
+        namespace=namespace,
+        calls=calls,
     )
 
 
 @pytest.mark.asyncio
-async def test_cache_hit_avoids_sql_and_still_renews_the_session(cache_env: SimpleNamespace) -> None:
+async def test_cache_hit_avoids_sql_and_still_renews_the_session(cache_env: UserCacheEnv) -> None:
     """缓存命中时跳过 SQL 查询并续期会话。"""
     first = await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     assert first.status_code == HttpStatusConstant.SUCCESS
@@ -122,13 +145,13 @@ async def test_cache_hit_avoids_sql_and_still_renews_the_session(cache_env: Simp
     assert len(cache_env.statements) == REGULAR_QUERY_COUNT
     assert cache_env.renew_count() == TWO_AUTHENTICATIONS
     assert await cache_env.redis.hget(snapshot_key, 'deadline') == deadline
-    assert 'private-password-hash' not in await cache_env.redis.hget(snapshot_key, 'payload')
+    payload = await cache_env.redis.hget(snapshot_key, 'payload')
+    assert isinstance(payload, str)
+    assert 'private-password-hash' not in payload
 
 
 @pytest.mark.asyncio
-async def test_cache_hit_recomputes_password_policy(
-    cache_env: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_cache_hit_recomputes_password_policy(cache_env: UserCacheEnv, monkeypatch: pytest.MonkeyPatch) -> None:
     """缓存命中时重新计算密码策略。"""
     first = await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     assert not first.json()['isPasswordExpired']
@@ -151,7 +174,7 @@ async def test_cache_hit_recomputes_password_policy(
 
 
 @pytest.mark.asyncio
-async def test_concurrent_cache_hits_keep_users_and_context_separate(cache_env: SimpleNamespace) -> None:
+async def test_concurrent_cache_hits_keep_users_and_context_separate(cache_env: UserCacheEnv) -> None:
     """并发命中缓存时隔离用户和上下文。"""
     for user_id in (ADMIN_ID, USER_ID):
         await cache_env.client.get('/profile', headers=cache_env.headers[user_id])
@@ -173,7 +196,7 @@ async def test_concurrent_cache_hits_keep_users_and_context_separate(cache_env: 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('replacement', [None, 'new-login-token'])
 async def test_cache_hit_never_accepts_revoked_or_replaced_token(
-    cache_env: SimpleNamespace, replacement: str | None
+    cache_env: UserCacheEnv, replacement: str | None
 ) -> None:
     """缓存命中时仍拒绝已撤销或被替换的令牌。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
@@ -192,7 +215,7 @@ async def test_cache_hit_never_accepts_revoked_or_replaced_token(
 
 
 @pytest.mark.asyncio
-async def test_use_cache_false_reauthenticates_even_when_both_calls_hit_cache(cache_env: SimpleNamespace) -> None:
+async def test_use_cache_false_reauthenticates_even_when_both_calls_hit_cache(cache_env: UserCacheEnv) -> None:
     """两次命中缓存时禁用依赖缓存仍会重新认证。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
 
@@ -223,7 +246,7 @@ async def test_use_cache_false_reauthenticates_even_when_both_calls_hit_cache(ca
 
 
 @pytest.mark.asyncio
-async def test_cached_use_cache_false_rejects_session_revoked_between_dependencies(cache_env: SimpleNamespace) -> None:
+async def test_cached_use_cache_false_rejects_session_revoked_between_dependencies(cache_env: UserCacheEnv) -> None:
     """禁用依赖缓存后拒绝在两次依赖调用间被撤销的会话。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
 
@@ -260,7 +283,7 @@ async def test_cached_use_cache_false_rejects_session_revoked_between_dependenci
 
 @pytest.mark.asyncio
 async def test_cached_use_cache_false_applies_permission_change_between_dependencies(
-    cache_env: SimpleNamespace,
+    cache_env: UserCacheEnv,
 ) -> None:
     """禁用依赖缓存后应用两次依赖调用间的权限变更。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
@@ -304,7 +327,7 @@ async def test_cached_use_cache_false_applies_permission_change_between_dependen
 
 
 @pytest.mark.asyncio
-async def test_plugin_cache_hit_does_not_renew_host_session(cache_env: SimpleNamespace) -> None:
+async def test_plugin_cache_hit_does_not_renew_host_session(cache_env: UserCacheEnv) -> None:
     """插件命中缓存时不续期宿主会话。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     token_key = f'access_token:session-{USER_ID}'
@@ -325,7 +348,7 @@ async def test_plugin_cache_hit_does_not_renew_host_session(cache_env: SimpleNam
 @pytest.mark.asyncio
 @pytest.mark.parametrize('change', ['disable_user', 'delete_user', 'remove_role', 'disable_role', 'remove_menu'])
 async def test_committed_permission_changes_invalidate_cached_authentication(
-    cache_env: SimpleNamespace, change: str
+    cache_env: UserCacheEnv, change: str
 ) -> None:
     """提交权限变更后使认证缓存失效。"""
     await cache_env.client.get('/permitted', headers=cache_env.headers[USER_ID])
@@ -351,7 +374,7 @@ async def test_committed_permission_changes_invalidate_cached_authentication(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('change', ['department', 'data_scope', 'post', 'menu'])
-async def test_shared_changes_refresh_all_authorization_fields(cache_env: SimpleNamespace, change: str) -> None:
+async def test_shared_changes_refresh_all_authorization_fields(cache_env: UserCacheEnv, change: str) -> None:
     """共享数据变更后刷新全部授权字段。"""
     await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     async with cache_env.sessions.begin() as db:
@@ -380,7 +403,7 @@ async def test_shared_changes_refresh_all_authorization_fields(cache_env: Simple
 
 @pytest.mark.asyncio
 async def test_existing_transaction_bypasses_cache_without_publishing_uncommitted_permissions(
-    cache_env: SimpleNamespace,
+    cache_env: UserCacheEnv,
 ) -> None:
     """已有事务绕过缓存且不发布未提交权限。"""
     first = await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
@@ -399,7 +422,7 @@ async def test_existing_transaction_bypasses_cache_without_publishing_uncommitte
 
 
 @pytest.mark.asyncio
-async def test_external_connection_transaction_cannot_publish_uncommitted_user(cache_env: SimpleNamespace) -> None:
+async def test_external_connection_transaction_cannot_publish_uncommitted_user(cache_env: UserCacheEnv) -> None:
     """外部连接事务不能发布未提交的用户数据。"""
     first = await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     engine = cache_env.sessions.kw['bind']
@@ -424,7 +447,7 @@ async def test_external_connection_transaction_cannot_publish_uncommitted_user(c
 @pytest.mark.asyncio
 @pytest.mark.parametrize('default_bind', [False, True])
 async def test_multi_bind_sessions_keep_original_database_resolution(
-    cache_env: SimpleNamespace, default_bind: bool, monkeypatch: pytest.MonkeyPatch
+    cache_env: UserCacheEnv, default_bind: bool, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """多绑定会话保留原数据库解析行为。"""
     engine = cache_env.sessions.kw['bind']
@@ -450,7 +473,7 @@ async def test_multi_bind_sessions_keep_original_database_resolution(
 
 @pytest.mark.asyncio
 async def test_concurrent_permission_commit_prevents_old_query_refilling_cache(
-    cache_env: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    cache_env: UserCacheEnv, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """并发提交权限变更后阻止旧查询回填缓存。"""
     loaded = asyncio.Event()
@@ -493,12 +516,13 @@ async def test_concurrent_permission_commit_prevents_old_query_refilling_cache(
 
 
 @pytest.mark.asyncio
-async def test_direct_orm_user_change_invalidates_only_affected_user(cache_env: SimpleNamespace) -> None:
+async def test_direct_orm_user_change_invalidates_only_affected_user(cache_env: UserCacheEnv) -> None:
     """直接修改 ORM 用户只使受影响用户缓存失效。"""
     for user_id in (ADMIN_ID, USER_ID):
         await cache_env.client.get('/profile', headers=cache_env.headers[user_id])
     async with cache_env.sessions.begin() as db:
         user = await db.get(SysUser, USER_ID)
+        assert user is not None
         user.nick_name = 'Changed reader'
     cache_env.statements.clear()
 
@@ -511,7 +535,7 @@ async def test_direct_orm_user_change_invalidates_only_affected_user(cache_env: 
 
 
 @pytest.mark.asyncio
-async def test_corrupt_cached_payload_falls_back_to_database(cache_env: SimpleNamespace) -> None:
+async def test_corrupt_cached_payload_falls_back_to_database(cache_env: UserCacheEnv) -> None:
     """缓存内容损坏时回退到数据库。"""
     first = await cache_env.client.get('/profile', headers=cache_env.headers[USER_ID])
     key = CurrentUserCacheUtil._keys(cache_env.namespace, USER_ID)[2]
@@ -526,7 +550,7 @@ async def test_corrupt_cached_payload_falls_back_to_database(cache_env: SimpleNa
 
 @pytest.mark.asyncio
 async def test_cache_failure_can_fall_back_without_bypassing_session_check(
-    cache_env: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    cache_env: UserCacheEnv, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """缓存故障时回退且继续校验会话。"""
     original = cache_env.redis.eval
@@ -563,7 +587,7 @@ async def test_cache_failure_can_fall_back_without_bypassing_session_check(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('stage', ['read', 'write'])
 async def test_cache_cancellation_propagates_without_renewal_or_context(
-    cache_env: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, stage: str
+    cache_env: UserCacheEnv, monkeypatch: pytest.MonkeyPatch, stage: str
 ) -> None:
     """缓存操作被取消时传播取消信号且不续期或写入上下文。"""
     original = cache_env.redis.eval
@@ -594,7 +618,7 @@ async def test_cache_cancellation_propagates_without_renewal_or_context(
 
 @pytest.mark.asyncio
 async def test_cache_disabled_keeps_database_authentication(
-    cache_env: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    cache_env: UserCacheEnv, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """禁用缓存时使用数据库认证。"""
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', False)

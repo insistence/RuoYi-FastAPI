@@ -1,9 +1,9 @@
 import asyncio
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Annotated
+from typing import Annotated, Generic, TypeVar
 from unittest.mock import AsyncMock
 
 import pytest
@@ -84,14 +84,40 @@ class AuthenticationRedis(SessionRedis):
         await super().set(key, value, ex=ex)
 
 
+_RedisT = TypeVar('_RedisT')
+
+
+@dataclass
+class UserResolutionEnv(Generic[_RedisT]):
+    """
+    通过真实路由和数据库验证当前用户解析的测试环境。
+
+    :ivar app: 挂载鉴权依赖的 FastAPI 应用
+    :ivar client: 向测试应用发送请求的客户端
+    :ivar redis: 保存用户会话和系统配置的缓存客户端
+    :ivar sessions: 连接测试数据库的异步会话工厂
+    :ivar headers: 按用户编号索引的认证请求头
+    :ivar statements: 测试中执行的查询语句
+    """
+
+    app: FastAPI
+    client: AsyncClient
+    redis: _RedisT
+    sessions: async_sessionmaker[AsyncSession]
+    headers: dict[int, dict[str, str]]
+    statements: list[str]
+
+
 @pytest_asyncio.fixture
-async def resolution_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[SimpleNamespace]:
+async def resolution_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> AsyncIterator[UserResolutionEnv[AuthenticationRedis]]:
     """
     为当前用户解析测试准备隔离环境。
 
     :param tmp_path: pytest 为当前用例创建的临时目录
     :param monkeypatch: 用于临时替换环境变量、模块或对象属性的 pytest 夹具
-    :yield: ``SimpleNamespace`` 实例
+    :yield: 包含应用、会话工厂和缓存替身的测试环境
     """
     monkeypatch.setattr(AppConfig, 'app_same_time_login', True)
     monkeypatch.setattr(AppConfig, 'app_current_user_cache_enabled', False)
@@ -188,7 +214,7 @@ async def resolution_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Asy
     RequestContext.clear_all()
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
-            yield SimpleNamespace(
+            yield UserResolutionEnv(
                 app=app, client=client, redis=redis, sessions=sessions, headers=headers, statements=statements
             )
     finally:
@@ -197,7 +223,9 @@ async def resolution_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Asy
 
 
 @pytest.mark.asyncio
-async def test_double_auth_declaration_queries_and_renews_once_per_request(resolution_env: SimpleNamespace) -> None:
+async def test_double_auth_declaration_queries_and_renews_once_per_request(
+    resolution_env: UserResolutionEnv[AuthenticationRedis],
+) -> None:
     """重复声明认证时单个请求只查询和续期一次。"""
     first = await resolution_env.client.get('/profile', headers=resolution_env.headers[USER_ID])
     assert first.status_code == HttpStatusConstant.SUCCESS
@@ -221,7 +249,9 @@ async def test_double_auth_declaration_queries_and_renews_once_per_request(resol
 
 
 @pytest.mark.asyncio
-async def test_admin_does_not_load_menus_for_authentication(resolution_env: SimpleNamespace) -> None:
+async def test_admin_does_not_load_menus_for_authentication(
+    resolution_env: UserResolutionEnv[AuthenticationRedis],
+) -> None:
     """管理员认证不加载菜单。"""
     response = await resolution_env.client.get('/permitted', headers=resolution_env.headers[ADMIN_ID])
     assert response.json()['permissions'] == ['*:*:*']
@@ -233,7 +263,9 @@ async def test_admin_does_not_load_menus_for_authentication(resolution_env: Simp
 
 
 @pytest.mark.asyncio
-async def test_use_cache_false_queries_and_renews_again_in_the_same_request(resolution_env: SimpleNamespace) -> None:
+async def test_use_cache_false_queries_and_renews_again_in_the_same_request(
+    resolution_env: UserResolutionEnv[AuthenticationRedis],
+) -> None:
     """禁用依赖缓存后同一请求再次查询并续期。"""
 
     @resolution_env.app.get(
@@ -268,7 +300,9 @@ async def test_use_cache_false_queries_and_renews_again_in_the_same_request(reso
 
 
 @pytest.mark.asyncio
-async def test_use_cache_false_rejects_a_session_revoked_in_the_same_request(resolution_env: SimpleNamespace) -> None:
+async def test_use_cache_false_rejects_a_session_revoked_in_the_same_request(
+    resolution_env: UserResolutionEnv[AuthenticationRedis],
+) -> None:
     """禁用依赖缓存后拒绝在同一请求中撤销的会话。"""
 
     async def revoke_session(current_user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> None:
@@ -307,7 +341,7 @@ async def test_use_cache_false_rejects_a_session_revoked_in_the_same_request(res
 @pytest.mark.asyncio
 @pytest.mark.parametrize('change', ['remove_menu', 'disable_role'])
 async def test_use_cache_false_applies_permission_changes_in_the_same_request(
-    resolution_env: SimpleNamespace, change: str
+    resolution_env: UserResolutionEnv[AuthenticationRedis], change: str
 ) -> None:
     """禁用依赖缓存后同一请求可读取权限变更。"""
 
@@ -359,7 +393,7 @@ async def test_use_cache_false_applies_permission_changes_in_the_same_request(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('change', [{'status': '1'}, {'del_flag': '2'}])
 async def test_disabled_or_deleted_user_is_rejected_on_next_request(
-    resolution_env: SimpleNamespace, change: dict[str, str]
+    resolution_env: UserResolutionEnv[AuthenticationRedis], change: dict[str, str]
 ) -> None:
     """后续请求拒绝已禁用或删除的用户。"""
     first = await resolution_env.client.get('/profile', headers=resolution_env.headers[USER_ID])
@@ -375,7 +409,9 @@ async def test_disabled_or_deleted_user_is_rejected_on_next_request(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('change', ['remove', 'disable', 'delete'])
-async def test_role_revocation_applies_to_next_request(resolution_env: SimpleNamespace, change: str) -> None:
+async def test_role_revocation_applies_to_next_request(
+    resolution_env: UserResolutionEnv[AuthenticationRedis], change: str
+) -> None:
     """后续请求应用角色撤销结果。"""
     first = await resolution_env.client.get('/permitted', headers=resolution_env.headers[USER_ID])
     assert first.json()['permissions'] == ['demo:read']
@@ -397,7 +433,7 @@ async def test_role_revocation_applies_to_next_request(resolution_env: SimpleNam
 
 @pytest.mark.asyncio
 async def test_password_policy_changes_are_recomputed_on_next_request(
-    resolution_env: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    resolution_env: UserResolutionEnv[AuthenticationRedis], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """后续请求重新计算已变更的密码策略。"""
     first = await resolution_env.client.get('/profile', headers=resolution_env.headers[USER_ID])
@@ -424,7 +460,7 @@ async def test_password_policy_changes_are_recomputed_on_next_request(
 
 @pytest.mark.asyncio
 async def test_password_expiry_advances_between_requests(
-    resolution_env: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    resolution_env: UserResolutionEnv[AuthenticationRedis], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """两次请求之间按时间推进密码有效期。"""
     now = TimezoneUtil.utc_now()
@@ -440,7 +476,9 @@ async def test_password_expiry_advances_between_requests(
 
 
 @pytest.mark.asyncio
-async def test_concurrent_requests_keep_user_identity_and_permissions_separate(resolution_env: SimpleNamespace) -> None:
+async def test_concurrent_requests_keep_user_identity_and_permissions_separate(
+    resolution_env: UserResolutionEnv[AuthenticationRedis],
+) -> None:
     """并发请求隔离用户身份和权限。"""
     admin, reader = await asyncio.gather(
         resolution_env.client.get('/profile', headers=resolution_env.headers[ADMIN_ID]),
@@ -458,7 +496,7 @@ async def test_concurrent_requests_keep_user_identity_and_permissions_separate(r
 @pytest.mark.parametrize('operation', ['get', 'eval'])
 @pytest.mark.parametrize('failure', [RedisConnectionError, RedisTimeoutError, NoPermissionError])
 async def test_redis_failure_rejects_protected_requests_and_recovers_without_relogin(
-    resolution_env: SimpleNamespace,
+    resolution_env: UserResolutionEnv[AuthenticationRedis],
     monkeypatch: pytest.MonkeyPatch,
     operation: str,
     failure: type[RedisError],

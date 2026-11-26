@@ -19,7 +19,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-from fastapi import WebSocket
+from fastapi import FastAPI, WebSocket
 from starlette import status
 
 from plugins.examples.python.bundle_demo.events import register_event_routes
@@ -102,14 +102,17 @@ def prepare_network_host(fixture: SimpleNamespace) -> None:
     :param fixture: 使用生产门禁及会话协议的隔离运行时
     """
     app = fixture.app
+    assert isinstance(app, FastAPI)
     loaded = fixture.runtime.loaded['browser_test']
     loaded.gateway.connections.recheck_interval = 0.1
-    register_event_routes(loaded.lifespan.app, permission='browser_test:view', interval=1.0)
+    plugin_app = loaded.lifespan.app
+    assert isinstance(plugin_app, FastAPI)
+    register_event_routes(plugin_app, permission='browser_test:view', interval=1.0)
     bundle = fixture.plugin.backend_path / 'web' / 'dist'
     shutil.copyfile(Path(__file__).with_name('network_bundle.html'), bundle / 'index.html')
     shutil.copyfile(frontend_root() / 'src/utils/pluginBridge.js', bundle / 'assets/bridge.js')
 
-    @loaded.lifespan.app.websocket('/ws/events')
+    @plugin_app.websocket('/ws/events')
     async def events(websocket: WebSocket) -> None:
         """
         接受插件事件连接并处理测试消息。

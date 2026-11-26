@@ -15,7 +15,7 @@ pandas==3.1.1
 Pillow==13.0.0
 psutil==7.2.2
 pydantic==2.14.4
-pydantic-validation-decorator==0.1.5
+pydantic-validation-decorator==0.2.0
 PyJWT[crypto]==2.15.1
 PyMySQL==1.2.4
 redis==8.1.0

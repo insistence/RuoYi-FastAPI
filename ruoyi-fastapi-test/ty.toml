@@ -5,6 +5,7 @@ python-version = "3.11"
 [rules]
 blanket-ignore-comment = "error"
 disjoint-cast = "error"
+dynamic-function-decorator-return = "error"
 mismatched-enum-name = "error"
 mismatched-namedtuple-name = "error"
 mismatched-sentinel-name = "error"

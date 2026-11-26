@@ -1,7 +1,6 @@
 import json
 from collections.abc import AsyncIterator, Iterator
 from copy import deepcopy
-from types import SimpleNamespace
 from typing import TYPE_CHECKING, Annotated
 from unittest.mock import AsyncMock
 from uuid import UUID
@@ -21,6 +20,7 @@ from exceptions.handle import handle_exception
 from middlewares.context_middleware import add_context_cleanup_middleware
 from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
 from module_admin.service.login_service import LoginService, oauth2_scheme
+from tests.auth_helpers import AuthTestApp
 from utils.server_util import APIDocsUtil
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ AUTHORIZATION = {'Authorization': 'Bearer valid'}
 
 
 @pytest.fixture
-def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
+def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[AuthTestApp]:
     """
     构建启用文档端点的测试应用。
 
@@ -139,7 +139,7 @@ def docs_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         return {'name': name}
 
     try:
-        yield SimpleNamespace(app=app, resolver=resolver)
+        yield AuthTestApp(app=app, resolver=resolver)
     finally:
         RequestContext.clear_all()
 
@@ -161,7 +161,7 @@ def _security(app: FastAPI, path: str, method: str = 'get') -> list[dict[str, li
 @pytest.mark.asyncio
 @pytest.mark.parametrize('server_urls', [[], ['https://api.example.test'], ['/gateway']])
 async def test_proxy_schema_does_not_add_deployment_prefix_to_direct_schema(
-    docs_app: SimpleNamespace, server_urls: list[str]
+    docs_app: AuthTestApp, server_urls: list[str]
 ) -> None:
     """代理文档的部署前缀不会写入直连文档。"""
     servers = [{'url': url} for url in server_urls]
@@ -176,12 +176,13 @@ async def test_proxy_schema_does_not_add_deployment_prefix_to_direct_schema(
     assert direct.json().get('servers', []) == servers
     assert proxy.json()['paths'] == direct.json()['paths']
     assert docs_app.app.servers == servers
+    assert docs_app.app.openapi_schema is not None
     assert docs_app.app.openapi_schema.get('servers', []) == servers
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('path', ['/public', '/items/{name}'])
-async def test_fully_excluded_route_has_no_login_security(docs_app: SimpleNamespace, path: str) -> None:
+async def test_fully_excluded_route_has_no_login_security(docs_app: AuthTestApp, path: str) -> None:
     """完全排除的路由无需在文档中声明登录认证。"""
     assert _security(docs_app.app, path) == []
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=docs_app.app), base_url='http://test') as client:
@@ -192,7 +193,7 @@ async def test_fully_excluded_route_has_no_login_security(docs_app: SimpleNamesp
 
 
 @pytest.mark.asyncio
-async def test_protected_route_keeps_login_security(docs_app: SimpleNamespace) -> None:
+async def test_protected_route_keeps_login_security(docs_app: AuthTestApp) -> None:
     """受保护路由保留登录安全要求。"""
     assert _security(docs_app.app, '/protected') == [LOGIN_SECURITY]
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=docs_app.app), base_url='http://test') as client:
@@ -204,7 +205,7 @@ async def test_protected_route_keeps_login_security(docs_app: SimpleNamespace) -
 
 
 @pytest.mark.asyncio
-async def test_security_is_classified_per_http_method(docs_app: SimpleNamespace) -> None:
+async def test_security_is_classified_per_http_method(docs_app: AuthTestApp) -> None:
     """按 HTTP 方法分别判定安全要求。"""
     assert _security(docs_app.app, '/method', 'get') == []
     assert _security(docs_app.app, '/method', 'post') == [LOGIN_SECURITY]
@@ -224,7 +225,7 @@ async def test_security_is_classified_per_http_method(docs_app: SimpleNamespace)
     ],
 )
 async def test_parameter_dependent_authentication_is_documented_as_conditional(
-    docs_app: SimpleNamespace, path: str, public_path: str, protected_path: str, documented_rule: str
+    docs_app: AuthTestApp, path: str, public_path: str, protected_path: str, documented_rule: str
 ) -> None:
     """依赖参数的认证在文档中标为有条件。"""
     operation = docs_app.app.openapi()['paths'][path]['get']
@@ -243,7 +244,7 @@ async def test_parameter_dependent_authentication_is_documented_as_conditional(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('declaration', ['current', 'nested', 'token', 'plugin', 'included'])
 async def test_explicit_authentication_cannot_be_removed_from_public_route_schema(
-    docs_app: SimpleNamespace, declaration: str
+    docs_app: AuthTestApp, declaration: str
 ) -> None:
     """公开路由中显式声明的认证仍保留在文档中。"""
     path = f'/explicit-{declaration}'
@@ -332,7 +333,7 @@ async def test_explicit_authentication_cannot_be_removed_from_public_route_schem
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('required', [False, True])
-async def test_all_pre_auth_dependencies_must_exclude_the_route(docs_app: SimpleNamespace, required: bool) -> None:
+async def test_all_pre_auth_dependencies_must_exclude_the_route(docs_app: AuthTestApp, required: bool) -> None:
     """全部预认证依赖均排除时才放行路由。"""
     path = '/multiple'
     dependencies = [
@@ -364,7 +365,7 @@ async def test_all_pre_auth_dependencies_must_exclude_the_route(docs_app: Simple
 
 
 @pytest.mark.asyncio
-async def test_disjoint_exclusions_do_not_make_a_parameterized_route_public(docs_app: SimpleNamespace) -> None:
+async def test_disjoint_exclusions_do_not_make_a_parameterized_route_public(docs_app: AuthTestApp) -> None:
     """不相交的排除范围不会使参数化路由公开。"""
 
     @docs_app.app.get(
@@ -393,7 +394,7 @@ async def test_disjoint_exclusions_do_not_make_a_parameterized_route_public(docs
 
 
 @pytest.mark.parametrize('name', ['public', 'private'])
-def test_fixed_route_honors_wildcard_exclusion_and_ignore_paths(docs_app: SimpleNamespace, name: str) -> None:
+def test_fixed_route_honors_wildcard_exclusion_and_ignore_paths(docs_app: AuthTestApp, name: str) -> None:
     """固定路由遵循通配符和忽略路径。"""
     path = f'/fixed/{name}'
 
@@ -416,7 +417,7 @@ def test_fixed_route_honors_wildcard_exclusion_and_ignore_paths(docs_app: Simple
 
 @pytest.mark.parametrize('ignore_path', ['/elsewhere/private', '/reallowed/private'])
 def test_irrelevant_or_reallowed_exceptions_do_not_make_fully_public_routes_conditional(
-    docs_app: SimpleNamespace, ignore_path: str
+    docs_app: AuthTestApp, ignore_path: str
 ) -> None:
     """无关或已重新放行的例外不会让公开路由变为有条件认证。"""
 
@@ -448,7 +449,7 @@ def test_irrelevant_or_reallowed_exceptions_do_not_make_fully_public_routes_cond
 @pytest.mark.asyncio
 @pytest.mark.parametrize('conditional', [False, True])
 async def test_public_login_exclusion_preserves_other_required_security(
-    docs_app: SimpleNamespace, conditional: bool
+    docs_app: AuthTestApp, conditional: bool
 ) -> None:
     """排除登录要求时保留其他安全要求。"""
     path = '/key/{name}' if conditional else '/key'
@@ -485,7 +486,7 @@ async def test_public_login_exclusion_preserves_other_required_security(
 
 
 @pytest.mark.asyncio
-async def test_independent_oauth_scheme_with_the_same_name_remains_required(docs_app: SimpleNamespace) -> None:
+async def test_independent_oauth_scheme_with_the_same_name_remains_required(docs_app: AuthTestApp) -> None:
     """同名的独立 OAuth 方案仍是必需项。"""
     independent = OAuth2PasswordBearer(tokenUrl='independent-login', scheme_name='OAuth2PasswordBearer')
 
@@ -515,7 +516,7 @@ async def test_independent_oauth_scheme_with_the_same_name_remains_required(docs
 @pytest.mark.asyncio
 @pytest.mark.parametrize('root_path', ['/gateway', '/api'])
 async def test_nested_router_prefix_and_root_path_match_runtime_rules(
-    docs_app: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, root_path: str
+    docs_app: AuthTestApp, monkeypatch: pytest.MonkeyPatch, root_path: str
 ) -> None:
     """嵌套路由前缀及根路径遵循运行时规则。"""
     monkeypatch.setattr(AppConfig, 'app_root_path', root_path)
@@ -539,7 +540,7 @@ async def test_nested_router_prefix_and_root_path_match_runtime_rules(
 
 
 @pytest.mark.asyncio
-async def test_schema_urls_and_direct_schema_share_security_and_servers(docs_app: SimpleNamespace) -> None:
+async def test_schema_urls_and_direct_schema_share_security_and_servers(docs_app: AuthTestApp) -> None:
     """代理文档与直连文档共享安全要求和服务器信息。"""
     direct = docs_app.app.openapi()
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=docs_app.app), base_url='http://test') as client:
@@ -553,7 +554,7 @@ async def test_schema_urls_and_direct_schema_share_security_and_servers(docs_app
     docs_app.resolver.assert_not_awaited()
 
 
-def test_schema_adjustment_is_idempotent_and_tracks_late_router_registration(docs_app: SimpleNamespace) -> None:
+def test_schema_adjustment_is_idempotent_and_tracks_late_router_registration(docs_app: AuthTestApp) -> None:
     """重复调整文档结果一致且能跟踪后注册的路由。"""
     initial = deepcopy(docs_app.app.openapi())
     assert docs_app.app.openapi() == initial
@@ -588,7 +589,7 @@ def test_schema_adjustment_is_idempotent_and_tracks_late_router_registration(doc
 @pytest.mark.parametrize('public_first', [False, True])
 @pytest.mark.parametrize('include_first', [False, True])
 async def test_duplicate_route_preserves_native_security(
-    docs_app: SimpleNamespace, public_first: bool, include_first: bool
+    docs_app: AuthTestApp, public_first: bool, include_first: bool
 ) -> None:
     """重复路由保留原生安全要求。"""
     path = '/duplicate'
@@ -623,6 +624,7 @@ async def test_duplicate_route_preserves_native_security(
         return {'route': 'second'}
 
     operation = docs_app.app.openapi()['paths'][path]['get']
+    assert docs_app.app.openapi_schema is not None
     assert operation == docs_app.app.openapi_schema['paths'][path]['get']
     assert operation['security'] == [LOGIN_SECURITY]
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=docs_app.app), base_url='http://test') as client:
@@ -639,7 +641,7 @@ async def test_duplicate_route_preserves_native_security(
 @pytest.mark.parametrize('public_first', [False, True])
 @pytest.mark.parametrize('include_first', [False, True])
 async def test_duplicate_path_with_different_convertors_preserves_native_security(
-    docs_app: SimpleNamespace, public_first: bool, include_first: bool
+    docs_app: AuthTestApp, public_first: bool, include_first: bool
 ) -> None:
     """同一路径使用不同转换器时保留原生安全要求。"""
     rule: ExcludeRoute = {'path': '/duplicate-convertor/{value}'}
@@ -678,6 +680,7 @@ async def test_duplicate_path_with_different_convertors_preserves_native_securit
     path = '/duplicate-convertor/{value}'
     operation = docs_app.app.openapi()['paths'][path]['get']
     # 相同OpenAPI路径可对应不同的实际匹配范围，不能将其中一条的排除规则用于整条声明。
+    assert docs_app.app.openapi_schema is not None
     assert operation['security'] == docs_app.app.openapi_schema['paths'][path]['get']['security'] == [LOGIN_SECURITY]
     assert 'x-login-auth' not in operation
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=docs_app.app), base_url='http://test') as client:
@@ -705,7 +708,7 @@ async def test_duplicate_path_with_different_convertors_preserves_native_securit
     ],
 )
 async def test_duplicate_route_with_other_authentication_preserves_native_security(
-    docs_app: SimpleNamespace, first_auth: str, second_auth: str
+    docs_app: AuthTestApp, first_auth: str, second_auth: str
 ) -> None:
     """重复路由带有其他认证时保留原生安全要求。"""
     path = '/duplicate-security'
@@ -747,6 +750,7 @@ async def test_duplicate_route_with_other_authentication_preserves_native_securi
         return {'route': 'second'}
 
     operation = docs_app.app.openapi()['paths'][path]['get']
+    assert docs_app.app.openapi_schema is not None
     assert operation == docs_app.app.openapi_schema['paths'][path]['get']
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=docs_app.app), base_url='http://test') as client:
         anonymous = await client.get(path)
@@ -760,7 +764,7 @@ async def test_duplicate_route_with_other_authentication_preserves_native_securi
     assert authenticated.json() == {'route': 'first'}
 
 
-def test_unrelated_schema_details_and_security_schemes_are_preserved(docs_app: SimpleNamespace) -> None:
+def test_unrelated_schema_details_and_security_schemes_are_preserved(docs_app: AuthTestApp) -> None:
     """保留无关的文档细节和安全方案。"""
     api_key = APIKeyHeader(name='X-External-Key', scheme_name='ExternalKey')
 
@@ -825,7 +829,7 @@ def test_unrelated_schema_details_and_security_schemes_are_preserved(docs_app: S
     ],
 )
 async def test_parameter_convertors_exclude_impossible_public_values(
-    docs_app: SimpleNamespace, converter: str, first_value: str, second_value: str, excluded_value: str
+    docs_app: AuthTestApp, converter: str, first_value: str, second_value: str, excluded_value: str
 ) -> None:
     """路径转换器排除不可能公开的值。"""
 
@@ -860,9 +864,7 @@ async def test_parameter_convertors_exclude_impossible_public_values(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('reallow', [False, True])
-async def test_overlapping_public_values_respect_each_pre_auth_exception(
-    docs_app: SimpleNamespace, reallow: bool
-) -> None:
+async def test_overlapping_public_values_respect_each_pre_auth_exception(docs_app: AuthTestApp, reallow: bool) -> None:
     """公开值重叠时遵循每个预认证依赖的例外。"""
     rules: list[ExcludeRoute] = [{'path': '/overlap/{name}', 'ignore_paths': ['/overlap/free']}]
     if reallow:
@@ -896,10 +898,11 @@ async def test_overlapping_public_values_respect_each_pre_auth_exception(
     assert second.json()['code'] == status.HTTP_401_UNAUTHORIZED
 
 
-def test_adjusted_schema_never_mutates_the_native_cache(docs_app: SimpleNamespace) -> None:
+def test_adjusted_schema_never_mutates_the_native_cache(docs_app: AuthTestApp) -> None:
     """调整文档不会修改原生缓存。"""
     adjusted = docs_app.app.openapi()
     native = docs_app.app.openapi_schema
+    assert native is not None
     assert native is not adjusted
     assert native['paths']['/public']['get']['security'] == [LOGIN_SECURITY]
     assert native['paths']['/mixed/{name}']['get']['security'] == [LOGIN_SECURITY]
@@ -913,7 +916,7 @@ def test_adjusted_schema_never_mutates_the_native_cache(docs_app: SimpleNamespac
     assert '由调用者修改的文档' not in regenerated['paths']['/mixed/{name}']['get']['description']
 
 
-def test_registering_docs_again_does_not_duplicate_conditional_authentication_notes(docs_app: SimpleNamespace) -> None:
+def test_registering_docs_again_does_not_duplicate_conditional_authentication_notes(docs_app: AuthTestApp) -> None:
     """重复注册文档不会重复追加条件认证说明。"""
     before = deepcopy(docs_app.app.openapi())
     APIDocsUtil.custom_api_docs_router(docs_app.app)
@@ -921,7 +924,7 @@ def test_registering_docs_again_does_not_duplicate_conditional_authentication_no
 
 
 @pytest.mark.asyncio
-async def test_changed_exclusion_rules_restore_native_security_and_description(docs_app: SimpleNamespace) -> None:
+async def test_changed_exclusion_rules_restore_native_security_and_description(docs_app: AuthTestApp) -> None:
     """更改排除规则后恢复原生安全要求和说明。"""
     pre_auth = PreAuthDependency([{'path': '/mutable/free'}])
     description = '原有接口描述必须保留。'
@@ -954,7 +957,7 @@ async def test_changed_exclusion_rules_restore_native_security_and_description(d
 
 
 @pytest.mark.parametrize('conditional', [False, True])
-def test_compound_security_from_openapi_extra_is_preserved(docs_app: SimpleNamespace, conditional: bool) -> None:
+def test_compound_security_from_openapi_extra_is_preserved(docs_app: AuthTestApp, conditional: bool) -> None:
     """保留 OpenAPI 扩展声明的组合安全要求。"""
     gateway = APIKeyHeader(name='X-Gateway-Key', scheme_name='GatewayKey')
     audit = APIKeyHeader(name='X-Audit-Key', scheme_name='AuditKey')
@@ -1015,7 +1018,7 @@ def test_compound_security_from_openapi_extra_is_preserved(docs_app: SimpleNames
 )
 @pytest.mark.parametrize('ignore', ['none', 'matching', 'unrelated'])
 async def test_embedded_parameters_and_literal_dots_preserve_full_exclusion(
-    docs_app: SimpleNamespace, path: str, public_path: str, private_path: str, unmatched_ignore: str, ignore: str
+    docs_app: AuthTestApp, path: str, public_path: str, private_path: str, unmatched_ignore: str, ignore: str
 ) -> None:
     """嵌入路径参数及字面点号保留完全排除效果。"""
     ignored_paths = [] if ignore == 'none' else [private_path if ignore == 'matching' else unmatched_ignore]
@@ -1052,7 +1055,7 @@ async def test_embedded_parameters_and_literal_dots_preserve_full_exclusion(
 
 
 @pytest.mark.asyncio
-async def test_modifying_documented_rules_cannot_change_runtime_authentication(docs_app: SimpleNamespace) -> None:
+async def test_modifying_documented_rules_cannot_change_runtime_authentication(docs_app: AuthTestApp) -> None:
     """修改文档规则不能改变运行时认证。"""
 
     @docs_app.app.api_route(
@@ -1092,7 +1095,7 @@ async def test_modifying_documented_rules_cannot_change_runtime_authentication(d
 
 
 @pytest.mark.asyncio
-async def test_explicit_anonymous_security_for_optional_api_key_is_preserved(docs_app: SimpleNamespace) -> None:
+async def test_explicit_anonymous_security_for_optional_api_key_is_preserved(docs_app: AuthTestApp) -> None:
     """可选 API 密钥保留显式匿名访问声明。"""
     optional_key = APIKeyHeader(name='X-Optional-Key', scheme_name='OptionalKey', auto_error=False)
 
@@ -1122,7 +1125,7 @@ async def test_explicit_anonymous_security_for_optional_api_key_is_preserved(doc
 
 
 @pytest.mark.asyncio
-async def test_complex_rule_cannot_override_a_proven_empty_public_intersection(docs_app: SimpleNamespace) -> None:
+async def test_complex_rule_cannot_override_a_proven_empty_public_intersection(docs_app: AuthTestApp) -> None:
     """复杂规则无法覆盖已证明为空的公开范围交集。"""
 
     @docs_app.app.get(
@@ -1151,7 +1154,7 @@ async def test_complex_rule_cannot_override_a_proven_empty_public_intersection(d
 
 
 @pytest.mark.asyncio
-async def test_unresolved_complex_rules_do_not_add_an_unproven_anonymous_alternative(docs_app: SimpleNamespace) -> None:
+async def test_unresolved_complex_rules_do_not_add_an_unproven_anonymous_alternative(docs_app: AuthTestApp) -> None:
     """未能解析的复杂规则不会引入未经确认的匿名选项。"""
 
     @docs_app.app.get(

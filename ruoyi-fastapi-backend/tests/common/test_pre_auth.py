@@ -23,6 +23,7 @@ from module_admin.entity.do.user_do import SysUser
 from module_admin.entity.vo.role_vo import RoleModel
 from module_admin.entity.vo.user_vo import CurrentUserModel, UserInfoModel
 from module_admin.service.login_service import LoginService, oauth2_scheme
+from tests.auth_helpers import AuthTestApp
 from utils.dependency_util import DependencyUtil
 
 if TYPE_CHECKING:
@@ -52,7 +53,7 @@ def _user(user_id: int) -> CurrentUserModel:
 
 
 @pytest.fixture
-def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
+def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[AuthTestApp]:
     """
     构建带认证依赖和异常处理的测试应用。
 
@@ -162,14 +163,14 @@ def auth_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         return {'userId': user.user.user_id}
 
     try:
-        yield SimpleNamespace(app=app, resolver=resolver)
+        yield AuthTestApp(app=app, resolver=resolver)
     finally:
         RequestContext.clear_all()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('path', ['/both', '/current', '/pre', '/direct'])
-async def test_request_authentication_runs_once(auth_app: SimpleNamespace, path: str) -> None:
+async def test_request_authentication_runs_once(auth_app: AuthTestApp, path: str) -> None:
     """单个请求只认证一次。"""
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
         response = await client.get(path, headers={'Authorization': 'Bearer alice'})
@@ -182,7 +183,7 @@ async def test_request_authentication_runs_once(auth_app: SimpleNamespace, path:
 
 
 @pytest.mark.asyncio
-async def test_new_requests_reauthenticate_even_with_the_same_token(auth_app: SimpleNamespace) -> None:
+async def test_new_requests_reauthenticate_even_with_the_same_token(auth_app: AuthTestApp) -> None:
     """同一令牌发起新请求仍需重新认证。"""
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
         for _ in range(2):
@@ -194,7 +195,7 @@ async def test_new_requests_reauthenticate_even_with_the_same_token(auth_app: Si
 
 
 @pytest.mark.asyncio
-async def test_parallel_requests_keep_user_and_context_separate(auth_app: SimpleNamespace) -> None:
+async def test_parallel_requests_keep_user_and_context_separate(auth_app: AuthTestApp) -> None:
     """并发请求隔离用户及上下文。"""
     tokens = ['alice', 'bob', 'alice', 'bob']
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
@@ -210,7 +211,7 @@ async def test_parallel_requests_keep_user_and_context_separate(auth_app: Simple
 
 
 @pytest.mark.asyncio
-async def test_excluded_route_keeps_path_method_and_ignore_rules(auth_app: SimpleNamespace) -> None:
+async def test_excluded_route_keeps_path_method_and_ignore_rules(auth_app: AuthTestApp) -> None:
     """排除路由时同时考虑路径、方法和忽略规则。"""
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
         response = await client.get('/public/free')
@@ -226,7 +227,7 @@ async def test_excluded_route_keeps_path_method_and_ignore_rules(auth_app: Simpl
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('path', ['/both', '/current', '/pre'])
-async def test_missing_token_preserves_existing_auth_response(auth_app: SimpleNamespace, path: str) -> None:
+async def test_missing_token_preserves_existing_auth_response(auth_app: AuthTestApp, path: str) -> None:
     """缺少令牌时返回约定的认证响应。"""
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
         response = await client.get(path)
@@ -242,7 +243,7 @@ async def test_missing_token_preserves_existing_auth_response(auth_app: SimpleNa
 @pytest.mark.parametrize('authorization', ['Bearer invalid', 'Basic alice', 'Bearer'])
 @pytest.mark.parametrize('path', ['/both', '/current', '/pre'])
 async def test_invalid_token_and_header_cannot_reuse_authentication(
-    auth_app: SimpleNamespace, authorization: str, path: str
+    auth_app: AuthTestApp, authorization: str, path: str
 ) -> None:
     """无效令牌或请求头无法复用认证结果。"""
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
@@ -252,7 +253,7 @@ async def test_invalid_token_and_header_cannot_reuse_authentication(
     assert denied.json()['code'] == status.HTTP_401_UNAUTHORIZED
 
 
-def test_current_user_dependency_keeps_original_oauth_token_url(auth_app: SimpleNamespace) -> None:
+def test_current_user_dependency_keeps_original_oauth_token_url(auth_app: AuthTestApp) -> None:
     """当前用户依赖保留原 OAuth 令牌地址。"""
     security = auth_app.app.openapi()['components']['securitySchemes']['OAuth2PasswordBearer']
     assert security['flows']['password']['tokenUrl'] == 'login'
@@ -323,7 +324,7 @@ async def test_cancelled_authentication_is_not_saved(monkeypatch: pytest.MonkeyP
 
 @pytest.mark.asyncio
 async def test_excluded_route_matches_configured_root_path(
-    auth_app: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    auth_app: AuthTestApp, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """排除规则能匹配配置的根路径。"""
     monkeypatch.setattr(AppConfig, 'app_root_path', '/dev-api')
@@ -337,7 +338,7 @@ async def test_excluded_route_matches_configured_root_path(
 
 
 @pytest.mark.asyncio
-async def test_original_dependency_override_applies_to_both_declarations(auth_app: SimpleNamespace) -> None:
+async def test_original_dependency_override_applies_to_both_declarations(auth_app: AuthTestApp) -> None:
     """原依赖覆盖对两处声明同时生效。"""
     user = _user(USER_IDS['bob'])
     override_calls = []
@@ -445,7 +446,7 @@ async def test_non_string_token_keeps_auth_exception_conversion() -> None:
 
 
 @pytest.mark.asyncio
-async def test_use_cache_false_reauthenticates_after_pre_auth(auth_app: SimpleNamespace) -> None:
+async def test_use_cache_false_reauthenticates_after_pre_auth(auth_app: AuthTestApp) -> None:
     """禁用缓存后在预认证完成时重新认证。"""
 
     @auth_app.app.get(
@@ -478,7 +479,7 @@ async def test_use_cache_false_reauthenticates_after_pre_auth(auth_app: SimpleNa
 
 
 @pytest.mark.asyncio
-async def test_use_cache_false_does_not_fall_back_to_previous_success(auth_app: SimpleNamespace) -> None:
+async def test_use_cache_false_does_not_fall_back_to_previous_success(auth_app: AuthTestApp) -> None:
     """禁用缓存后无法沿用上次成功结果。"""
 
     @auth_app.app.get(
@@ -508,7 +509,7 @@ async def test_use_cache_false_does_not_fall_back_to_previous_success(auth_app: 
 
 @pytest.mark.asyncio
 async def test_later_pre_auth_cannot_restore_permissions_before_forced_authentication(
-    auth_app: SimpleNamespace,
+    auth_app: AuthTestApp,
 ) -> None:
     """后续预认证无法在强制认证前恢复权限。"""
     initial_user = _user(USER_IDS['bob'])
@@ -570,7 +571,7 @@ async def test_later_pre_auth_cannot_restore_permissions_before_forced_authentic
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('authorization', [None, 'Bearer alice', 'Bearer invalid', 'Basic invalid'])
-async def test_public_route_never_authenticates(auth_app: SimpleNamespace, authorization: str | None) -> None:
+async def test_public_route_never_authenticates(auth_app: AuthTestApp, authorization: str | None) -> None:
     """公开路由无需认证。"""
     headers = {'Authorization': authorization} if authorization is not None else {}
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
@@ -581,7 +582,7 @@ async def test_public_route_never_authenticates(auth_app: SimpleNamespace, autho
 
 
 @pytest.mark.asyncio
-async def test_explicit_current_user_still_authenticates_on_excluded_route(auth_app: SimpleNamespace) -> None:
+async def test_explicit_current_user_still_authenticates_on_excluded_route(auth_app: AuthTestApp) -> None:
     """排除路由中显式请求当前用户仍触发认证。"""
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
         response = await client.get('/excluded-current', headers={'Authorization': 'Bearer bob'})
@@ -592,7 +593,7 @@ async def test_explicit_current_user_still_authenticates_on_excluded_route(auth_
 
 
 @pytest.mark.asyncio
-async def test_nested_current_user_dependency_requires_login_on_excluded_route(auth_app: SimpleNamespace) -> None:
+async def test_nested_current_user_dependency_requires_login_on_excluded_route(auth_app: AuthTestApp) -> None:
     """排除路由中嵌套的当前用户依赖仍要求登录。"""
 
     async def identity(user: Annotated[CurrentUserModel, Depends(LoginService.get_current_user)]) -> int:
@@ -629,7 +630,7 @@ async def test_nested_current_user_dependency_requires_login_on_excluded_route(a
 
 @pytest.mark.asyncio
 async def test_override_cannot_add_authentication_to_an_excluded_dependency_without_login(
-    auth_app: SimpleNamespace,
+    auth_app: AuthTestApp,
 ) -> None:
     """覆盖排除的依赖时不能绕开登录而追加认证。"""
 
@@ -686,7 +687,7 @@ async def test_direct_call_without_a_token_requires_login() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize('excluded_first', [True, False])
 async def test_excluded_pre_auth_cannot_cancel_another_auth_requirement(
-    auth_app: SimpleNamespace, excluded_first: bool
+    auth_app: AuthTestApp, excluded_first: bool
 ) -> None:
     """排除一处预认证不能取消其他认证要求。"""
     dependencies = [PreAuthDependency([{'path': '/mixed'}]), PreAuthDependency()]
@@ -717,7 +718,7 @@ async def test_excluded_pre_auth_cannot_cancel_another_auth_requirement(
 
 
 @pytest.mark.asyncio
-async def test_multiple_excluded_pre_auth_dependencies_do_not_require_login(auth_app: SimpleNamespace) -> None:
+async def test_multiple_excluded_pre_auth_dependencies_do_not_require_login(auth_app: AuthTestApp) -> None:
     """多个被排除的预认证依赖不要求登录。"""
 
     @auth_app.app.get(
@@ -746,7 +747,7 @@ async def test_multiple_excluded_pre_auth_dependencies_do_not_require_login(auth
 @pytest.mark.asyncio
 @pytest.mark.parametrize('pre_auth_first', [True, False])
 async def test_first_required_dependency_keeps_missing_token_response(
-    auth_app: SimpleNamespace, pre_auth_first: bool
+    auth_app: AuthTestApp, pre_auth_first: bool
 ) -> None:
     """由首个强制认证依赖决定缺少令牌的响应。"""
     dependencies = [PreAuthDependency(), CurrentUserDependency()]
@@ -776,7 +777,7 @@ async def test_first_required_dependency_keeps_missing_token_response(
 
 
 @pytest.mark.asyncio
-async def test_failed_request_does_not_reuse_a_previous_authentication(auth_app: SimpleNamespace) -> None:
+async def test_failed_request_does_not_reuse_a_previous_authentication(auth_app: AuthTestApp) -> None:
     """失败请求无法复用先前认证。"""
     authenticate = auth_app.resolver.side_effect
     auth_app.resolver.side_effect = AuthException(message='认证失败')
@@ -790,7 +791,7 @@ async def test_failed_request_does_not_reuse_a_previous_authentication(auth_app:
 
 
 @pytest.mark.asyncio
-async def test_cancelled_request_does_not_affect_following_authentication(auth_app: SimpleNamespace) -> None:
+async def test_cancelled_request_does_not_affect_following_authentication(auth_app: AuthTestApp) -> None:
     """取消请求后不影响后续认证。"""
     authenticate = auth_app.resolver.side_effect
     entered = asyncio.Event()
@@ -821,7 +822,7 @@ async def test_cancelled_request_does_not_affect_following_authentication(auth_a
 
 
 @pytest.mark.asyncio
-async def test_interface_role_and_data_permissions_are_still_checked(auth_app: SimpleNamespace) -> None:
+async def test_interface_role_and_data_permissions_are_still_checked(auth_app: AuthTestApp) -> None:
     """接口权限、角色和数据权限均被检查。"""
 
     @auth_app.app.get(
@@ -880,7 +881,7 @@ async def test_interface_role_and_data_permissions_are_still_checked(auth_app: S
 @pytest.mark.parametrize('path', ['/pre', '/both', '/current'])
 @pytest.mark.parametrize('scheme', ['Bearer', 'bearer', 'BEARER'])
 async def test_authentication_accepts_standard_bearer_scheme_case_insensitively(
-    auth_app: SimpleNamespace, path: str, scheme: str
+    auth_app: AuthTestApp, path: str, scheme: str
 ) -> None:
     """Bearer 认证方案忽略大小写。"""
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
@@ -888,6 +889,7 @@ async def test_authentication_accepts_standard_bearer_scheme_case_insensitively(
     assert response.status_code == status.HTTP_200_OK
     assert response.json()['userId'] == USER_IDS['alice']
     auth_app.resolver.assert_awaited_once()
+    assert auth_app.resolver.await_args is not None
     assert auth_app.resolver.await_args.args[1] == 'alice'
 
 
@@ -895,7 +897,7 @@ async def test_authentication_accepts_standard_bearer_scheme_case_insensitively(
 @pytest.mark.parametrize('path', ['/pre', '/both', '/current'])
 @pytest.mark.parametrize('authorization', ['alice', 'Basic alice'])
 async def test_authentication_rejects_non_bearer_authorization(
-    auth_app: SimpleNamespace, path: str, authorization: str
+    auth_app: AuthTestApp, path: str, authorization: str
 ) -> None:
     """认证拒绝非 Bearer 授权头。"""
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=auth_app.app), base_url='http://test') as client:
@@ -909,7 +911,7 @@ async def test_authentication_rejects_non_bearer_authorization(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('excluded', [False, True])
 async def test_explicit_oauth_dependency_returns_bare_token_and_still_requires_login(
-    auth_app: SimpleNamespace, excluded: bool
+    auth_app: AuthTestApp, excluded: bool
 ) -> None:
     """显式 OAuth 依赖返回纯令牌并要求登录。"""
     exclude_routes: list[ExcludeRoute] | None = [{'path': '/token'}] if excluded else None
@@ -939,7 +941,7 @@ async def test_explicit_oauth_dependency_returns_bare_token_and_still_requires_l
 
 
 @pytest.mark.asyncio
-async def test_unrelated_override_keeps_an_excluded_route_public(auth_app: SimpleNamespace) -> None:
+async def test_unrelated_override_keeps_an_excluded_route_public(auth_app: AuthTestApp) -> None:
     """无关依赖覆盖后排除路由仍可公开访问。"""
 
     async def language() -> str:
@@ -979,7 +981,7 @@ async def test_unrelated_override_keeps_an_excluded_route_public(auth_app: Simpl
 @pytest.mark.parametrize('nested', [False, True])
 @pytest.mark.parametrize('requirement', ['current_user', 'pre_auth', 'oauth'])
 async def test_parent_router_authentication_cannot_be_excluded_by_child(
-    auth_app: SimpleNamespace, nested: bool, requirement: str
+    auth_app: AuthTestApp, nested: bool, requirement: str
 ) -> None:
     """子路由无法排除父路由的认证要求。"""
     users = []
@@ -1022,7 +1024,7 @@ async def test_parent_router_authentication_cannot_be_excluded_by_child(
 
 
 @pytest.mark.asyncio
-async def test_router_inclusions_keep_their_own_authentication_requirements(auth_app: SimpleNamespace) -> None:
+async def test_router_inclusions_keep_their_own_authentication_requirements(auth_app: AuthTestApp) -> None:
     """分别挂载的路由保留各自的认证要求。"""
 
     async def require_user(user: Annotated[CurrentUserModel, CurrentUserDependency()]) -> None:
@@ -1056,7 +1058,7 @@ async def test_router_inclusions_keep_their_own_authentication_requirements(auth
 
 
 @pytest.mark.asyncio
-async def test_parent_override_added_authentication_is_required(auth_app: SimpleNamespace) -> None:
+async def test_parent_override_added_authentication_is_required(auth_app: AuthTestApp) -> None:
     """父级依赖覆盖增加的认证必须执行。"""
 
     async def identity() -> None:
@@ -1090,7 +1092,7 @@ async def test_parent_override_added_authentication_is_required(auth_app: Simple
 @pytest.mark.asyncio
 @pytest.mark.parametrize('root_path', ['', '/api'])
 async def test_business_prefix_is_not_removed_as_a_deployment_prefix(
-    auth_app: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, root_path: str
+    auth_app: AuthTestApp, monkeypatch: pytest.MonkeyPatch, root_path: str
 ) -> None:
     """识别部署路径时保留业务前缀。"""
     monkeypatch.setattr(AppConfig, 'app_root_path', '/api')
@@ -1116,7 +1118,7 @@ async def test_business_prefix_is_not_removed_as_a_deployment_prefix(
 @pytest.mark.asyncio
 @pytest.mark.parametrize('root_path', ['', '/api'])
 async def test_deployment_prefix_requires_a_path_segment_boundary(
-    auth_app: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, root_path: str
+    auth_app: AuthTestApp, monkeypatch: pytest.MonkeyPatch, root_path: str
 ) -> None:
     """部署前缀必须匹配完整路径段。"""
     monkeypatch.setattr(AppConfig, 'app_root_path', '/api')
@@ -1146,7 +1148,7 @@ async def test_deployment_prefix_requires_a_path_segment_boundary(
 @pytest.mark.parametrize('root_path', ['', '/api'])
 @pytest.mark.parametrize('permission', ['interface', 'role', 'data_scope'])
 async def test_permission_dependencies_use_the_same_excluded_application_path(
-    auth_app: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, root_path: str, permission: str
+    auth_app: AuthTestApp, monkeypatch: pytest.MonkeyPatch, root_path: str, permission: str
 ) -> None:
     """权限依赖使用相同的应用内排除路径。"""
     monkeypatch.setattr(AppConfig, 'app_root_path', '/api')
@@ -1192,7 +1194,7 @@ async def test_permission_dependencies_use_the_same_excluded_application_path(
 )
 @pytest.mark.parametrize('ignore_path', [False, True])
 async def test_encoded_path_separators_cannot_expand_public_routes(
-    auth_app: SimpleNamespace, root_path: str, encoded: str, decoded: str, ignore_path: bool
+    auth_app: AuthTestApp, root_path: str, encoded: str, decoded: str, ignore_path: bool
 ) -> None:
     """编码后的分隔符无法扩大公开路由范围。"""
     protected_path = f'/encoded/public{decoded}'
@@ -1234,7 +1236,7 @@ async def test_encoded_path_separators_cannot_expand_public_routes(
     [('%23private', '#private'), ('%3Fprivate', '?private'), ('%0A', '\n'), ('%0D', '\r'), ('%09', '\t')],
 )
 async def test_permission_check_uses_the_full_decoded_path(
-    auth_app: SimpleNamespace, root_path: str, encoded: str, decoded: str
+    auth_app: AuthTestApp, root_path: str, encoded: str, decoded: str
 ) -> None:
     """权限校验使用完整解码路径。"""
 
@@ -1272,7 +1274,7 @@ async def test_permission_check_uses_the_full_decoded_path(
 
 @pytest.mark.asyncio
 async def test_mounted_application_uses_its_asgi_root_path(
-    auth_app: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+    auth_app: AuthTestApp, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """挂载的应用使用自身 ASGI 根路径。"""
     monkeypatch.setattr(AppConfig, 'app_root_path', '/api')
